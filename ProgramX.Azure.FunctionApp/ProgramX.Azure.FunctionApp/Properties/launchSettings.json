@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "ProgramX.Azure.FunctionApp": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7276",
+      "launchBrowser": false
+    }
+  }
+}
