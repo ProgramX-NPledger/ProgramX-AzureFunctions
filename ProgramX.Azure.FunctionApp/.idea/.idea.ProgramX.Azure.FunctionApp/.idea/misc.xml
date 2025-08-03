@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="com.microsoft.azure.toolkit.intellij.storage.azurite.settings.AzuriteSettings">
+    <option name="executablePath" value="$USER_HOME$/.vscode/extensions/azurite.azurite-3.35.0/dist/src/main.js" />
+  </component>
+</project>
