@@ -7,6 +7,6 @@ public class InvalidCredentialsOrUnauthorisedHttpResponse : LoginHttpResponse
     public InvalidCredentialsOrUnauthorisedHttpResponse(HttpRequestData httpRequestData)
     {
         HttpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Unauthorized);
-        HttpResponseData.WriteString("Invalid Credentials or Unauthorised");
+        HttpResponseData.WriteStringAsync("Invalid Credentials or Unauthorised");
     }
 }

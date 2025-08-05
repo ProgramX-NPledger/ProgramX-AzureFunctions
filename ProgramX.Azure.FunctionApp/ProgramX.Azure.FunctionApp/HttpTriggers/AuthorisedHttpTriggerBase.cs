@@ -15,11 +15,11 @@ public abstract class AuthorisedHttpTriggerBase
     protected AuthenticationInfo Auth { get; private set; }
 
 
-    public Task AssertAuthorisationAsync(HttpRequestData httpRequestData)
+    public HttpResponseBase RequiresAuthentication(HttpRequestData httpRequestData, string? requiredRole, Func<HttpResponseBase> httpResponseDelegate)
     {
         if (!httpRequestData.Headers.Contains(AuthenticationHeaderName))
         {
-            return Task.FromException(new AuthenticationException("No authentication header was found."));
+            return new BadRequestHttpResponse(httpRequestData, "No authentication header was found.");
         }
 
         var authorisationHeader = httpRequestData.Headers.GetValues(AuthenticationHeaderName);
@@ -32,15 +32,16 @@ public abstract class AuthorisedHttpTriggerBase
         }
         catch (Exception exception)
         {
-            return Task.FromException(exception);
+            return new ServerErrorHttpResponse(httpRequestData, exception);
         }
 
         if (!Auth.IsValid)
         {
-            return Task.FromException(new KeyNotFoundException("No identity key was found in the claims."));
+            // this should redirect
+            return new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
         }
 
-        return Task.CompletedTask;
+        return httpResponseDelegate.Invoke();
     }
 
     /// <summary>

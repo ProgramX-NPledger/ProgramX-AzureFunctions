@@ -25,15 +25,18 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
     }
 
     [Function(nameof(GetApplications))]
-    public async Task<GetApplicationsHttpResponse> GetApplications(
+    public async Task<HttpResponseBase> GetApplications(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "applications")] HttpRequestData httpRequestData,
         [CosmosDBInput("core","applications",Connection = "CosmosDBConnection", SqlQuery = "SELECT * FROM c order by c.name")] IEnumerable<Application> applications)
     {
-        await AssertAuthorisationAsync(httpRequestData);
+        return RequiresAuthentication(httpRequestData, null, () =>
+        {
+            return new GetApplicationsHttpResponse(httpRequestData,applications);
+        });
         
         // https://charliedigital.com/2020/05/24/azure-functions-with-jwt-authentication/
         
-        return new GetApplicationsHttpResponse(httpRequestData,applications);
+        
 
     }
 }
