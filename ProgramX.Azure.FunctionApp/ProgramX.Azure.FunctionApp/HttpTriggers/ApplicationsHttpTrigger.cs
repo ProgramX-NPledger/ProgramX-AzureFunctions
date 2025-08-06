@@ -26,10 +26,10 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
 
     [Function(nameof(GetApplications))]
     public async Task<HttpResponseBase> GetApplications(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "applications")] HttpRequestData httpRequestData,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "application")] HttpRequestData httpRequestData,
         [CosmosDBInput("core","applications",Connection = "CosmosDBConnection", SqlQuery = "SELECT * FROM c order by c.name")] IEnumerable<Application> applications)
     {
-        return RequiresAuthentication(httpRequestData, null, () =>
+        return await RequiresAuthentication(httpRequestData, null, async () =>
         {
             return new GetApplicationsHttpResponse(httpRequestData,applications);
         });

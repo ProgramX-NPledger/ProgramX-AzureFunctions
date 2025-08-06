@@ -1,0 +1,10 @@
+namespace ProgramX.Azure.FunctionApp.Model;
+
+public class User
+{
+    public required string id { get; set; }
+    public required string userName { get; set; }
+    public required string emailAddress { get; set; }
+    
+    
+}

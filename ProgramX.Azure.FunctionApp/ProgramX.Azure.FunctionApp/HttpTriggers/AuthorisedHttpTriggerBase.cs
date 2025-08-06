@@ -15,7 +15,7 @@ public abstract class AuthorisedHttpTriggerBase
     protected AuthenticationInfo Auth { get; private set; }
 
 
-    public HttpResponseBase RequiresAuthentication(HttpRequestData httpRequestData, string? requiredRole, Func<HttpResponseBase> httpResponseDelegate)
+    public async Task<HttpResponseBase> RequiresAuthentication(HttpRequestData httpRequestData, string? requiredRole, Func<Task<HttpResponseBase>> httpResponseDelegate)
     {
         if (!httpRequestData.Headers.Contains(AuthenticationHeaderName))
         {
@@ -41,7 +41,7 @@ public abstract class AuthorisedHttpTriggerBase
             return new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
         }
 
-        return httpResponseDelegate.Invoke();
+        return await httpResponseDelegate.Invoke();
     }
 
     /// <summary>

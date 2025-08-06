@@ -7,6 +7,6 @@ public class BadRequestHttpResponse : HttpResponseBase
     public BadRequestHttpResponse(HttpRequestData httpRequestData, string errorMessage)
     {
         HttpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-        HttpResponseData.WriteString(errorMessage);
+        HttpResponseData.WriteStringAsync(errorMessage);
     }
 }

@@ -9,4 +9,10 @@ public class ServerErrorHttpResponse : HttpResponseBase
         HttpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.BadRequest);
         HttpResponseData.WriteString(exception.Message);
     }
+    
+    public ServerErrorHttpResponse(HttpRequestData httpRequestData, string errorMessage)
+    {
+        HttpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+        HttpResponseData.WriteString(errorMessage);
+    }
 }
