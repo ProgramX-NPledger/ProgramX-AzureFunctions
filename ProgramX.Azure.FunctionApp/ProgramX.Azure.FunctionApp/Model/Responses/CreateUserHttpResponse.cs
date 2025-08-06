@@ -29,6 +29,10 @@ public class CreateUserHttpResponse : HttpResponseBase
         HttpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Created);
         HttpResponseData.Headers.Add("Location", new[] { $"{httpRequestData.Url}/user/{User.id}" });
 
+        // redact the password
+        newUser.passwordHash = new byte[0];
+        newUser.passwordSalt = new byte[0];
+        
         HttpResponseData.WriteAsJsonAsync(newUser);
     }
 }
