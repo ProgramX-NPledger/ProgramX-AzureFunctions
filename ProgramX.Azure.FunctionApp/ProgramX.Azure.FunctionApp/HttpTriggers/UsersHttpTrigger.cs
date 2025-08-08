@@ -52,26 +52,36 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(GetUser))]
     public async Task<HttpResponseBase> GetUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{id}")] HttpRequestData httpRequestData,
-        [CosmosDBInput("core","users",Connection = "CosmosDBConnection", SqlQuery = "SELECT * FROM c WHERE c.id={id}")] IEnumerable<User> users,
-        string id)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{id?}")] HttpRequestData httpRequestData,
+        string? id)
     {
         return await RequiresAuthentication(httpRequestData, null, async () =>
         {
-            var user = users.FirstOrDefault();
-            if (user == null) return new NotFoundHttpResponse(httpRequestData,"User");
+            var users = CosmosDBUtility.GetItems<User>( _cosmosClient, "core","users",new QueryDefinition("SELECT * FROM c"));
+            if (id==null)
+            {
+                return new GetUsersHttpResponse(httpRequestData, users);
+            }
+            else
+            {
+                var user = users.FirstOrDefault(q=>q.id==id);
+                if (user == null) return new NotFoundHttpResponse(httpRequestData,"User");
 
-            user.passwordHash = [];
-            user.passwordSalt = [];
-            // return user details, application, profile photo
+                user.passwordHash = [];
+                user.passwordSalt = [];
+                // return user details, application, profile photo
             
-            // get all roles
-            var allRoles = CosmosDBUtility.GetItems<Role>( _cosmosClient, "core","roles",new QueryDefinition("SELECT * FROM c ORDER BY c.name"));
-            var allPermittedApplications = CosmosDBUtility.GetItems<Application>( _cosmosClient, "core","applications",new QueryDefinition("SELECT * FROM c ORDER BY c.name")).Where(q=>allRoles.Select(qq=>qq.applicationId).Contains(q.id));
-            var allPermittedRoles = allRoles; // TODO: Intersect
-            return new GetUserHttpResponse(httpRequestData,user,allPermittedApplications, allPermittedRoles.Select(q=>q.name));
+                // get all roles
+                var allRoles = CosmosDBUtility.GetItems<Role>( _cosmosClient, "core","roles",new QueryDefinition("SELECT * FROM c ORDER BY c.name"));
+                var allPermittedApplications = CosmosDBUtility.GetItems<Application>( _cosmosClient, "core","applications",new QueryDefinition("SELECT * FROM c ORDER BY c.name")).Where(q=>allRoles.Select(qq=>qq.applicationId).Contains(q.id));
+                var allPermittedRoles = allRoles; // TODO: Intersect
+                return new GetUserHttpResponse(httpRequestData,user,allPermittedApplications, allPermittedRoles.Select(q=>q.name));
+                
+            }
         });
     }
+    
+  
     
     [Function(nameof(CreateUser))]
     public async Task<HttpResponseBase> CreateUser(
