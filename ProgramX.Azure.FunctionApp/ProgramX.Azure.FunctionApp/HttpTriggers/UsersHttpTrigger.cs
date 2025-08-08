@@ -7,6 +7,8 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using ProgramX.Azure.FunctionApp.Helpers;
+using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using User = ProgramX.Azure.FunctionApp.Model.User;
@@ -43,10 +45,34 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     //     
     //     // https://charliedigital.com/2020/05/24/azure-functions-with-jwt-authentication/
     //     
-    //     
+    //     return: roles, applications
     //
     // }
 
+    
+    [Function(nameof(GetUser))]
+    public async Task<HttpResponseBase> GetUser(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{id}")] HttpRequestData httpRequestData,
+        [CosmosDBInput("core","users",Connection = "CosmosDBConnection", SqlQuery = "SELECT * FROM c WHERE c.id={id}")] IEnumerable<User> users,
+        string id)
+    {
+        return await RequiresAuthentication(httpRequestData, null, async () =>
+        {
+            var user = users.FirstOrDefault();
+            if (user == null) return new NotFoundHttpResponse(httpRequestData,"User");
+
+            user.passwordHash = [];
+            user.passwordSalt = [];
+            // return user details, application, profile photo
+            
+            // get all roles
+            var allRoles = CosmosDBUtility.GetItems<Role>( _cosmosClient, "core","roles",new QueryDefinition("SELECT * FROM c ORDER BY c.name"));
+            var allPermittedApplications = CosmosDBUtility.GetItems<Application>( _cosmosClient, "core","applications",new QueryDefinition("SELECT * FROM c ORDER BY c.name")).Where(q=>allRoles.Select(qq=>qq.applicationId).Contains(q.id));
+            var allPermittedRoles = allRoles; // TODO: Intersect
+            return new GetUserHttpResponse(httpRequestData,user,allPermittedApplications, allPermittedRoles.Select(q=>q.name));
+        });
+    }
+    
     [Function(nameof(CreateUser))]
     public async Task<HttpResponseBase> CreateUser(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user")]

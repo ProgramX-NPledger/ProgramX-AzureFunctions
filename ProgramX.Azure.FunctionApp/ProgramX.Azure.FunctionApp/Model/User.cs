@@ -9,5 +9,10 @@ public class User
     public required byte[] passwordHash { get; set; }
 
     public required byte[] passwordSalt { get; set; }
-    
+
+    // public Application[] applications { get; set; } = [];
+    //
+    // public string[] roles { get; set; } = [];
+
+
 }
