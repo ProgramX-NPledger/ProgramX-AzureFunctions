@@ -6,6 +6,6 @@ public class Role
     public string name { get; set; }
     public string description { get; set; }
 
-    public string applicationId { get; set; }
+    public IEnumerable<Application> applications { get; set; }
     
 }

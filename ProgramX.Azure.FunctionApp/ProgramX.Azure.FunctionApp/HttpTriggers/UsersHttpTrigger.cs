@@ -47,7 +47,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         return await RequiresAuthentication(httpRequestData, null, async () =>
         {
             var pagedAndFilteredCosmosDbReader =
-                new PagedAndFilteredCosmosDBReader<User>(_cosmosClient, "core", "users");
+                new PagedAndFilteredCosmosDBReader<SecureUser>(_cosmosClient, "core", "users");
             
             var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
             var users = await pagedAndFilteredCosmosDbReader.GetItems(new QueryDefinition("SELECT * FROM c"),continuationToken,DataConstants.ItemsPerPage);
@@ -61,13 +61,11 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 var user = users.Items.FirstOrDefault(q=>q.id==id);
                 if (user == null) return new NotFoundHttpResponse(httpRequestData,"User");
 
-                user.passwordHash = [];
-                user.passwordSalt = [];
                 // return user details, application, profile photo
             
                 // get all roles
-                var allRoles = CosmosDBUtility.GetItems<Role>( _cosmosClient, "core","roles",new QueryDefinition("SELECT * FROM c ORDER BY c.name"));
-                var allPermittedApplications = CosmosDBUtility.GetItems<Application>( _cosmosClient, "core","applications",new QueryDefinition("SELECT * FROM c ORDER BY c.name")).Where(q=>allRoles.Select(qq=>qq.applicationId).Contains(q.id));
+                var allRoles = Enumerable.Empty<Role>(); //CosmosDBUtility.GetItems<Role>( _cosmosClient, "core","roles",new QueryDefinition("SELECT * FROM c ORDER BY c.name"));
+                var allPermittedApplications = Enumerable.Empty<Application>(); // CosmosDBUtility.GetItems<Application>( _cosmosClient, "core","applications",new QueryDefinition("SELECT * FROM c ORDER BY c.name")).Where(q=>allRoles.Select(qq=>qq.applicationId).Contains(q.id));
                 var allPermittedRoles = allRoles; // TODO: Intersect
                 return new GetUserHttpResponse(httpRequestData,user,allPermittedApplications, allPermittedRoles.Select(q=>q.name));
                 

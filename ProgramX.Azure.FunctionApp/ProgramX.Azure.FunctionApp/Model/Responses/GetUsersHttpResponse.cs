@@ -4,7 +4,7 @@ namespace ProgramX.Azure.FunctionApp.Model.Responses;
 
 public class GetUsersHttpResponse : HttpResponseBase
 {
-    public GetUsersHttpResponse(HttpRequestData httpRequestData, IEnumerable<User> users, string? continuationToken)
+    public GetUsersHttpResponse(HttpRequestData httpRequestData, IEnumerable<SecureUser> users, string? continuationToken)
     {
         HttpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
         if (continuationToken != null)
