@@ -1,12 +1,16 @@
 using System.Net;
+using System.Text.Encodings.Web;
 using JWT;
 using JWT.Algorithms;
 using JWT.Serializers;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Requests;
@@ -32,22 +36,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
         
     }
-    //
-    // [Function(nameof(GetUsers))]
-    // public async Task<HttpResponseBase> GetUsers(
-    //     [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user")] HttpRequestData httpRequestData,
-    //     [CosmosDBInput("core","user",Connection = "CosmosDBConnection", SqlQuery = "SELECT * FROM c order by c.userName")] IEnumerable<User> users)
-    // {
-    //     return RequiresAuthentication(httpRequestData, null, () =>
-    //     {
-    //         return new GetUsersHttpResponse(httpRequestData,users);
-    //     });
-    //     
-    //     // https://charliedigital.com/2020/05/24/azure-functions-with-jwt-authentication/
-    //     
-    //     return: roles, applications
-    //
-    // }
+
 
     
     [Function(nameof(GetUser))]
@@ -57,14 +46,19 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, null, async () =>
         {
-            var users = CosmosDBUtility.GetItems<User>( _cosmosClient, "core","users",new QueryDefinition("SELECT * FROM c"));
+            var pagedAndFilteredCosmosDbReader =
+                new PagedAndFilteredCosmosDBReader<User>(_cosmosClient, "core", "users");
+            
+            var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
+            var users = await pagedAndFilteredCosmosDbReader.GetItems(new QueryDefinition("SELECT * FROM c"),continuationToken,DataConstants.ItemsPerPage);
+            
             if (id==null)
             {
-                return new GetUsersHttpResponse(httpRequestData, users);
+                return new GetUsersHttpResponse(httpRequestData, users.Items,users.ContinuationToken);
             }
             else
             {
-                var user = users.FirstOrDefault(q=>q.id==id);
+                var user = users.Items.FirstOrDefault(q=>q.id==id);
                 if (user == null) return new NotFoundHttpResponse(httpRequestData,"User");
 
                 user.passwordHash = [];

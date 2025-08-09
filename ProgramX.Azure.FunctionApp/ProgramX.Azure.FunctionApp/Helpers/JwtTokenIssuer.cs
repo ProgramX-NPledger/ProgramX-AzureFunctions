@@ -2,6 +2,7 @@ using JWT;
 using JWT.Algorithms;
 using JWT.Serializers;
 using Microsoft.VisualBasic;
+using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 
 namespace ProgramX.Azure.FunctionApp.Helpers
@@ -48,7 +49,7 @@ namespace ProgramX.Azure.FunctionApp.Helpers
                 }
             };
 
-            string token = _jwtEncoder.Encode(claims, Constants.SECRET_KEY);
+            string token = _jwtEncoder.Encode(claims, SecurityConstants.JwtKey);
 
             return token;
         }

@@ -2,6 +2,7 @@ using JWT.Algorithms;
 using JWT.Builder;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using ProgramX.Azure.FunctionApp.Constants;
 
 namespace ProgramX.Azure.FunctionApp.Model;
 
@@ -25,7 +26,7 @@ public class AuthenticationInfo
             // Validate the token and decode the claims.
             claims = new JwtBuilder()
                 .WithAlgorithm(new HMACSHA256Algorithm())
-                .WithSecret(Constants.SECRET_KEY)
+                .WithSecret(SecurityConstants.JwtKey)
                 .MustVerifySignature()
                 .Decode<IDictionary<string, object>>(jwtToken);
         }
