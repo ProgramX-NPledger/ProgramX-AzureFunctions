@@ -50,11 +50,11 @@ public class LoginHttpTrigger
             return new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
         var userFromDb = user.First();
         
-        using var hmac = new HMACSHA512(userFromDb.passwordSalt);
+        using var hmac = new HMACSHA512(userFromDb.PasswordSalt);
         var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(credentials.Password));
 
         for (var i = 0; i < computedHash.Length; i++)
-            if (computedHash[i] != userFromDb.passwordHash[i])
+            if (computedHash[i] != userFromDb.PasswordHash[i])
             {
                 return new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
             }

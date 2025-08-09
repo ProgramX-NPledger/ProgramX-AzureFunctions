@@ -1,18 +1,17 @@
+using System.Text.Json.Serialization;
+
 namespace ProgramX.Azure.FunctionApp.Model;
 
 public class User
 {
-    public required string id { get; set; }
-    public required string userName { get; set; }
-    public required string emailAddress { get; set; }
-
-    public required byte[] passwordHash { get; set; }
-
-    public required byte[] passwordSalt { get; set; }
-
-    // public Application[] applications { get; set; } = [];
-    //
-    // public string[] roles { get; set; } = [];
-
-
+    [JsonPropertyName("id")]
+    public required string Id { get; set; }
+    [JsonPropertyName("UserName")]
+    public required string UserName { get; set; }
+    [JsonPropertyName("EmailAddress")]
+    public required string EmailAddress { get; set; }
+    [JsonPropertyName("PasswordHash")]
+    public required byte[] PasswordHash { get; set; }
+    [JsonPropertyName("PasswordSalt")]
+    public required byte[] PasswordSalt { get; set; }
 }

@@ -1,11 +1,16 @@
+using System.Text.Json.Serialization;
+
 namespace ProgramX.Azure.FunctionApp.Model;
 
 public class Role
 {
-    public string id { get; set; }
-    public string name { get; set; }
-    public string description { get; set; }
-
-    public IEnumerable<Application> applications { get; set; }
+    [JsonPropertyName("id")]
+    public string Id { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
+    [JsonPropertyName("description")]
+    public string Description { get; set; }
+    [JsonPropertyName("applications")]
+    public IEnumerable<Application> Applications { get; set; }
     
 }

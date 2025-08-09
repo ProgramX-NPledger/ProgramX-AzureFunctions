@@ -1,17 +1,17 @@
+using System.Text.Json.Serialization;
+
 namespace ProgramX.Azure.FunctionApp.Model;
 
 public class SecureUser
 {
-    public required string id { get; set; }
-    public required string userName { get; set; }
-    public required string emailAddress { get; set; }
-
-    public  IEnumerable<Role> roles { get; set; }
-    
-    
-    // public Application[] applications { get; set; } = [];
-    //
-    // public string[] roles { get; set; } = [];
+    [JsonPropertyName("id")]
+    public required string Id { get; set; }
+    [JsonPropertyName("userName")]
+    public required string UserName { get; set; }
+    [JsonPropertyName("emailAddress")]
+    public required string EmailAddress { get; set; }
+    [JsonPropertyName("roles")]
+    public  IEnumerable<Role> Roles { get; set; }
 
 
 }

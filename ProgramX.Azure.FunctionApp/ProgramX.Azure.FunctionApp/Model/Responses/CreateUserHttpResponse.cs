@@ -17,21 +17,21 @@ public class CreateUserHttpResponse : HttpResponseBase
         
         var newUser = new User()
         {
-            id = Guid.NewGuid().ToString("N"),
-            emailAddress = user.emailAddress,
-            userName = user.userName,
-            passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(user.password)),
-            passwordSalt = hmac.Key
+            Id = Guid.NewGuid().ToString("N"),
+            EmailAddress = user.emailAddress,
+            UserName = user.userName,
+            PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(user.password)),
+            PasswordSalt = hmac.Key
         };
 
         User = newUser;
         
         HttpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Created);
-        HttpResponseData.Headers.Add("Location", new[] { $"{httpRequestData.Url}/user/{User.id}" });
+        HttpResponseData.Headers.Add("Location", new[] { $"{httpRequestData.Url}/user/{User.Id}" });
 
         // redact the password
-        newUser.passwordHash = new byte[0];
-        newUser.passwordSalt = new byte[0];
+        newUser.PasswordHash = new byte[0];
+        newUser.PasswordSalt = new byte[0];
         
         HttpResponseData.WriteAsJsonAsync(newUser);
     }

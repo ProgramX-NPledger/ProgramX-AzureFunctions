@@ -1,10 +1,16 @@
+using System.Text.Json.Serialization;
+
 namespace ProgramX.Azure.FunctionApp.Model;
 
 public class Application
 {
-    public required string id { get; set; }
+    [JsonPropertyName("name")]
     public required string name { get; set; }
-    public string? imageUrl { get; set; }
-    public required string targetUrl { get; set; }
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+    [JsonPropertyName("imageUrl")]
+    public string? ImageUrl { get; set; }
+    [JsonPropertyName("targetUrl")]
+    public required string TargetUrl { get; set; }
     
 }

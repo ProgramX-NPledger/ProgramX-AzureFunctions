@@ -59,7 +59,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
             if (createRoleRequest==null) return new BadRequestHttpResponse(httpRequestData, "Invalid request body");
 
             var httpResponseData = new CreateRoleHttpResponse(httpRequestData, createRoleRequest);
-            var response = await _container.CreateItemAsync(httpResponseData.Role, new PartitionKey(httpResponseData.Role.name));
+            var response = await _container.CreateItemAsync(httpResponseData.Role, new PartitionKey(httpResponseData.Role.Name));
         
             if (response.StatusCode == HttpStatusCode.Created) return httpResponseData;
         

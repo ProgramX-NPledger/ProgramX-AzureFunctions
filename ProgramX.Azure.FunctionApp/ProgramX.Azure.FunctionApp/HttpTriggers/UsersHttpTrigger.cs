@@ -68,10 +68,10 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
             else
             {
-                var user = users.Items.FirstOrDefault(q=>q.id==id);
+                var user = users.Items.FirstOrDefault(q=>q.Id==id);
                 if (user == null) return new NotFoundHttpResponse(httpRequestData,"User");
 
-                List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
+                List<Application> applications = user.Roles.SelectMany(q=>q.Applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
                 
              
                 return new GetUserHttpResponse(httpRequestData,user,applications);
@@ -94,7 +94,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             if (createUserRequest==null) return new BadRequestHttpResponse(httpRequestData, "Invalid request body");
 
             var httpResponseData = new CreateUserHttpResponse(httpRequestData, createUserRequest);
-            var response = await _container.CreateItemAsync(httpResponseData.User, new PartitionKey(httpResponseData.User.userName));
+            var response = await _container.CreateItemAsync(httpResponseData.User, new PartitionKey(httpResponseData.User.UserName));
         
             if (response.StatusCode == HttpStatusCode.Created) return httpResponseData;
         

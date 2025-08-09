@@ -17,15 +17,15 @@ public class CreateRoleHttpResponse : HttpResponseBase
         
         var newRole = new Role()
         {
-            id = Guid.NewGuid().ToString("N"),
-            name = role.name,
-            description = role.description
+            Id = Guid.NewGuid().ToString("N"),
+            Name = role.name,
+            Description = role.description
         };
 
         Role = newRole;
         
         HttpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Created);
-        HttpResponseData.Headers.Add("Location", new[] { $"{httpRequestData.Url}/role/{Role.name}" });
+        HttpResponseData.Headers.Add("Location", new[] { $"{httpRequestData.Url}/role/{Role.Name}" });
         
         HttpResponseData.WriteAsJsonAsync(newRole);
     }
