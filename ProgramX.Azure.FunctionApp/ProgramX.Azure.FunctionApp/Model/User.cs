@@ -10,11 +10,11 @@ public class User
     [JsonPropertyName("userName")]
     public required string userName { get; set; }
     [JsonPropertyName("emailAddress")]
-    public required string EmailAddress { get; set; }
+    public required string emailAddress { get; set; }
     [JsonPropertyName("passwordHash")]
-    public required byte[] PasswordHash { get; set; }
+    public required byte[] passwordHash { get; set; }
     [JsonPropertyName("passwordSalt")]
-    public required byte[] PasswordSalt { get; set; }
+    public required byte[] passwordSalt { get; set; }
     [JsonPropertyName("roles")]
-    public  IEnumerable<Role> Roles { get; set; }
+    public  IEnumerable<Role> roles { get; set; }
 }

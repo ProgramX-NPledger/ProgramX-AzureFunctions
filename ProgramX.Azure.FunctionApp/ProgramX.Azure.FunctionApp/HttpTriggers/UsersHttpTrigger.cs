@@ -69,10 +69,10 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
             else
             {
-                var user = users.Items.FirstOrDefault(q=>q.Id==id);
+                var user = users.Items.FirstOrDefault(q=>q.id==id);
                 if (user == null) return new NotFoundHttpResponse(httpRequestData,"User");
 
-                List<Application> applications = user.Roles.SelectMany(q=>q.Applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList();
+                List<Application> applications = user.roles.SelectMany(q=>q.Applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList();
                 
              
                 return new GetUserHttpResponse(httpRequestData,user,applications);
@@ -80,14 +80,50 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
         });
     }
-    
-    // editing a user will also add/edit roles and applications
-    // it is not possible to create a role or application because they each have a parent
+
+    [Function(nameof(UpdateUser))]
+    public async Task<HttpResponseBase> UpdateUser(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{id}")]
+        HttpRequestData httpRequestData,
+        string id)
+    {
+        return await RequiresAuthentication(httpRequestData, null,  async () =>
+        {
+            var updateUserRequest = await httpRequestData.ReadFromJsonAsync<UpdateUserRequest>();
+            if (updateUserRequest==null) return new BadRequestHttpResponse(httpRequestData, "Invalid request body");
+
+            // get the User to get the password hash
+            var pagedAndFilteredCosmosDbReader =
+                new PagedCosmosDBReader<User>(_cosmosClient, "core", "users");
+
+            QueryDefinition queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id=@id");
+            queryDefinition.WithParameter("@id", id);
+            var users = await pagedAndFilteredCosmosDbReader.GetItems(queryDefinition);
+            var originalUser = users.Items.FirstOrDefault();
+            if (originalUser == null) return new NotFoundHttpResponse(httpRequestData,"User");
+            
+            if (originalUser.userName!=updateUserRequest.userName) return new BadRequestHttpResponse(httpRequestData, "Cannot change the username because it is used for the Partition Key");
+            
+            originalUser.emailAddress=updateUserRequest.emailAddress;
+            originalUser.roles=updateUserRequest.roles;
+            
+            var httpResponseData = new UpdateUserHttpResponse(httpRequestData, updateUserRequest);
+            var response = await _container.ReplaceItemAsync(originalUser, id, new PartitionKey(updateUserRequest.userName));
+
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+
+                
+                return httpResponseData;
+            }
+        
+            return new ServerErrorHttpResponse(httpRequestData, "Failed to update user");
+        });
+    }
     
     [Function(nameof(CreateUser))]
     public async Task<HttpResponseBase> CreateUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user")]
-        HttpRequestData httpRequestData
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user")] HttpRequestData httpRequestData
     )
     {
         return await RequiresAuthentication(httpRequestData, null,  async () =>
@@ -107,8 +143,8 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             if (response.StatusCode == HttpStatusCode.Created)
             {
                 // redact the password
-                httpResponseData.User.PasswordHash = new byte[0];
-                httpResponseData.User.PasswordSalt = new byte[0];
+                httpResponseData.User.passwordHash = new byte[0];
+                httpResponseData.User.passwordSalt = new byte[0];
                 
                 return httpResponseData;
             }

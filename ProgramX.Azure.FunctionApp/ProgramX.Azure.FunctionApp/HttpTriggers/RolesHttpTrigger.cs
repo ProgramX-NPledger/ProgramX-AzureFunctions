@@ -73,21 +73,21 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                 var users = await usersCosmosDbReader.GetItems(new QueryDefinition("SELECT * FROM u"),null,null);
                 var distinctUsers = users.Items.GroupBy(q=>q.id).Select(q=>new SecureUser()
                 {
-                    Id = q.First().id,
-                    UserName = q.First().userName,
-                    EmailAddress = q.First().EmailAddress,
-                    Roles = q.First().Roles,
+                    id = q.First().id,
+                    userName = q.First().userName,
+                    emailAddress = q.First().emailAddress,
+                    roles = q.First().roles,
                 }).ToList();
                 var usersInRole = users.Items.GroupBy(q=>q.id)
-                    .Where(q=>q.First().Roles.Select(q=>q.Name).Contains(role.Name))
+                    .Where(q=>q.First().roles.Select(q=>q.Name).Contains(role.Name))
                     .Select(q=>new UserInRole()
                 {
                     Id = q.First().id,
                     UserName = q.First().userName,
-                    EmailAddress = q.First().EmailAddress,
+                    EmailAddress = q.First().emailAddress,
                 }).ToList();
                 
-                List<Application> applications = distinctUsers.SelectMany(q=>q.Roles)
+                List<Application> applications = distinctUsers.SelectMany(q=>q.roles)
                         .SelectMany(q=>q.Applications)
                         .GroupBy(g=>g.Name)
                         .Select(q=>q.First()).ToList();

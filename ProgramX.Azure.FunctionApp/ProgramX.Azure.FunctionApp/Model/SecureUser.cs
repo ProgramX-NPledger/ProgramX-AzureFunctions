@@ -5,13 +5,13 @@ namespace ProgramX.Azure.FunctionApp.Model;
 public class SecureUser
 {
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public required string id { get; set; }
     [JsonPropertyName("userName")]
-    public required string UserName { get; set; }
+    public required string userName { get; set; }
     [JsonPropertyName("emailAddress")]
-    public required string EmailAddress { get; set; }
+    public required string emailAddress { get; set; }
     [JsonPropertyName("roles")]
-    public  IEnumerable<Role> Roles { get; set; }
+    public  IEnumerable<Role> roles { get; set; }
 
 
 }

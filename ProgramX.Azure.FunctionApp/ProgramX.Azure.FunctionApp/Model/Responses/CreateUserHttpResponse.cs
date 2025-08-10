@@ -19,11 +19,11 @@ public class CreateUserHttpResponse : HttpResponseBase
         var newUser = new User()
         {
             id = Guid.NewGuid().ToString("N"),
-            EmailAddress = user.EmailAddress,
+            emailAddress = user.EmailAddress,
             userName = user.UserName,
-            PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(user.Password)),
-            PasswordSalt = hmac.Key,
-            Roles = roles.Where(q=>user.AddToRoles.Select(r=>r.Name).Contains(q.Name))
+            passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(user.Password)),
+            passwordSalt = hmac.Key,
+            roles = roles.Where(q=>user.AddToRoles.Select(r=>r.Name).Contains(q.Name))
                 .Union(
                     user.AddToRoles
                         .Where(q=>!roles
