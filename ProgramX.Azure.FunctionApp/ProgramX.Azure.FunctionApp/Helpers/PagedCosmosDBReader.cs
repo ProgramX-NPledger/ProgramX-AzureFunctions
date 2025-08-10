@@ -2,13 +2,13 @@ using Microsoft.Azure.Cosmos;
 
 namespace ProgramX.Azure.FunctionApp.Helpers;
 
-public class PagedAndFilteredCosmosDBReader<T>
+public class PagedCosmosDBReader<T>
 {
     private readonly CosmosClient _client;
     private readonly string _databaseName;
     private readonly string _containerName;
 
-    public PagedAndFilteredCosmosDBReader(CosmosClient client, string databaseName, string containerName)
+    public PagedCosmosDBReader(CosmosClient client, string databaseName, string containerName)
     {
         _client = client;
         _databaseName = databaseName;

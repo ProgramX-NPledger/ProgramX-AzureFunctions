@@ -46,8 +46,9 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, null, async () =>
         {
+            // pass a filter into the below
             var pagedAndFilteredCosmosDbReader =
-                new PagedAndFilteredCosmosDBReader<SecureUser>(_cosmosClient, "core", "users");
+                new PagedCosmosDBReader<SecureUser>(_cosmosClient, "core", "users");
             
             var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
             QueryDefinition queryDefinition;
@@ -71,7 +72,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 var user = users.Items.FirstOrDefault(q=>q.Id==id);
                 if (user == null) return new NotFoundHttpResponse(httpRequestData,"User");
 
-                List<Application> applications = user.Roles.SelectMany(q=>q.Applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
+                List<Application> applications = user.Roles.SelectMany(q=>q.Applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList();
                 
              
                 return new GetUserHttpResponse(httpRequestData,user,applications);
@@ -80,7 +81,8 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         });
     }
     
-  
+    // editing a user will also add/edit roles and applications
+    // it is not possible to create a role or application because they each have a parent
     
     [Function(nameof(CreateUser))]
     public async Task<HttpResponseBase> CreateUser(

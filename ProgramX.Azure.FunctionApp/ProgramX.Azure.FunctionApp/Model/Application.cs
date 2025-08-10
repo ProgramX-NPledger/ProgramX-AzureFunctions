@@ -5,7 +5,7 @@ namespace ProgramX.Azure.FunctionApp.Model;
 public class Application
 {
     [JsonPropertyName("name")]
-    public required string name { get; set; }
+    public required string Name { get; set; }
     [JsonPropertyName("description")]
     public string? Description { get; set; }
     [JsonPropertyName("imageUrl")]

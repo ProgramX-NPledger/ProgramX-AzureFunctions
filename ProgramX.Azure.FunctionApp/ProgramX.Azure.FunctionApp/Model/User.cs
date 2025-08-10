@@ -14,4 +14,6 @@ public class User
     public required byte[] PasswordHash { get; set; }
     [JsonPropertyName("PasswordSalt")]
     public required byte[] PasswordSalt { get; set; }
+    [JsonPropertyName("roles")]
+    public  IEnumerable<Role> Roles { get; set; }
 }
