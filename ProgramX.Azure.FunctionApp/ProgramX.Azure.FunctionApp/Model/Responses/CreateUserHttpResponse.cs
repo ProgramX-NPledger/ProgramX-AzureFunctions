@@ -11,27 +11,38 @@ public class CreateUserHttpResponse : HttpResponseBase
     
     public User User { get; set; }
     
-    public CreateUserHttpResponse(HttpRequestData httpRequestData,CreateUserRequest user)
+    public CreateUserHttpResponse(HttpRequestData httpRequestData,CreateUserRequest user, IEnumerable<Role> roles)
     {
         using var hmac = new HMACSHA512();
+        roles = roles.ToList(); // avoid multiple enumeration
         
         var newUser = new User()
         {
-            Id = Guid.NewGuid().ToString("N"),
-            EmailAddress = user.emailAddress,
-            UserName = user.userName,
-            PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(user.password)),
-            PasswordSalt = hmac.Key
+            id = Guid.NewGuid().ToString("N"),
+            EmailAddress = user.EmailAddress,
+            userName = user.UserName,
+            PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(user.Password)),
+            PasswordSalt = hmac.Key,
+            Roles = roles.Where(q=>user.AddToRoles.Select(r=>r.Name).Contains(q.Name))
+                .Union(
+                    user.AddToRoles
+                        .Where(q=>!roles
+                            .Select(r=>r.Name)
+                            .Contains(q.Name)
+                        )
+                        .Select(q=>new Role()
+                {
+                    Name = q.Name,
+                    Description = q.Description,
+                    Applications = q.Applications
+                }))
+                .ToList()
         };
-
+        
         User = newUser;
         
         HttpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Created);
-        HttpResponseData.Headers.Add("Location", new[] { $"{httpRequestData.Url}/user/{User.Id}" });
-
-        // redact the password
-        newUser.PasswordHash = new byte[0];
-        newUser.PasswordSalt = new byte[0];
+        HttpResponseData.Headers.Add("Location", new[] { $"{httpRequestData.Url}/user/{User.id}" });
         
         HttpResponseData.WriteAsJsonAsync(newUser);
     }

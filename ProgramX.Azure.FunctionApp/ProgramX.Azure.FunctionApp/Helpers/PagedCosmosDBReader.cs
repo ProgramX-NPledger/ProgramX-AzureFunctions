@@ -15,6 +15,14 @@ public class PagedCosmosDBReader<T>
         _containerName = containerName;
     }
 
+    /// <summary>
+    /// Returns a paged, strongly typed result from CosmosDB.
+    /// </summary>
+    /// <param name="queryDefinition">The <seealso cref="QueryDefinition"/> representing the query to execute.</param>
+    /// <param name="continuationToken">Optional. The optional continuation token used to access the next page. Use <c>null</c> for final or only page.</param>
+    /// <param name="itemsPerPage">Optional. The number of items per page. Use <c>null</c> to request an unpaged result.</param>
+    /// <returns>A <seealso cref="PagedCosmosDBResult{T}"/> containing the strongly typed result and the continuation token, if subsequent pages are available.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the provided container name is invalid.</exception>
     public async Task<PagedCosmosDBResult<T>> GetItems(QueryDefinition queryDefinition,
         string? continuationToken = null,
         int? itemsPerPage = null)

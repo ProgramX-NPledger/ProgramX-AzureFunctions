@@ -95,10 +95,23 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             var createUserRequest = await httpRequestData.ReadFromJsonAsync<CreateUserRequest>();
             if (createUserRequest==null) return new BadRequestHttpResponse(httpRequestData, "Invalid request body");
 
-            var httpResponseData = new CreateUserHttpResponse(httpRequestData, createUserRequest);
-            var response = await _container.CreateItemAsync(httpResponseData.User, new PartitionKey(httpResponseData.User.UserName));
-        
-            if (response.StatusCode == HttpStatusCode.Created) return httpResponseData;
+            var rolesCosmosDbReader =
+                new PagedCosmosDBReader<Role>(_cosmosClient, "core", "users");
+            
+            var queryDefinition= new QueryDefinition("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles");
+            var roles = await rolesCosmosDbReader.GetItems(queryDefinition,null,null);
+            
+            var httpResponseData = new CreateUserHttpResponse(httpRequestData, createUserRequest,roles.Items);
+            var response = await _container.CreateItemAsync(httpResponseData.User, new PartitionKey(httpResponseData.User.userName));
+
+            if (response.StatusCode == HttpStatusCode.Created)
+            {
+                // redact the password
+                httpResponseData.User.PasswordHash = new byte[0];
+                httpResponseData.User.PasswordSalt = new byte[0];
+                
+                return httpResponseData;
+            }
         
             return new ServerErrorHttpResponse(httpRequestData, "Failed to create user");
         });
