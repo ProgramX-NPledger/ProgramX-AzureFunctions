@@ -17,7 +17,6 @@ public class CreateRoleHttpResponse : HttpResponseBase
         
         var newRole = new Role()
         {
-            Id = Guid.NewGuid().ToString("N"),
             Name = role.name,
             Description = role.description
         };
