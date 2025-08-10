@@ -50,6 +50,7 @@ jobs:
         with:
           app-name: 'fa-programx'
           slot-name: 'staging'
-          package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
+          package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/ProgramX.Azure.FunctionApp/output'
 
           
+
