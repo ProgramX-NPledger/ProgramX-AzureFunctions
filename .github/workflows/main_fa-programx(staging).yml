@@ -50,9 +50,11 @@ jobs:
         with:
           app-name: 'fa-programx'
           slot-name: 'staging'
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/ProgramX.Azure.FunctionApp/output'
 
           
+
 
 
 
