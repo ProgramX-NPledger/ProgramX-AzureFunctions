@@ -49,8 +49,9 @@ jobs:
         id: fa
         with:
           app-name: 'fa-programx'
-          slot-name: 'staging'
+          #slot-name: 'staging'
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/ProgramX.Azure.FunctionApp/output'
 
           
+
 
