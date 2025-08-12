@@ -44,7 +44,9 @@ public class LoginHttpTrigger
 
         var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.userName = @userName");
         queryDefinition.WithParameter("@userName", credentials.UserName);
-        var users = _cosmosClient.GetContainer("core", "users").GetItemQueryIterator<ProgramX.Azure.FunctionApp.Model.User>(queryDefinition);
+        var database = await _cosmosClient.CreateDatabaseIfNotExistsAsync("core");
+        var container = await database.Database.CreateContainerIfNotExistsAsync("users", "/id");
+        var users = container.Container.GetItemQueryIterator<ProgramX.Azure.FunctionApp.Model.User>(queryDefinition);
         var user = await users.ReadNextAsync();
         if (user.Count == 0)
             return new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
