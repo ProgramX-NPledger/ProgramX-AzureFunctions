@@ -16,9 +16,18 @@ public class HealthCheckHttpTrigger
     }
     
     [Function(nameof(GetHealthCheck))]
-    public IActionResult GetHealthCheck([HttpTrigger(AuthorizationLevel.Function, "get", Route = "healthcheck")] HttpRequestData req)
+    public async Task<HttpResponseData> GetHealthCheck([HttpTrigger(AuthorizationLevel.Function, "get", Route = "healthcheck")] HttpRequestData req)
     {
-        return new OkObjectResult("OK");
+        _logger.LogInformation("HealthCheck request received.");
+        
+        var httpResponseData = req.CreateResponse(System.Net.HttpStatusCode.OK);
+        await httpResponseData.WriteAsJsonAsync(new
+        {
+            status = "OK"
+        });
+        
+        return httpResponseData;
+        
     }
     
     
