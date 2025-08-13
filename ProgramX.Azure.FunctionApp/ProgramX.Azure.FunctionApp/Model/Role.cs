@@ -11,5 +11,8 @@ public class Role
     public string Description { get; set; }
     [JsonPropertyName("applications")]
     public IEnumerable<Application> Applications { get; set; }
+    public string type { get; } = "role";
+
+    public int versionNumber { get; } = 1;
     
 }

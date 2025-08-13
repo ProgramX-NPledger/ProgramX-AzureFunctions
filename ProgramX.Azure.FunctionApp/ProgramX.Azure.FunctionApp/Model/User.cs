@@ -17,4 +17,8 @@ public class User
     public required byte[] passwordSalt { get; set; }
     [JsonPropertyName("roles")]
     public  IEnumerable<Role> roles { get; set; }
+
+    public string type { get; } = "user";
+
+    public int versionNumber { get; } = 1;
 }

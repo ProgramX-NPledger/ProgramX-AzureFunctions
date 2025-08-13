@@ -12,5 +12,8 @@ public class Application
     public string? ImageUrl { get; set; }
     [JsonPropertyName("targetUrl")]
     public required string TargetUrl { get; set; }
+    public string type { get; } = "application";
+
+    public int versionNumber { get; } = 1;
     
 }
