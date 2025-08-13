@@ -42,10 +42,13 @@ public class LoginHttpTrigger
             return invalidCredentialsResponse;
         }
 
+        _logger.LogInformation("Login request received.");
         var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.userName = @userName");
         queryDefinition.WithParameter("@userName", credentials.UserName);
         var database = await _cosmosClient.CreateDatabaseIfNotExistsAsync("core");
+        if (database.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Database created");
         var container = await database.Database.CreateContainerIfNotExistsAsync("users", "/id");
+        if (container.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Container created");
         var users = container.Container.GetItemQueryIterator<ProgramX.Azure.FunctionApp.Model.User>(queryDefinition);
         var user = await users.ReadNextAsync();
         if (user.Count == 0)
