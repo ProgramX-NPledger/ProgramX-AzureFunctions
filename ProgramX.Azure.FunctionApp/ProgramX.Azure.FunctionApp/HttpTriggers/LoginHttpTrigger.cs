@@ -34,6 +34,7 @@ public class LoginHttpTrigger
         ILogger logger)
     {
         // https://charliedigital.com/2020/05/24/azure-functions-with-jwt-authentication/
+        _logger.LogInformation("Login request received.");
         
         var credentials = await httpRequestData.ReadFromJsonAsync<Credentials>();
         if (credentials == null)
@@ -41,8 +42,7 @@ public class LoginHttpTrigger
             var invalidCredentialsResponse = new BadRequestHttpResponse(httpRequestData, "Invalid request body");
             return invalidCredentialsResponse;
         }
-
-        _logger.LogInformation("Login request received.");
+        
         var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.userName = @userName");
         queryDefinition.WithParameter("@userName", credentials.UserName);
         var database = await _cosmosClient.CreateDatabaseIfNotExistsAsync("core");
