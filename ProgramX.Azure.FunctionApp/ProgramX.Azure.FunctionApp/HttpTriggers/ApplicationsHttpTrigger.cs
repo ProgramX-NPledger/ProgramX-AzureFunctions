@@ -16,8 +16,7 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
 {
     private readonly ILogger<LoginHttpTrigger> _logger;
     
-    [CosmosDBOutput("core","applications",Connection="CosmosDBConnection")]
-    public IEnumerable<Application> Applications { get; set; } = new List<Application>();
+  
     
     public ApplicationsHttpTrigger(ILogger<LoginHttpTrigger> logger)
     {
@@ -26,12 +25,11 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
 
     [Function(nameof(GetApplications))]
     public async Task<HttpResponseBase> GetApplications(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "application")] HttpRequestData httpRequestData,
-        [CosmosDBInput("core","applications",Connection = "CosmosDBConnection", SqlQuery = "SELECT * FROM c order by c.name")] IEnumerable<Application> applications)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "application")] HttpRequestData httpRequestData)
     {
         return await RequiresAuthentication(httpRequestData, null, async () =>
         {
-            return new GetApplicationsHttpResponse(httpRequestData,applications);
+            return new GetApplicationsHttpResponse(httpRequestData,new Application[0]);
         });
         
         // https://charliedigital.com/2020/05/24/azure-functions-with-jwt-authentication/
