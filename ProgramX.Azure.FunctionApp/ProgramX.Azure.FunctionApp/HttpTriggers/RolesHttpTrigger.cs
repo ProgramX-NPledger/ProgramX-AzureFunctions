@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Constants;
@@ -25,7 +26,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 
  
     public RolesHttpTrigger(ILogger<UsersHttpTrigger> logger,
-        CosmosClient cosmosClient)
+        CosmosClient cosmosClient, IConfiguration configuration) : base(configuration)
     {
         _logger = logger;
         _cosmosClient = cosmosClient;

@@ -5,6 +5,7 @@ using JWT.Serializers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Requests;
@@ -18,7 +19,7 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
     
   
     
-    public ApplicationsHttpTrigger(ILogger<LoginHttpTrigger> logger)
+    public ApplicationsHttpTrigger(ILogger<LoginHttpTrigger> logger, IConfiguration configuration) : base(configuration)    
     {
         _logger = logger;
     }

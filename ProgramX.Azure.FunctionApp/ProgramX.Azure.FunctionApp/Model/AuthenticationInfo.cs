@@ -15,7 +15,7 @@ public class AuthenticationInfo
     public string Username { get; }
     public IEnumerable<string> Roles { get; }
 
-    public AuthenticationInfo(string jwtToken)
+    public AuthenticationInfo(string jwtToken, string jwtKey)
     {
 
         // Check if we can decode the header.
@@ -26,7 +26,7 @@ public class AuthenticationInfo
             // Validate the token and decode the claims.
             claims = new JwtBuilder()
                 .WithAlgorithm(new HMACSHA256Algorithm())
-                .WithSecret(SecurityConstants.JwtKey)
+                .WithSecret(jwtKey)
                 .MustVerifySignature()
                 .Decode<IDictionary<string, object>>(jwtToken);
         }

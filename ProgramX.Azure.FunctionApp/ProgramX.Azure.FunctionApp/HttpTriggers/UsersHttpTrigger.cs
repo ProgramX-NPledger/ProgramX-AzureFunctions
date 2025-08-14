@@ -1,4 +1,6 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Encodings.Web;
 using JWT;
 using JWT.Algorithms;
@@ -9,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Helpers;
@@ -27,7 +30,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
  
     public UsersHttpTrigger(ILogger<UsersHttpTrigger> logger,
-        CosmosClient cosmosClient)
+        CosmosClient cosmosClient, IConfiguration configuration) : base(configuration)
     {
         _logger = logger;
         _cosmosClient = cosmosClient;
@@ -145,16 +148,41 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             var queryDefinition= new QueryDefinition("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles");
             var roles = await rolesCosmosDbReader.GetItems(queryDefinition,null,null);
             
-            var httpResponseData = new CreateUserHttpResponse(httpRequestData, createUserRequest,roles.Items);
-            var response = await _container.CreateItemAsync(httpResponseData.User, new PartitionKey(httpResponseData.User.userName));
+            using var hmac = new HMACSHA512();
+            var allRoles = roles.Items.ToList(); // avoid multiple enumeration
+        
+            var newUser = new User()
+            {
+                id = Guid.NewGuid().ToString("N"),
+                emailAddress = createUserRequest.EmailAddress,
+                userName = createUserRequest.UserName,
+                passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(createUserRequest.Password)),
+                passwordSalt = hmac.Key,
+                roles = allRoles.Where(q=>createUserRequest.AddToRoles.Select(r=>r.Name).Contains(q.Name))
+                    .Union(
+                        createUserRequest.AddToRoles
+                            .Where(q=>!allRoles
+                                .Select(r=>r.Name)
+                                .Contains(q.Name)
+                            )
+                            .Select(q=>new Role()
+                            {
+                                Name = q.Name,
+                                Description = q.Description,
+                                Applications = q.Applications
+                            }))
+                    .ToList()
+            };
+        
+            var response = await _container.CreateItemAsync(newUser, new PartitionKey(newUser.userName));;
 
             if (response.StatusCode == HttpStatusCode.Created)
             {
                 // redact the password
-                httpResponseData.User.passwordHash = new byte[0];
-                httpResponseData.User.passwordSalt = new byte[0];
+                newUser.passwordHash = new byte[0];
+                newUser.passwordSalt = new byte[0];
                 
-                return await HttpResponseDataFactory.CreateForCreated(httpRequestData, httpResponseData.User, "user", httpResponseData.User.id);
+                return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newUser, "user", newUser.id);
                 
             }
         

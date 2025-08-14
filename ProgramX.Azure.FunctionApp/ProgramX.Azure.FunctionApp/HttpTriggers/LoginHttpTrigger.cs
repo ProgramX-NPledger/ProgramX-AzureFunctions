@@ -60,7 +60,7 @@ public class LoginHttpTrigger
         for (var i = 0; i < computedHash.Length; i++)
             if (computedHash[i] != userFromDb.passwordHash[i])
             {
-                return null; //new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
+                return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
             }
 
         string token = _jwtTokenIssuer.IssueTokenForUser(credentials);

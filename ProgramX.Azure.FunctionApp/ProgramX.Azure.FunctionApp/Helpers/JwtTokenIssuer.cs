@@ -1,6 +1,7 @@
 using JWT;
 using JWT.Algorithms;
 using JWT.Serializers;
+using Microsoft.Extensions.Configuration;
 using Microsoft.VisualBasic;
 using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Model.Requests;
@@ -12,13 +13,15 @@ namespace ProgramX.Azure.FunctionApp.Helpers
     /// </summary>
     public class JwtTokenIssuer
     {
+        private readonly IConfiguration _configuration;
         private readonly IJwtAlgorithm _algorithm;
         private readonly IJsonSerializer _serializer;
         private readonly IBase64UrlEncoder _base64Encoder;
         private readonly IJwtEncoder _jwtEncoder;
 
-        public JwtTokenIssuer()
+        public JwtTokenIssuer(IConfiguration configuration)
         {
+            _configuration = configuration;
             // JWT specific initialization.
             // https://github.com/jwt-dotnet/jwt
             _algorithm = new HMACSHA256Algorithm();
@@ -49,7 +52,7 @@ namespace ProgramX.Azure.FunctionApp.Helpers
                 }
             };
 
-            string token = _jwtEncoder.Encode(claims, SecurityConstants.JwtKey);
+            string token = _jwtEncoder.Encode(claims, _configuration["JwtKey"]);
 
             return token;
         }
