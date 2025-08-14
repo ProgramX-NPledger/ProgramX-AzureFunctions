@@ -49,4 +49,9 @@ public class UpdateUserHttpResponse : HttpResponseBase
         //     roles = User.roles
         // });
     }
+
+    public override async Task<HttpResponseBase> GetHttpResponseAsync()
+    {
+        throw new NotImplementedException();
+    }
 }

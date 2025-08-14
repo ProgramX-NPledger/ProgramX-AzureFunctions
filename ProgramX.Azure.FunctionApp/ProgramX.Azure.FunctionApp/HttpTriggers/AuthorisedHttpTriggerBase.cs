@@ -15,11 +15,11 @@ public abstract class AuthorisedHttpTriggerBase
     protected AuthenticationInfo Auth { get; private set; }
 
 
-    public async Task<HttpResponseBase> RequiresAuthentication(HttpRequestData httpRequestData, string? requiredRole, Func<Task<HttpResponseBase>> httpResponseDelegate)
+    public async Task<HttpResponseData> RequiresAuthentication(HttpRequestData httpRequestData, string? requiredRole, Func<Task<HttpResponseData>> httpResponseDelegate)
     {
         if (!httpRequestData.Headers.Contains(AuthenticationHeaderName))
         {
-            return new BadRequestHttpResponse(httpRequestData, "No authentication header was found.");
+            return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "No authentication header was found.");
         }
 
         var authorisationHeader = httpRequestData.Headers.GetValues(AuthenticationHeaderName);
@@ -32,13 +32,13 @@ public abstract class AuthorisedHttpTriggerBase
         }
         catch (Exception exception)
         {
-            return new ServerErrorHttpResponse(httpRequestData, exception);
+            return await HttpResponseDataFactory.CreateForServerError(httpRequestData, exception);
         }
 
         if (!Auth.IsValid)
         {
             // this should redirect
-            return new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
+            return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
         }
 
         return await httpResponseDelegate.Invoke();

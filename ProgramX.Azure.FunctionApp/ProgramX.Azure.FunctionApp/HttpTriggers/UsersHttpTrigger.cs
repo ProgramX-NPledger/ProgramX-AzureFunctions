@@ -40,7 +40,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
     
     [Function(nameof(GetUser))]
-    public async Task<HttpResponseBase> GetUser(
+    public async Task<HttpResponseData> GetUser(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{id?}")] HttpRequestData httpRequestData,
         string? id)
     {
@@ -52,7 +52,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             
             var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
             QueryDefinition queryDefinition;
-            if (id == null)
+            if (string.IsNullOrWhiteSpace(id))
             {
                 queryDefinition = new QueryDefinition("SELECT * FROM c order by c.userName");
             }
@@ -63,26 +63,34 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
             var users = await pagedAndFilteredCosmosDbReader.GetItems(queryDefinition,continuationToken,DataConstants.ItemsPerPage);
             
-            if (id==null)
+            if (string.IsNullOrWhiteSpace(id))
             {
-                return new GetUsersHttpResponse(httpRequestData, users.Items,users.ContinuationToken);
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, users.Items, users.ContinuationToken);
             }
             else
             {
                 var user = users.Items.FirstOrDefault(q=>q.id==id);
-                if (user == null) return new NotFoundHttpResponse(httpRequestData,"User");
+                if (user == null)
+                {
+                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+                }
 
                 List<Application> applications = user.roles.SelectMany(q=>q.Applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList();
                 
-             
-                return new GetUserHttpResponse(httpRequestData,user,applications);
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
+                {
+                    user,
+                    applications,
+                    profilePhotoBase64 = string.Empty
+                });
+                
                 
             }
         });
     }
 
     [Function(nameof(UpdateUser))]
-    public async Task<HttpResponseBase> UpdateUser(
+    public async Task<HttpResponseData> UpdateUser(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{id}")]
         HttpRequestData httpRequestData,
         string id)
@@ -90,7 +98,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         return await RequiresAuthentication(httpRequestData, null,  async () =>
         {
             var updateUserRequest = await httpRequestData.ReadFromJsonAsync<UpdateUserRequest>();
-            if (updateUserRequest==null) return new BadRequestHttpResponse(httpRequestData, "Invalid request body");
+            if (updateUserRequest==null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
             // get the User to get the password hash
             var pagedAndFilteredCosmosDbReader =
@@ -100,9 +108,12 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             queryDefinition.WithParameter("@id", id);
             var users = await pagedAndFilteredCosmosDbReader.GetItems(queryDefinition);
             var originalUser = users.Items.FirstOrDefault();
-            if (originalUser == null) return new NotFoundHttpResponse(httpRequestData,"User");
+            if (originalUser == null)
+            {
+                return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+            }
             
-            if (originalUser.userName!=updateUserRequest.userName) return new BadRequestHttpResponse(httpRequestData, "Cannot change the username because it is used for the Partition Key");
+            if (originalUser.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
             
             originalUser.emailAddress=updateUserRequest.emailAddress;
             originalUser.roles=updateUserRequest.roles;
@@ -112,24 +123,22 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
-
-                
-                return httpResponseData;
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData);
             }
         
-            return new ServerErrorHttpResponse(httpRequestData, "Failed to update user");
+            return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to update user");
         });
     }
     
     [Function(nameof(CreateUser))]
-    public async Task<HttpResponseBase> CreateUser(
+    public async Task<HttpResponseData> CreateUser(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user")] HttpRequestData httpRequestData
     )
     {
         return await RequiresAuthentication(httpRequestData, null,  async () =>
         {
             var createUserRequest = await httpRequestData.ReadFromJsonAsync<CreateUserRequest>();
-            if (createUserRequest==null) return new BadRequestHttpResponse(httpRequestData, "Invalid request body");
+            if (createUserRequest==null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
 
             var rolesCosmosDbReader =
                 new PagedCosmosDBReader<Role>(_cosmosClient, "core", "users");
@@ -146,10 +155,11 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 httpResponseData.User.passwordHash = new byte[0];
                 httpResponseData.User.passwordSalt = new byte[0];
                 
-                return httpResponseData;
+                return await HttpResponseDataFactory.CreateForCreated(httpRequestData, httpResponseData.User, "user", httpResponseData.User.id);
+                
             }
         
-            return new ServerErrorHttpResponse(httpRequestData, "Failed to create user");
+            return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to create user");
         });
      }
     

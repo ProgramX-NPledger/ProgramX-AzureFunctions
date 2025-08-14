@@ -1,0 +1,79 @@
+using Microsoft.Azure.Functions.Worker.Http;
+
+namespace ProgramX.Azure.FunctionApp.Model.Responses;
+
+public class HttpResponseDataFactory
+{
+    public static async Task<HttpResponseData> CreateForBadRequest(HttpRequestData httpRequestData, string errorMessage)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+        await httpResponseData.WriteStringAsync(errorMessage);
+        return httpResponseData;
+    }
+    
+    public static async Task<HttpResponseData> CreateForServerError(HttpRequestData httpRequestData, string errorMessage)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
+        await httpResponseData.WriteAsJsonAsync(new 
+        {
+            errorMessage
+        });
+        return httpResponseData;
+    }
+    
+    public static async Task<HttpResponseData> CreateForServerError(HttpRequestData httpRequestData, Exception exception)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
+        await httpResponseData.WriteAsJsonAsync(new 
+        {
+            exception.Message,
+        });
+        return httpResponseData;
+    }
+
+    public static async Task<HttpResponseData> CreateForNotFound(HttpRequestData httpRequestData, string type)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.NotFound);
+        await httpResponseData.WriteStringAsync($"{type} not found.");
+        return httpResponseData;
+    }
+
+    public static async Task<HttpResponseData> CreateForSuccess(HttpRequestData httpRequestData)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
+        return httpResponseData;
+    }
+    
+    public static async Task<HttpResponseData> CreateForSuccess(HttpRequestData httpRequestData, object data)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
+        await httpResponseData.WriteAsJsonAsync(data);
+        return httpResponseData;
+    }
+    
+    public static async Task<HttpResponseData> CreateForSuccess(HttpRequestData httpRequestData, IEnumerable<object> list, string? continuationToken)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
+        if (!string.IsNullOrWhiteSpace(continuationToken))
+        {
+            httpResponseData.Headers.Add("x-continuation-token", Uri.EscapeDataString(continuationToken));
+        }
+        await httpResponseData.WriteAsJsonAsync(list);
+        return httpResponseData;
+    }
+
+    public async static Task<HttpResponseData> CreateForCreated(HttpRequestData httpRequestData, object created, string type, string uniqueId)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Created);
+        httpResponseData.Headers.Add("Location", new[] { $"{httpRequestData.Url}/{type}/{uniqueId}" });
+        await httpResponseData.WriteAsJsonAsync(created);
+        return httpResponseData;
+    }
+
+    public static async Task<HttpResponseData> CreateForUnauthorised(HttpRequestData httpRequestData)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Unauthorized);
+        await httpResponseData.WriteStringAsync("Invalid Credentials or Unauthorised");
+        return httpResponseData;
+    }
+}

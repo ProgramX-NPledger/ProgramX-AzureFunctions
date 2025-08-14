@@ -37,7 +37,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
  
     
     [Function(nameof(GetRole))]
-    public async Task<HttpResponseBase> GetRole(
+    public async Task<HttpResponseData> GetRole(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "role/{name?}")] HttpRequestData httpRequestData,
         string? name)
     {
@@ -62,12 +62,16 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
             
             if (name==null)
             {
-                return new GetRolesHttpResponse(httpRequestData, roles.Items.OrderBy(q=>q.Name),roles.ContinuationToken);
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, roles.Items);
             }
             else
             {
                 var role = roles.Items.FirstOrDefault(q=>q.Name==name);
-                if (role == null) return new NotFoundHttpResponse(httpRequestData,"Role");
+                if (role == null)
+                {
+                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
+                    
+                }
 
                 var usersCosmosDbReader = new PagedCosmosDBReader<User>(_cosmosClient, "core", "users");
                 var users = await usersCosmosDbReader.GetItems(new QueryDefinition("SELECT * FROM u"),null,null);
@@ -91,9 +95,14 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                         .SelectMany(q=>q.Applications)
                         .GroupBy(g=>g.Name)
                         .Select(q=>q.First()).ToList();
-                
-             
-                return new GetRoleHttpResponse(httpRequestData,role,applications,distinctUsers,usersInRole);
+
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
+                {
+                    role,
+                    applications,
+                    allUsers = distinctUsers,
+                    usersInRole,
+                });
                 
             }
         });

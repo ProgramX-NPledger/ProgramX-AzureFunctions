@@ -19,6 +19,7 @@ builder.Services
     .AddSingleton<CosmosClient,CosmosClient>(cosmosClient =>
     {
         string connectionString = Environment.GetEnvironmentVariable("CosmosDBConnection");
+        
         return new CosmosClient(connectionString);
     });
 

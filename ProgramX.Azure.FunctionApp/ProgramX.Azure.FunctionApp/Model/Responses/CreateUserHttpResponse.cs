@@ -44,6 +44,13 @@ public class CreateUserHttpResponse : HttpResponseBase
         HttpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Created);
         HttpResponseData.Headers.Add("Location", new[] { $"{httpRequestData.Url}/user/{User.id}" });
         
-        HttpResponseData.WriteAsJsonAsync(newUser);
+        
+    }
+
+    public override async Task<HttpResponseBase> GetHttpResponseAsync()
+    {
+        
+        await HttpResponseData.WriteAsJsonAsync(User);
+        return this;
     }
 }

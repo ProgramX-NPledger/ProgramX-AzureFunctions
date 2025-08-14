@@ -1,6 +1,6 @@
 namespace ProgramX.Azure.FunctionApp.Model.Responses;
 
-public class LoginHttpResponse : HttpResponseBase
+public abstract class LoginHttpResponse : HttpResponseBase
 {
     
 }

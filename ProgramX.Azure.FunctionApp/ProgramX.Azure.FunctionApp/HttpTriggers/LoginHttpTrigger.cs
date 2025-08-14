@@ -30,17 +30,13 @@ public class LoginHttpTrigger
     }
 
     [Function(nameof(Login))]
-    public async Task<HttpResponseBase> Login([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "login")] HttpRequestData httpRequestData,
+    public async Task<HttpResponseData> Login([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "login")] HttpRequestData httpRequestData,
         ILogger logger)
     {
-        // https://charliedigital.com/2020/05/24/azure-functions-with-jwt-authentication/
-        _logger.LogInformation("Login request received.");
-        
         var credentials = await httpRequestData.ReadFromJsonAsync<Credentials>();
         if (credentials == null)
         {
-            var invalidCredentialsResponse = new BadRequestHttpResponse(httpRequestData, "Invalid request body");
-            return invalidCredentialsResponse;
+            return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
         }
         
         var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.userName = @userName");
@@ -52,7 +48,11 @@ public class LoginHttpTrigger
         var users = container.Container.GetItemQueryIterator<ProgramX.Azure.FunctionApp.Model.User>(queryDefinition);
         var user = await users.ReadNextAsync();
         if (user.Count == 0)
-            return new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
+        {
+            var invalidCredentialsOrUnauthorisedHttpResponsehttpResponse = new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
+            return null; await invalidCredentialsOrUnauthorisedHttpResponsehttpResponse.GetHttpResponseAsync();
+        }
+            
         var userFromDb = user.First();
         
         using var hmac = new HMACSHA512(userFromDb.passwordSalt);
@@ -61,12 +61,19 @@ public class LoginHttpTrigger
         for (var i = 0; i < computedHash.Length; i++)
             if (computedHash[i] != userFromDb.passwordHash[i])
             {
-                return new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
+                return null; //new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
             }
 
         string token = _jwtTokenIssuer.IssueTokenForUser(credentials);
  
-        return new LoginSuccessHttpResponse(httpRequestData, token);
+        var httpResponse = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
+        await httpResponse.WriteAsJsonAsync(new
+        {
+            token = token,
+        });
+        return httpResponse;
+        // var httpResponse = new LoginSuccessHttpResponse(httpRequestData,token);
+        // return await httpResponse.GetHttpResponseAsync();
 
     }
 }

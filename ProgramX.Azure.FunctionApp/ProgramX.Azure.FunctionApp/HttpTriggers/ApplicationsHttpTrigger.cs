@@ -24,12 +24,12 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
     }
 
     [Function(nameof(GetApplications))]
-    public async Task<HttpResponseBase> GetApplications(
+    public async Task<HttpResponseData> GetApplications(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "application")] HttpRequestData httpRequestData)
     {
         return await RequiresAuthentication(httpRequestData, null, async () =>
         {
-            return new GetApplicationsHttpResponse(httpRequestData,new Application[0]);
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new Application[0]);
         });
         
         // https://charliedigital.com/2020/05/24/azure-functions-with-jwt-authentication/
