@@ -49,8 +49,7 @@ public class LoginHttpTrigger
         var user = await users.ReadNextAsync();
         if (user.Count == 0)
         {
-            var invalidCredentialsOrUnauthorisedHttpResponsehttpResponse = new InvalidCredentialsOrUnauthorisedHttpResponse(httpRequestData);
-            return null; await invalidCredentialsOrUnauthorisedHttpResponsehttpResponse.GetHttpResponseAsync();
+            return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
         }
             
         var userFromDb = user.First();

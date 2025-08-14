@@ -118,7 +118,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             originalUser.emailAddress=updateUserRequest.emailAddress;
             originalUser.roles=updateUserRequest.roles;
             
-            var httpResponseData = new UpdateUserHttpResponse(httpRequestData, updateUserRequest);
             var response = await _container.ReplaceItemAsync(originalUser, id, new PartitionKey(updateUserRequest.userName));
 
             if (response.StatusCode == HttpStatusCode.OK)
