@@ -63,7 +63,7 @@ public class LoginHttpTrigger
                 return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
             }
 
-        string token = _jwtTokenIssuer.IssueTokenForUser(credentials);
+        string token = _jwtTokenIssuer.IssueTokenForUser(credentials,userFromDb.roles.Select(q=>q.Name));
  
         var httpResponse = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
         await httpResponse.WriteAsJsonAsync(new
@@ -71,8 +71,7 @@ public class LoginHttpTrigger
             token = token,
         });
         return httpResponse;
-        // var httpResponse = new LoginSuccessHttpResponse(httpRequestData,token);
-        // return await httpResponse.GetHttpResponseAsync();
+
 
     }
 }

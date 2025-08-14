@@ -35,20 +35,15 @@ namespace ProgramX.Azure.FunctionApp.Helpers
         /// </summary>
         /// <param name="credentials">The user that the token is being issued for.</param>
         /// <returns>A JWT token which can be returned to the user.</returns>
-        public string IssueTokenForUser(Credentials credentials)
+        public string IssueTokenForUser(Credentials credentials, IEnumerable<string> roles)
         {
             // Instead of returning a string, we'll return the JWT with a set of claims about the user
             Dictionary<string, object> claims = new Dictionary<string, object>
             {
                 // JSON representation of the user Reference with ID and display name
                 { "username", credentials.UserName },
-
-                // TODO: Add other claims here as necessary; maybe from a user database
                 {
-                    "roles", new[]
-                    {
-                        "admin"
-                    }
+                    "roles", roles
                 }
             };
 
