@@ -23,7 +23,7 @@ public abstract class AuthorisedHttpTriggerBase
         _configuration = configuration;
     }
 
-    public async Task<HttpResponseData> RequiresAuthentication(HttpRequestData httpRequestData, string? requiredRole, Func<Task<HttpResponseData>> httpResponseDelegate)
+    public async Task<HttpResponseData> RequiresAuthentication(HttpRequestData httpRequestData, string? requiredRole, Func<string,IEnumerable<string>,Task<HttpResponseData>> httpResponseDelegate)
     {
         if (!httpRequestData.Headers.Contains(AuthenticationHeaderName))
         {
@@ -49,7 +49,7 @@ public abstract class AuthorisedHttpTriggerBase
             return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
         }
 
-        return await httpResponseDelegate.Invoke();
+        return await httpResponseDelegate.Invoke(Auth.Username, Auth.Roles);
     }
 
     /// <summary>

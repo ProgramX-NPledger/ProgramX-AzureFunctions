@@ -47,7 +47,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{id?}")] HttpRequestData httpRequestData,
         string? id)
     {
-        return await RequiresAuthentication(httpRequestData, null, async () =>
+        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
             // pass a filter into the below
             var pagedAndFilteredCosmosDbReader =
@@ -61,7 +61,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
             else
             {
-                queryDefinition = new QueryDefinition("SELECT * FROM c where c.id=@id");
+                queryDefinition = new QueryDefinition("SELECT * FROM c where c.id=@id or c.userName=@id");
                 queryDefinition.WithParameter("@id", id);
             }
             var users = await pagedAndFilteredCosmosDbReader.GetItems(queryDefinition,continuationToken,DataConstants.ItemsPerPage);
@@ -98,7 +98,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         HttpRequestData httpRequestData,
         string id)
     {
-        return await RequiresAuthentication(httpRequestData, null,  async () =>
+        return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
         {
             var updateUserRequest = await httpRequestData.ReadFromJsonAsync<UpdateUserRequest>();
             if (updateUserRequest==null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
@@ -107,7 +107,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             var pagedAndFilteredCosmosDbReader =
                 new PagedCosmosDBReader<User>(_cosmosClient, "core", "users");
 
-            QueryDefinition queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id=@id");
+            QueryDefinition queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id=@id OR c.userName=@id");
             queryDefinition.WithParameter("@id", id);
             var users = await pagedAndFilteredCosmosDbReader.GetItems(queryDefinition);
             var originalUser = users.Items.FirstOrDefault();
@@ -137,7 +137,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user")] HttpRequestData httpRequestData
     )
     {
-        return await RequiresAuthentication(httpRequestData, null,  async () =>
+        return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
         {
             var createUserRequest = await httpRequestData.ReadFromJsonAsync<CreateUserRequest>();
             if (createUserRequest==null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");

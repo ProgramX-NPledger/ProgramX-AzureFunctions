@@ -28,7 +28,7 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
     public async Task<HttpResponseData> GetApplications(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "application")] HttpRequestData httpRequestData)
     {
-        return await RequiresAuthentication(httpRequestData, null, async () =>
+        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new Application[0]);
         });

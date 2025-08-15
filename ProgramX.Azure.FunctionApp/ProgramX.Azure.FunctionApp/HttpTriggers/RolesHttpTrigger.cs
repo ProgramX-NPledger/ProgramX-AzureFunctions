@@ -42,7 +42,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "role/{name?}")] HttpRequestData httpRequestData,
         string? name)
     {
-        return await RequiresAuthentication(httpRequestData, null, async () =>
+        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
             // pass a filter into the below
             var rolesPagedCosmosDbReader =
