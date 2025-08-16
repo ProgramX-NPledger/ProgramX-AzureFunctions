@@ -15,5 +15,10 @@ public class Application
     public string type { get; } = "application";
 
     public int versionNumber { get; } = 1;
+
+    public bool isDefaultApplicationOnLogin { get; set; } = false;
+
+    public int ordinal { get; set; }
     
+
 }
