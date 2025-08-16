@@ -69,6 +69,11 @@ public class LoginHttpTrigger
         await httpResponse.WriteAsJsonAsync(new
         {
             token = token,
+            userName = userFromDb.userName,
+            emailAddress = userFromDb.emailAddress,
+            roles = userFromDb.roles.Select(q=>q.Name),
+            applications = userFromDb.roles.SelectMany(q=>q.Applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList(),
+            profilePhotoBase64 = string.Empty,
         });
         return httpResponse;
 
