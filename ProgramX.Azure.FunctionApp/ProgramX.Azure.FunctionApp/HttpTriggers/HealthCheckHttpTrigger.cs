@@ -23,7 +23,10 @@ public class HealthCheckHttpTrigger
         var httpResponseData = req.CreateResponse(System.Net.HttpStatusCode.OK);
         await httpResponseData.WriteAsJsonAsync(new
         {
-            status = "OK"
+            status = "OK",
+            azureFunctions = true,
+            azureCosmosDb = (bool?)null,
+            azureStorage = (bool?)null,
         });
         
         return httpResponseData;
