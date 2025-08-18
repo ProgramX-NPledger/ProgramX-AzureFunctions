@@ -72,7 +72,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 {
                     ContinuationToken = users.ContinuationToken,
                     Items = users.Items,
-                    IsLastPage = users.IsMorePages(),
+                    IsLastPage = !users.IsMorePages(),
                     ItemsPerPage = users.MaximumItemsRequested
                 });
             }
