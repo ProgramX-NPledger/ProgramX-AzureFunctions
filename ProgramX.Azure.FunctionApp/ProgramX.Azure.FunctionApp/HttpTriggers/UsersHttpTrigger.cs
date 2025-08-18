@@ -68,7 +68,13 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             
             if (string.IsNullOrWhiteSpace(id))
             {
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, users.Items, users.ContinuationToken);
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<SecureUser>()
+                {
+                    ContinuationToken = users.ContinuationToken,
+                    Items = users.Items,
+                    IsLastPage = users.IsMorePages(),
+                    ItemsPerPage = users.MaximumItemsRequested
+                });
             }
             else
             {

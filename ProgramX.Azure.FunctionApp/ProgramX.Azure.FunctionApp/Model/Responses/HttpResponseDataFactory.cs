@@ -51,17 +51,18 @@ public class HttpResponseDataFactory
         return httpResponseData;
     }
     
-    public static async Task<HttpResponseData> CreateForSuccess(HttpRequestData httpRequestData, IEnumerable<object> list, string? continuationToken)
+ 
+    public static async Task<HttpResponseData> CreateForSuccess<T>(HttpRequestData httpRequestData,
+        PagedResponse<T> pagedResponse)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
-        if (!string.IsNullOrWhiteSpace(continuationToken))
+        if (!string.IsNullOrWhiteSpace(pagedResponse.ContinuationToken))
         {
-            httpResponseData.Headers.Add("x-continuation-token", Uri.EscapeDataString(continuationToken));
+            httpResponseData.Headers.Add("x-continuation-token", Uri.EscapeDataString(pagedResponse.ContinuationToken));
         }
-        await httpResponseData.WriteAsJsonAsync(list);
+        await httpResponseData.WriteAsJsonAsync(pagedResponse);
         return httpResponseData;
     }
-
     public async static Task<HttpResponseData> CreateForCreated(HttpRequestData httpRequestData, object created, string type, string uniqueId)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Created);
