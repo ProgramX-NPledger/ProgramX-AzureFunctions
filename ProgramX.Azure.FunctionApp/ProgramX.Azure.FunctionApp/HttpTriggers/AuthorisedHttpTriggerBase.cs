@@ -1,7 +1,6 @@
 using System.Security.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Configuration;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Responses;
@@ -52,12 +51,4 @@ public abstract class AuthorisedHttpTriggerBase
         return await httpResponseDelegate.Invoke(Auth.Username, Auth.Roles);
     }
 
-    /// <summary>
-    ///     Post-execution filter.
-    /// </summary>
-    public Task OnExecutedAsync(FunctionExecutedContext executedContext, CancellationToken cancellationToken)
-    {
-        // Nothing.
-        return Task.CompletedTask;
-    }
 }
