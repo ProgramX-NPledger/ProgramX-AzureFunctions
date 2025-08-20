@@ -13,5 +13,8 @@ public class SecureUser
     [JsonPropertyName("roles")]
     public  IEnumerable<Role> roles { get; set; }
 
+    public string firstName { get; set; }
+    public string lastName { get; set; }
+
 
 }

@@ -21,4 +21,8 @@ public class User
     public string type { get; } = "user";
 
     public int versionNumber { get; } = 1;
+
+    public string firstName { get; set; }
+    public string lastName { get; set; }
+    
 }

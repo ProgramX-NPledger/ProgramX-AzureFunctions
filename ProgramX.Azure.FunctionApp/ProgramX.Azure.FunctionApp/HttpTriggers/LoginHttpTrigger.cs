@@ -1,5 +1,6 @@
 using System.Net;
 using System.Security.Cryptography;
+using System.Text;
 using JWT;
 using JWT.Algorithms;
 using JWT.Serializers;
@@ -68,15 +69,33 @@ public class LoginHttpTrigger
         var httpResponse = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
         await httpResponse.WriteAsJsonAsync(new
         {
-            token = token,
-            userName = userFromDb.userName,
-            emailAddress = userFromDb.emailAddress,
+            token,
+            userFromDb.userName,
+            userFromDb.emailAddress,
             roles = userFromDb.roles.Select(q=>q.Name),
             applications = userFromDb.roles.SelectMany(q=>q.Applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList(),
             profilePhotoBase64 = string.Empty,
+            userFromDb.firstName,
+            userFromDb.lastName,
+            initials = GetInitials(userFromDb.firstName, userFromDb.lastName)
         });
         return httpResponse;
 
 
+    }
+
+    private string GetInitials(string firstName, string lastName)
+    {
+        StringBuilder sb = new StringBuilder();
+        if (!string.IsNullOrWhiteSpace(firstName))
+        {
+            sb.Append(firstName[0]);
+        }
+        if (!string.IsNullOrWhiteSpace(lastName))
+        {
+            sb.Append(lastName[0]);
+        }
+        if (sb.Length == 0) sb.Append("?");
+        return sb.ToString();
     }
 }
