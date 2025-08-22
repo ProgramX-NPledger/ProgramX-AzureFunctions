@@ -78,7 +78,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
             else
             {
-                var user = users.Items.FirstOrDefault(q=>q.id==id);
+                var user = users.Items.FirstOrDefault(q=>q.id==id || q.userName==id);
                 if (user == null)
                 {
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
