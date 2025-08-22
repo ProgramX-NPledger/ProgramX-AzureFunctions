@@ -47,7 +47,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{id?}")] HttpRequestData httpRequestData,
         string? id)
     {
-        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
+        return await RequiresAuthentication(httpRequestData, null, async (userName, _) =>
         {
             // pass a filter into the below
             var pagedAndFilteredCosmosDbReader =
@@ -84,6 +84,11 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
                 }
 
+                if (!userName.Equals(user.userName))
+                {
+                    return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
+                }
+                
                 List<Application> applications = user.roles.SelectMany(q=>q.Applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList();
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
