@@ -46,7 +46,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         {
             // pass a filter into the below
             var rolesPagedCosmosDbReader =
-                new PagedCosmosDBReader<Role>(_cosmosClient, "core", "users");
+                new PagedCosmosDBReader<Role>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);;
             
             var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
             QueryDefinition queryDefinition;
@@ -74,7 +74,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                     
                 }
 
-                var usersCosmosDbReader = new PagedCosmosDBReader<User>(_cosmosClient, "core", "users");
+                var usersCosmosDbReader = new PagedCosmosDBReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
                 var users = await usersCosmosDbReader.GetItems(new QueryDefinition("SELECT * FROM u"),null,null);
                 var distinctUsers = users.Items.GroupBy(q=>q.id).Select(q=>new SecureUser()
                 {

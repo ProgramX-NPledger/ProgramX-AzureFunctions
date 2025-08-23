@@ -77,7 +77,8 @@ public class LoginHttpTrigger
             profilePhotoBase64 = string.Empty,
             userFromDb.firstName,
             userFromDb.lastName,
-            initials = GetInitials(userFromDb.firstName, userFromDb.lastName)
+            initials = GetInitials(userFromDb.firstName, userFromDb.lastName),
+            userFromDb.profilePhotographSmall
         });
         return httpResponse;
 

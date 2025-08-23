@@ -5,27 +5,26 @@ namespace ProgramX.Azure.FunctionApp.Model.Requests;
 public class UpdateUserRequest
 {
     [JsonPropertyName("emailAddress")]
-    public required string emailAddress { get; set; }
+    public string? emailAddress { get; set; }
     
     [JsonPropertyName("userName")]
     public required string userName { get; set; }
 
-    public required string firstName { get; set; }
+    public string? firstName { get; set; }
 
-    public required string lastName { get; set; }
+    public string? lastName { get; set; }
 
-    public required bool updateProfileScope { get; set; }
+    public  bool updateProfileScope { get; set; } = false;
 
-    public required bool updatePasswordScope { get; set; }
+    public bool updatePasswordScope { get; set; } = false;
     
-    public required bool updateRolesScope { get; set; }
+    public bool updateRolesScope { get; set; } = false;
 
-    public required string newPassword { get; set; }
+    public string? newPassword { get; set; }
 
-    public required string confirmPassword { get; set; }
+    public string? confirmPassword { get; set; }
 
 
-    [JsonPropertyName("roles")]
-    public required IEnumerable<Role> roles { get; set; }
-    
+    [JsonPropertyName("roles")] public IEnumerable<Role> roles { get; set; } = [];
+
 }

@@ -1,4 +1,6 @@
+using System.Net;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
 
 namespace ProgramX.Azure.FunctionApp.Helpers;
 
@@ -7,12 +9,17 @@ public class PagedCosmosDBReader<T>
     private readonly CosmosClient _client;
     private readonly string _databaseName;
     private readonly string _containerName;
-
-    public PagedCosmosDBReader(CosmosClient client, string databaseName, string containerName)
+    private readonly string _partitionKeyPath;
+    private readonly ILogger<PagedCosmosDBReader<T>> _logger;
+    
+    public PagedCosmosDBReader(CosmosClient client, string databaseName, string containerName, string partitionKeyPath)
     {
         _client = client;
         _databaseName = databaseName;
         _containerName = containerName;
+        _partitionKeyPath = partitionKeyPath;
+        if (!_partitionKeyPath.StartsWith("/")) _partitionKeyPath = "/" + _partitionKeyPath;
+        _logger = new LoggerFactory().CreateLogger<PagedCosmosDBReader<T>>();
     }
 
     /// <summary>
@@ -29,10 +36,13 @@ public class PagedCosmosDBReader<T>
     {
         var isPaged = itemsPerPage != null;
         List<T> items = new List<T>();
-        var container = _client.GetContainer(_databaseName, _containerName);
-        if (container == null) throw new InvalidOperationException("Container not found");
-
-        using (var feedIterator = container.GetItemQueryIterator<T>(queryDefinition, continuationToken,
+        
+        var databaseResponse = await _client.CreateDatabaseIfNotExistsAsync(_databaseName);
+        if (databaseResponse.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Database created",[_databaseName]);
+        var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(_containerName, _partitionKeyPath);
+        if (containerResponse.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Container created",[_containerName,_partitionKeyPath]);
+        
+        using (var feedIterator = containerResponse.Container.GetItemQueryIterator<T>(queryDefinition, continuationToken,
                    new QueryRequestOptions
                    {
                        MaxItemCount = itemsPerPage

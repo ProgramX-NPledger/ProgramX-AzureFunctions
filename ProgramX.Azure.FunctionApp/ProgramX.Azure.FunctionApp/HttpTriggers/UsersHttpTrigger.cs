@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
+using System.Text.RegularExpressions;
 using JWT;
 using JWT.Algorithms;
 using JWT.Serializers;
@@ -51,7 +52,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         {
             // pass a filter into the below
             var pagedAndFilteredCosmosDbReader =
-                new PagedCosmosDBReader<SecureUser>(_cosmosClient, "core", "users");
+                new PagedCosmosDBReader<SecureUser>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
             
             var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
             QueryDefinition queryDefinition;
@@ -91,6 +92,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 
                 List<Application> applications = user.roles.SelectMany(q=>q.Applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList();
                 
+                Thread.Sleep(2000);
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
                 {
                     user,
@@ -109,14 +111,14 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         HttpRequestData httpRequestData,
         string id)
     {
-        return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
+        return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
             var updateUserRequest = await httpRequestData.ReadFromJsonAsync<UpdateUserRequest>();
             if (updateUserRequest==null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
             // get the User to get the password hash
             var pagedAndFilteredCosmosDbReader =
-                new PagedCosmosDBReader<User>(_cosmosClient, "core", "users");
+                new PagedCosmosDBReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
 
             QueryDefinition queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id=@id OR c.userName=@id");
             queryDefinition.WithParameter("@id", id);
@@ -127,16 +129,17 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
             }
             
-            if (originalUser.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
-
+            
+           
+            
             if (updateUserRequest.updateProfileScope)
             {
-                originalUser.emailAddress=updateUserRequest.emailAddress;
-                originalUser.firstName=updateUserRequest.firstName;
-                originalUser.lastName=updateUserRequest.lastName;
+                if (originalUser.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
+                if (!IsValidEmail(updateUserRequest.emailAddress!)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid email address");
                 
-                // ensure username is unique
-                
+                originalUser.emailAddress=updateUserRequest.emailAddress!;
+                originalUser.firstName=updateUserRequest.firstName!;
+                originalUser.lastName=updateUserRequest.lastName!;
             }
 
             if (updateUserRequest.updateRolesScope)
@@ -144,15 +147,29 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 originalUser.roles=updateUserRequest.roles;
             }
             
-            var response = await _container.ReplaceItemAsync(originalUser, id, new PartitionKey(updateUserRequest.userName));
+            var response = await _container.ReplaceItemAsync(originalUser, originalUser.id, new PartitionKey(updateUserRequest.userName));
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData);
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
+                {
+                    errorMessage = null,
+                    isOk = true
+                });
             }
         
             return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to update user");
         });
+    }
+    
+    private bool IsValidEmail(string email)
+    {
+        return Regex.IsMatch(
+            email,
+            RegExConstants.ValidEmailAddress,
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
+            TimeSpan.FromMilliseconds(250) // avoid catastrophic backtracking
+        );
     }
     
     [Function(nameof(CreateUser))]
@@ -166,7 +183,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             if (createUserRequest==null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
 
             var rolesCosmosDbReader =
-                new PagedCosmosDBReader<Role>(_cosmosClient, "core", "users");
+                new PagedCosmosDBReader<Role>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
             
             var queryDefinition= new QueryDefinition("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles");
             var roles = await rolesCosmosDbReader.GetItems(queryDefinition,null,null);
