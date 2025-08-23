@@ -128,9 +128,21 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
             
             if (originalUser.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
-            
-            originalUser.emailAddress=updateUserRequest.emailAddress;
-            originalUser.roles=updateUserRequest.roles;
+
+            if (updateUserRequest.updateProfileScope)
+            {
+                originalUser.emailAddress=updateUserRequest.emailAddress;
+                originalUser.firstName=updateUserRequest.firstName;
+                originalUser.lastName=updateUserRequest.lastName;
+                
+                // ensure username is unique
+                
+            }
+
+            if (updateUserRequest.updateRolesScope)
+            {
+                originalUser.roles=updateUserRequest.roles;
+            }
             
             var response = await _container.ReplaceItemAsync(originalUser, id, new PartitionKey(updateUserRequest.userName));
 
