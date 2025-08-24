@@ -1,3 +1,4 @@
+using Azure.Storage.Blobs;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -19,8 +20,12 @@ builder.Services
     .AddSingleton<CosmosClient,CosmosClient>(cosmosClient =>
     {
         string connectionString = Environment.GetEnvironmentVariable("CosmosDBConnection");
-        
         return new CosmosClient(connectionString);
+    })
+    .AddSingleton<BlobServiceClient,BlobServiceClient>(blobService =>
+    {
+        string connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+        return new BlobServiceClient(connectionString);
     });
 
 builder.Build().Run();

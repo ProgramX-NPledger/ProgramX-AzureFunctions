@@ -17,6 +17,8 @@ public class UpdateUserRequest
     public  bool updateProfileScope { get; set; } = false;
 
     public bool updatePasswordScope { get; set; } = false;
+
+    public bool updateProfilePictureScope { get; set; } = false;
     
     public bool updateRolesScope { get; set; } = false;
 
@@ -24,6 +26,7 @@ public class UpdateUserRequest
 
     public string? confirmPassword { get; set; }
 
+    public byte[] photo { get; set; } = [];
 
     [JsonPropertyName("roles")] public IEnumerable<Role> roles { get; set; } = [];
 
