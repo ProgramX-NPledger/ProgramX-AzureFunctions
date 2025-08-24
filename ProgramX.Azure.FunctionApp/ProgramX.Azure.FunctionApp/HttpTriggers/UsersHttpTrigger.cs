@@ -92,7 +92,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 
                 List<Application> applications = user.roles.SelectMany(q=>q.Applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList();
                 
-                Thread.Sleep(2000);
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
                 {
                     user,
