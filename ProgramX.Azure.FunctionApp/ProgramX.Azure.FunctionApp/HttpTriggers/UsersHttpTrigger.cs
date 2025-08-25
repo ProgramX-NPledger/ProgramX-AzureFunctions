@@ -146,6 +146,16 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 originalUser.lastName=updateUserRequest.lastName!;
             }
 
+            if (updateUserRequest.updatePasswordScope)
+            {
+                if (string.IsNullOrWhiteSpace(updateUserRequest.newPassword)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password cannot be empty");
+                if (updateUserRequest.newPassword!=updateUserRequest.confirmPassword) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Passwords do not match");
+                using var hmac = new HMACSHA512(originalUser.passwordSalt);
+                var passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(updateUserRequest.newPassword));
+                originalUser.passwordHash = passwordHash;
+                originalUser.passwordSalt = hmac.Key;
+            }
+            
             if (updateUserRequest.updateRolesScope)
             {
                 originalUser.roles=updateUserRequest.roles;
@@ -154,9 +164,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             if (updateUserRequest.updateProfilePictureScope)
             {
                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect endpoint, use /user/{id}/photo instead");
-                
-
-
             }
             
             var response = await _container.ReplaceItemAsync(originalUser, originalUser.id, new PartitionKey(updateUserRequest.userName));
