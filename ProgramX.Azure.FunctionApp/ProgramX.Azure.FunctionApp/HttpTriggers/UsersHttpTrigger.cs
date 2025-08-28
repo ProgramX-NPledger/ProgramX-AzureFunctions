@@ -277,8 +277,9 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 multipartSection = await multipartReader.ReadNextSectionAsync();
             }
 
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateProfilePhotoResponse()
             {
+                photoUrl = $"{avatarImagesBlockContainerClient.Uri}/{usernameMakingTheChange}/{originalUser.profilePhotographSmall}",
                 errorMessage = null,
                 isOk = true,
                 bytesTransferred = 0,
