@@ -17,7 +17,7 @@ public class SecureUser
     public string lastName { get; set; }
     public string profilePhotographSmall { get; set; }
     public string profilePhotographOriginal { get; set; }
-    
+    public string theme { get; set; }
     
 
 }

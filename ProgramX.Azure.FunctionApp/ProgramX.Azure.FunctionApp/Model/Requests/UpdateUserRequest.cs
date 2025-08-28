@@ -21,12 +21,17 @@ public class UpdateUserRequest
     public bool updateProfilePictureScope { get; set; } = false;
     
     public bool updateRolesScope { get; set; } = false;
+    
+    public bool updateSettingsScope { get; set; } = false;
 
     public string? newPassword { get; set; }
 
     public string? confirmPassword { get; set; }
 
     public byte[] photo { get; set; } = [];
+
+    public string theme { get; set; }
+    
 
     [JsonPropertyName("roles")] public IEnumerable<Role> roles { get; set; } = [];
 

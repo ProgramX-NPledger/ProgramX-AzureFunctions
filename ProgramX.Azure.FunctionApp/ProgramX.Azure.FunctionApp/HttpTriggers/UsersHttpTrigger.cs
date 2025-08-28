@@ -149,6 +149,12 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 originalUser.lastName=updateUserRequest.lastName!;
             }
 
+            if (updateUserRequest.updateSettingsScope)
+            {
+                originalUser.theme = updateUserRequest.theme;
+                originalUser.versionNumber = originalUser.versionNumber >= 3 ? originalUser.versionNumber : 3; 
+            }
+
             if (updateUserRequest.updatePasswordScope)
             {
                 if (string.IsNullOrWhiteSpace(updateUserRequest.newPassword)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password cannot be empty");
