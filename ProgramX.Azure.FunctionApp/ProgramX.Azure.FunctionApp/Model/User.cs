@@ -20,12 +20,13 @@ public class User
 
     public string type { get; } = "user";
 
-    public int versionNumber { get; } = 1;
+    public int versionNumber { get; set;  } = 1;
 
     public string firstName { get; set; }
     public string lastName { get; set; }
 
     public string profilePhotographSmall { get; set; }
+    public string profilePhotographOriginal { get; set; }
     
     
 }

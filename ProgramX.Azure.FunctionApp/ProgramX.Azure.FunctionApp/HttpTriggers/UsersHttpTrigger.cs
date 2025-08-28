@@ -23,6 +23,9 @@ using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
 using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.HttpTriggers;
@@ -220,44 +223,58 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
             }
             
-            // var container = _blobServiceClient.GetBlobContainerClient(BlobConstants.AvatarImagesBlobName);
-            // await container.CreateIfNotExistsAsync(PublicAccessType.None);
+            var avatarImagesBlockContainerClient = _blobServiceClient.GetBlobContainerClient(BlobConstants.AvatarImagesBlobName);
+            await avatarImagesBlockContainerClient.CreateIfNotExistsAsync(PublicAccessType.None);
 
-            var reader = new MultipartReader(boundary, httpRequestData.Body);
-            var section = await reader.ReadNextSectionAsync();
+            var multipartReader = new MultipartReader(boundary, httpRequestData.Body);
+            var multipartSection = await multipartReader.ReadNextSectionAsync();
 
-            var uploaded = new List<object>();
-
-            while (section != null)
+            while (multipartSection != null)
             {
-                if (ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var contentDisp)
+                if (ContentDispositionHeaderValue.TryParse(multipartSection.ContentDisposition, out var contentDisp)
                     && contentDisp.DispositionType.Equals("form-data")
                     && (!string.IsNullOrEmpty(contentDisp.FileName.Value) || !string.IsNullOrEmpty(contentDisp.FileNameStar.Value)))
                 {
                     var originalName = contentDisp.FileName.Value ?? contentDisp.FileNameStar.Value ?? "file";
+                    var originalNameWithoutExtension = Path.GetFileNameWithoutExtension(originalName);
                     var ext = Path.GetExtension(originalName);
-//                    var blobName = $"{Guid.NewGuid():N}{ext}";
-//                    var blob = container.GetBlobClient(blobName);
-
-                    var headers = new BlobHttpHeaders
-                    {
-                        ContentType = section.ContentType ?? "application/octet-stream"
-                    };
-
-                    // form image resizing task with following per image:
-                    // image dimensions, image target
                     
-                    // Stream directly to Blob Storage (no buffering in memory)
-//                    await blob.UploadAsync(section.Body, new BlobUploadOptions { HttpHeaders = headers });
+                    var originalBlobName = $"{originalNameWithoutExtension}-orig{ext}";
+                    var avatarSizedBlobName = $"{originalNameWithoutExtension}-32x32{ext}";
+                    
+                    // the incoming multipart section body stream is re-used, so we copy it into a seekable stream
+                    var originalImageStream = new MemoryStream();
+                    await multipartSection.Body.CopyToAsync(originalImageStream);
+                    originalImageStream.Position = 0;
+                    
+                    await uploadBlob(avatarImagesBlockContainerClient, multipartSection,  originalImageStream,$"{usernameMakingTheChange}/{originalBlobName}");
 
-                    uploaded.Add(new
+                    // having moved the cursor to the end of the stream, it is reset
+                    originalImageStream.Position = 0;
+                    
+                    // the stream is copied into an array, which can be seeked
+                    var imageArray = originalImageStream.ToArray();
+                    var resizedImage = await ResizeAsync(imageArray, 32);
+                    
+                    // the array is set back into a stream
+                    var resizedImageStream = new MemoryStream(resizedImage);
+                    
+                    // upload to blob storage
+                    await uploadBlob(avatarImagesBlockContainerClient, multipartSection, resizedImageStream, $"{usernameMakingTheChange}/{avatarSizedBlobName}");
+                    
+                    // update record in DB
+                    originalUser.profilePhotographSmall = avatarSizedBlobName;
+                    originalUser.profilePhotographOriginal = originalBlobName;
+                    originalUser.versionNumber = originalUser.versionNumber > 2 ? originalUser.versionNumber : 2; // increment version number
+                    var response = await _container.ReplaceItemAsync(originalUser, originalUser.id, new PartitionKey(originalUser.userName));
+                    if (response.StatusCode != HttpStatusCode.OK)
                     {
-                        originalName
-                    });
+                        return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to update user");
+                    }
                 }
                 // else: handle form fields if needed (e.g., section.AsFormData())
 
-                section = await reader.ReadNextSectionAsync();
+                multipartSection = await multipartReader.ReadNextSectionAsync();
             }
 
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
@@ -272,6 +289,48 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         });
     }
     
+    public static async Task<byte[]> ResizeAsync(byte[] input, int targetWidth, int? targetHeight = null)
+    {
+        using var inStream = new MemoryStream(input);
+        
+        using var image = await Image.LoadAsync(inStream); // auto-detect format
+
+        // Respect EXIF orientation
+        image.Mutate(x => x.AutoOrient());
+
+        // Maintain aspect ratio when only width or height is given
+        var size = targetHeight.HasValue
+            ? new Size(targetWidth, targetHeight.Value)
+            : new Size(targetWidth, 0); // height 0 -> preserve aspect
+
+        image.Mutate(x => x.Resize(new ResizeOptions
+        {
+            Size = size,
+            Mode = ResizeMode.Max,  // no upscaling beyond original
+            Sampler = KnownResamplers.Lanczos3
+        }));
+
+        using var outStream = new MemoryStream();
+        // Choose encoder based on desired output (JPEG here)
+        var encoder = new JpegEncoder { Quality = 80 };
+        await image.SaveAsync(outStream, encoder);
+        return outStream.ToArray();
+    }
+
+    
+
+    private async Task uploadBlob(BlobContainerClient avatarImagesBlockContainerClient, MultipartSection multipartSection, Stream data, string fileName)
+    {
+        var blob = avatarImagesBlockContainerClient.GetBlobClient(fileName);
+        var headers = new BlobHttpHeaders
+        {
+            ContentType = multipartSection.ContentType ?? "application/octet-stream"
+        };
+
+        // Stream directly to Blob Storage (no buffering in memory)
+        await blob.UploadAsync(data, new BlobUploadOptions { HttpHeaders = headers });
+    }
+
     private bool IsValidEmail(string email)
     {
         return Regex.IsMatch(

@@ -16,7 +16,8 @@ public class SecureUser
     public string firstName { get; set; }
     public string lastName { get; set; }
     public string profilePhotographSmall { get; set; }
-
+    public string profilePhotographOriginal { get; set; }
+    
     
 
 }
