@@ -342,6 +342,55 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         );
     }
     
+    
+    [Function(nameof(RemoveUserPhoto))]
+    public async Task<HttpResponseData> RemoveUserPhoto(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/{id}/photo")]
+        HttpRequestData httpRequestData,
+        string id)
+    {
+        return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
+        {
+            var pagedAndFilteredCosmosDbReader =
+                new PagedCosmosDBReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
+
+            QueryDefinition queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id=@id OR c.userName=@id");
+            queryDefinition.WithParameter("@id", id);
+            var users = await pagedAndFilteredCosmosDbReader.GetItems(queryDefinition);
+            var originalUser = users.Items.FirstOrDefault();
+            if (originalUser == null)
+            {
+                return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+            }
+
+            // delete files if they already exist
+            var avatarImagesBlockContainerClient = _blobServiceClient.GetBlobContainerClient(BlobConstants.AvatarImagesBlobName);
+            await avatarImagesBlockContainerClient.DeleteBlobIfExistsAsync($"{usernameMakingTheChange}/{originalUser.profilePhotographOriginal}");
+            await avatarImagesBlockContainerClient.DeleteBlobIfExistsAsync($"{usernameMakingTheChange}/{originalUser.profilePhotographSmall}");
+            
+            // update record in DB
+            originalUser.profilePhotographSmall = null;
+            originalUser.profilePhotographOriginal = null;
+            
+            originalUser.versionNumber = originalUser.versionNumber > 2 ? originalUser.versionNumber : 2; // increment version number
+            var response = await _container.ReplaceItemAsync(originalUser, originalUser.id, new PartitionKey(originalUser.userName));
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to update user");
+            }
+            
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
+            {
+                errorMessage = null,
+                isOk = true,
+                bytesTransferred = 0,
+                httpEventType = HttpEventType.Response,
+                totalBytesToTransfer = 0
+            });
+            
+        });
+    }
+    
     [Function(nameof(CreateUser))]
     public async Task<HttpResponseData> CreateUser(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user")] HttpRequestData httpRequestData
