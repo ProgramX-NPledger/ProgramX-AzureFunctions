@@ -103,7 +103,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
                 }
                 
-                List<Application> applications = user.roles.SelectMany(q=>q.Applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList();
+                List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList();
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
                 {
@@ -422,7 +422,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 id = Guid.NewGuid().ToString("N"),
                 emailAddress = createUserRequest.emailAddress,
                 userName = createUserRequest.userName,
-                roles = allRoles.Where(q=>createUserRequest.addToRoles.Contains(q.Name)),
+                roles = allRoles.Where(q=>createUserRequest.addToRoles.Contains(q.name)),
                 passwordHash = [],
                 passwordSalt = [],
                 versionNumber = 4,

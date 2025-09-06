@@ -64,7 +64,7 @@ public class LoginHttpTrigger
                 return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
             }
 
-        string token = _jwtTokenIssuer.IssueTokenForUser(credentials,userFromDb.roles.Select(q=>q.Name));
+        string token = _jwtTokenIssuer.IssueTokenForUser(credentials,userFromDb.roles.Select(q=>q.name));
  
         var httpResponse = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
         await httpResponse.WriteAsJsonAsync(new
@@ -72,8 +72,8 @@ public class LoginHttpTrigger
             token,
             userFromDb.userName,
             userFromDb.emailAddress,
-            roles = userFromDb.roles.Select(q=>q.Name),
-            applications = userFromDb.roles.SelectMany(q=>q.Applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList(),
+            roles = userFromDb.roles.Select(q=>q.name),
+            applications = userFromDb.roles.SelectMany(q=>q.applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList(),
             profilePhotoBase64 = string.Empty,
             userFromDb.firstName,
             userFromDb.lastName,

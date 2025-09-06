@@ -63,11 +63,17 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
             
             if (name==null)
             {
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, roles.Items);
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>()
+                {
+                    ContinuationToken = roles.ContinuationToken,
+                    Items = roles.Items,
+                    IsLastPage = !roles.IsMorePages(),
+                    ItemsPerPage = roles.MaximumItemsRequested
+                });
             }
             else
             {
-                var role = roles.Items.FirstOrDefault(q=>q.Name==name);
+                var role = roles.Items.FirstOrDefault(q=>q.name==name);
                 if (role == null)
                 {
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
@@ -84,7 +90,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                     roles = q.First().roles,
                 }).ToList();
                 var usersInRole = users.Items.GroupBy(q=>q.id)
-                    .Where(q=>q.First().roles.Select(q=>q.Name).Contains(role.Name))
+                    .Where(q=>q.First().roles.Select(q=>q.name).Contains(role.name))
                     .Select(q=>new UserInRole()
                 {
                     Id = q.First().id,
@@ -93,7 +99,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                 }).ToList();
                 
                 List<Application> applications = distinctUsers.SelectMany(q=>q.roles)
-                        .SelectMany(q=>q.Applications)
+                        .SelectMany(q=>q.applications)
                         .GroupBy(g=>g.Name)
                         .Select(q=>q.First()).ToList();
 
