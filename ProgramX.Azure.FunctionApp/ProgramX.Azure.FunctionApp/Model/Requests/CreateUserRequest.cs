@@ -4,16 +4,17 @@ namespace ProgramX.Azure.FunctionApp.Model.Requests;
 
 public class CreateUserRequest
 {
-    [JsonPropertyName("emailAddress")]
-    public required string EmailAddress { get; set; }
+    public required string emailAddress { get; set; }
     
-    [JsonPropertyName("userName")]
-    public required string UserName { get; set; }
+    public required string userName { get; set; }
     
-    [JsonPropertyName("password")]
-    public required string Password { get; set; }
+    public required string firstName { get; set; }
+    
+    public required string lastName { get; set; }
+    
+    public string? password { get; set; }
 
-    [JsonPropertyName("addToRoles")]
-    public required IEnumerable<Role> AddToRoles { get; set; }
+    public required IEnumerable<string> addToRoles { get; set; }
+    
     
 }

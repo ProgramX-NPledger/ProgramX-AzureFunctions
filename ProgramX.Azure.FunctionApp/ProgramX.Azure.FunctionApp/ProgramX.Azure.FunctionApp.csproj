@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Removed: <FrameworkReference Include="Microsoft.AspNetCore.App"/> -->
+    <PackageReference Include="Azure.Communication.Email" Version="1.0.1" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.25.0" />
     <PackageReference Include="JWT" Version="11.0.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0"/>

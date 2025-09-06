@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
+using Azure;
+using Azure.Communication.Email;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using JWT;
@@ -117,7 +119,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
     [Function(nameof(UpdateUser))]
     public async Task<HttpResponseData> UpdateUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{id}")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "user/{id}")]
         HttpRequestData httpRequestData,
         string id)
     {
@@ -413,32 +415,33 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             var queryDefinition= new QueryDefinition("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles");
             var roles = await rolesCosmosDbReader.GetItems(queryDefinition,null,null);
             
-            using var hmac = new HMACSHA512();
             var allRoles = roles.Items.ToList(); // avoid multiple enumeration
         
             var newUser = new User()
             {
                 id = Guid.NewGuid().ToString("N"),
-                emailAddress = createUserRequest.EmailAddress,
-                userName = createUserRequest.UserName,
-                passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(createUserRequest.Password)),
-                passwordSalt = hmac.Key,
-                roles = allRoles.Where(q=>createUserRequest.AddToRoles.Select(r=>r.Name).Contains(q.Name))
-                    .Union(
-                        createUserRequest.AddToRoles
-                            .Where(q=>!allRoles
-                                .Select(r=>r.Name)
-                                .Contains(q.Name)
-                            )
-                            .Select(q=>new Role()
-                            {
-                                Name = q.Name,
-                                Description = q.Description,
-                                Applications = q.Applications
-                            }))
-                    .ToList()
+                emailAddress = createUserRequest.emailAddress,
+                userName = createUserRequest.userName,
+                roles = allRoles.Where(q=>createUserRequest.addToRoles.Contains(q.Name)),
+                passwordHash = [],
+                passwordSalt = [],
+                versionNumber = 4,
+                createdAt = DateTime.UtcNow,
+                updatedAt = DateTime.UtcNow,
+                theme = "light",
+                firstName = createUserRequest.firstName,
+                lastName = createUserRequest.lastName,
+                lastLoginAt = null,
+                lastPasswordChangeAt = null,
+                passwordLinkExpiresAt = DateTime.UtcNow.AddMinutes(60)
             };
-        
+
+            if (!string.IsNullOrWhiteSpace(createUserRequest.password))
+            {
+                using var hmac = new HMACSHA512();
+                newUser.passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(createUserRequest.password));
+                newUser.passwordSalt = hmac.Key;
+            }
             var response = await _container.CreateItemAsync(newUser, new PartitionKey(newUser.userName));;
 
             if (response.StatusCode == HttpStatusCode.Created)
@@ -447,8 +450,48 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 newUser.passwordHash = new byte[0];
                 newUser.passwordSalt = new byte[0];
                 
-                return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newUser, "user", newUser.id);
-                
+                // send email with link to set password
+                var client = new EmailClient(Configuration["AzureCommunicationServicesConnection"]);
+
+                var content = new EmailContent("Please complete your programx.co.uk login")
+                {
+                    PlainText = @$"
+Hi,
+
+Please complete your programx.co.uk login by navigating to the following link:
+https://apps.programx.co.uk/complete-login?username={createUserRequest.userName}
+
+This link is valid until {newUser.passwordLinkExpiresAt}.
+
+",
+                    Html = @$"<h1>Please complete your programx.co.uk login</h1>
+<p>Hi,</p>
+<p>Please complete your programx.co.uk login by navigating to the following link:<br />
+<a href=""https://apps.programx.co.uk/complete-login?username={createUserRequest.userName}"">Complete login by entering your password</a></p>
+<p>This link is valid until {newUser.passwordLinkExpiresAt}.</p>"
+                };
+
+                var recipients = new EmailRecipients(new[]
+                {
+                    new EmailAddress(createUserRequest.emailAddress, $"{createUserRequest.firstName} {createUserRequest.lastName}")
+                });
+
+                var message = new EmailMessage(
+                    senderAddress: "DoNotReply@5e4bfc81-f032-4b41-b32b-584d6f5510d0.azurecomm.net", // must be a verified sender on your ACS domain
+                    content: content,
+                    recipients: recipients);
+
+                // WaitUntil.Completed waits for the initial send operation to complete (not full delivery).
+                EmailSendOperation operation = await client.SendAsync(WaitUntil.Completed, message);
+                EmailSendResult result = operation.Value;
+                if (result.Status == EmailSendStatus.Succeeded)
+                {
+                    return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newUser, "user", newUser.id);    
+                }
+                else
+                {
+                    return await HttpResponseDataFactory.CreateForServerError(httpRequestData, $"Failed to send email: {result.Status}");
+                }
             }
         
             return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to create user");

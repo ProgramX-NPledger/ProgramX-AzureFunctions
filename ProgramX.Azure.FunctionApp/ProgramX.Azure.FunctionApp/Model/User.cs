@@ -29,5 +29,10 @@ public class User
     public string profilePhotographOriginal { get; set; }
 
     public string theme { get; set; }
-    
+
+    public DateTime? createdAt { get; set; }
+    public DateTime? updatedAt { get; set; }
+    public DateTime? lastLoginAt { get; set; }
+    public DateTime? lastPasswordChangeAt { get; set; }
+    public DateTime? passwordLinkExpiresAt { get; set; }
 }
