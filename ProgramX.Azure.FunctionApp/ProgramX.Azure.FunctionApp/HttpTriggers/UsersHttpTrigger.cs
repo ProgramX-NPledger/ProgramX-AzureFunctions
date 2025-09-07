@@ -97,11 +97,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 {
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
                 }
-
-                if (!userName.Equals(user.userName))
-                {
-                    return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
-                }
                 
                 List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList();
                 
