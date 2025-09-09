@@ -35,6 +35,7 @@ public class User
     public DateTime? lastLoginAt { get; set; }
     public DateTime? lastPasswordChangeAt { get; set; }
     public DateTime? passwordLinkExpiresAt { get; set; }
-    
+    public string? passwordConfirmationNonce { get; set; }   
+
     
 }

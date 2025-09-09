@@ -425,7 +425,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 roles = allRoles.Where(q=>createUserRequest.addToRoles.Contains(q.name)),
                 passwordHash = [],
                 passwordSalt = [],
-                versionNumber = 4,
+                versionNumber = 5,
                 createdAt = DateTime.UtcNow,
                 updatedAt = DateTime.UtcNow,
                 theme = "light",
@@ -433,9 +433,15 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 lastName = createUserRequest.lastName,
                 lastLoginAt = null,
                 lastPasswordChangeAt = null,
-                passwordLinkExpiresAt = DateTime.UtcNow.AddMinutes(60)
+                passwordLinkExpiresAt = DateTime.UtcNow.AddMinutes(60),
+                passwordConfirmationNonce = Guid.NewGuid().ToString("N"),
             };
 
+            if (createUserRequest.passwordConfirmationLinkExpiryDate.HasValue)
+            {
+                newUser.passwordLinkExpiresAt = createUserRequest.passwordConfirmationLinkExpiryDate.Value;    
+            }
+            
             if (!string.IsNullOrWhiteSpace(createUserRequest.password))
             {
                 using var hmac = new HMACSHA512();
@@ -459,7 +465,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 Hi,
 
 Please complete your programx.co.uk login by navigating to the following link:
-https://apps.programx.co.uk/complete-login?username={createUserRequest.userName}
+https://apps.programx.co.uk/confirm-password?username={createUserRequest.userName}&n={newUser.passwordConfirmationNonce}
 
 This link is valid until {newUser.passwordLinkExpiresAt}.
 
@@ -467,7 +473,7 @@ This link is valid until {newUser.passwordLinkExpiresAt}.
                     Html = @$"<h1>Please complete your programx.co.uk login</h1>
 <p>Hi,</p>
 <p>Please complete your programx.co.uk login by navigating to the following link:<br />
-<a href=""https://apps.programx.co.uk/complete-login?username={createUserRequest.userName}"">Complete login by entering your password</a></p>
+<a href=""https://apps.programx.co.uk/confirm-password?username={createUserRequest.userName}&n={newUser.passwordConfirmationNonce}"">Complete login by entering your password</a></p>
 <p>This link is valid until {newUser.passwordLinkExpiresAt}.</p>"
                 };
 
