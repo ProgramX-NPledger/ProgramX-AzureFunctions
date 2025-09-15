@@ -103,7 +103,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
                 }
                 
-                List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList();
+                List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
                 {
@@ -119,7 +119,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
     [Function(nameof(UpdateUser))]
     public async Task<HttpResponseData> UpdateUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "user/{id}")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{id}")]
         HttpRequestData httpRequestData,
         string id)
     {
@@ -161,10 +161,16 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             {
                 if (string.IsNullOrWhiteSpace(updateUserRequest.newPassword)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password cannot be empty");
                 if (updateUserRequest.newPassword!=updateUserRequest.confirmPassword) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Passwords do not match");
+                if (originalUser.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect username");
+                if (!string.IsNullOrEmpty(originalUser.passwordConfirmationNonce) && originalUser.passwordConfirmationNonce!=updateUserRequest.passwordConfirmationNonce) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect password confirmation nonce");
+                if (originalUser.passwordLinkExpiresAt.HasValue && originalUser.passwordLinkExpiresAt.Value < DateTime.UtcNow) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password confirmation link has expired");
+                
                 using var hmac = new HMACSHA512(originalUser.passwordSalt);
                 var passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(updateUserRequest.newPassword));
                 originalUser.passwordHash = passwordHash;
                 originalUser.passwordSalt = hmac.Key;
+                originalUser.passwordConfirmationNonce = null;
+                originalUser.passwordLinkExpiresAt = null;
             }
             
             if (updateUserRequest.updateRolesScope)

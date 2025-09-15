@@ -35,4 +35,6 @@ public class UpdateUserRequest
 
     [JsonPropertyName("roles")] public IEnumerable<Role> roles { get; set; } = [];
 
+    public string? passwordConfirmationNonce { get; set; }
+    
 }

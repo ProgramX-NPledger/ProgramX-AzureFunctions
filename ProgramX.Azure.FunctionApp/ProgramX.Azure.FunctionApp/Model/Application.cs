@@ -4,14 +4,10 @@ namespace ProgramX.Azure.FunctionApp.Model;
 
 public class Application
 {
-    [JsonPropertyName("name")]
-    public required string Name { get; set; }
-    [JsonPropertyName("description")]
-    public string? Description { get; set; }
-    [JsonPropertyName("imageUrl")]
-    public string? ImageUrl { get; set; }
-    [JsonPropertyName("targetUrl")]
-    public required string TargetUrl { get; set; }
+    public required string name { get; set; }
+    public string? description { get; set; }
+    public string? imageUrl { get; set; }
+    public required string targetUrl { get; set; }
     public string type { get; } = "application";
 
     public int versionNumber { get; } = 1;

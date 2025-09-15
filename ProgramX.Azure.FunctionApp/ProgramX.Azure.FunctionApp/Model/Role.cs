@@ -10,6 +10,10 @@ public class Role
     public IEnumerable<Application> applications { get; set; }
     public string type { get; } = "role";
 
-    public int versionNumber { get; } = 1;
+    public int schemaVersionNumber { get; set;  } = 1;
+
+    public DateTime? createdAt { get; set; }
+    public DateTime? updatedAt { get; set; }
+    
     
 }
