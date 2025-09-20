@@ -1,0 +1,27 @@
+# Login
+
+###
+# @name Login
+POST {{host}} /api/v1/login
+#Content-Type: application/json
+
+{
+    "userName": "nathan",
+    "password": "S1lmarillion"
+}
+
+> {%
+const data = typeof response.body === 'string'
+    ? JSON.parse(response.body)
+    : response.body;
+    
+const token = data.token;
+
+if (!token) {
+  throw new Error("Token not found in login response.");
+}
+
+// Store globally for reuse across files/tabs
+client.global.set("token", token);
+
+%}

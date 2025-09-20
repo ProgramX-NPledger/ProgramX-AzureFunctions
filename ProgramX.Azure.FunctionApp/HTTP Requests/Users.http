@@ -1,0 +1,42 @@
+# Users
+
+###
+# @name Create User
+POST {{host}}/api/v1/user
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6Im5hdGhhbiIsInJvbGVzIjpbImFkbWluLXJlYWRvbmx5IiwiYWRtaW4tcmVhZHdyaXRlIl19.To04LHYyg4xN6gx4oaf9JzoQ2lcxK0DwLtpmk1mdkYg
+Content-Type: application/json
+
+{
+  "userName": "nathan-test",
+  "emailAddress": "programx@gmail.com",
+  "addToRoles": [
+    "impersonatable",
+    "admin-readonly"
+  ],
+  "firstName": "Nathan 2",
+  "lastName": "Pledger"
+}
+
+###
+# @name Update User
+POST {{host}}/api/v1/user
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImFueXRoaW5nIiwicm9sZXMiOlsiYWRtaW4iXX0.GIdLW6fmKuxENzwAdLNbQcnaZSNnkTmeh_qDsjSx4zA
+Content-Type: application/json
+
+{
+  "userName": "newuser1",
+  "emailAddress": "testEmail",
+  "password": "password",
+  "addToRoles": []
+}
+
+###
+# @name Get User
+GET {{host}}/api/v1/user/2ba7ee3f5d6848539cb54031f4e12c05
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImFueXRoaW5nIiwicm9sZXMiOlsiYWRtaW4iXX0.GIdLW6fmKuxENzwAdLNbQcnaZSNnkTmeh_qDsjSx4zA
+
+###
+# @name Get Users
+GET {{host}}/api/v1/user?
+    continuationToken=httpRequestData.Query["continuationToken"]
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImFueXRoaW5nIiwicm9sZXMiOlsiYWRtaW4iXX0.GIdLW6fmKuxENzwAdLNbQcnaZSNnkTmeh_qDsjSx4zA

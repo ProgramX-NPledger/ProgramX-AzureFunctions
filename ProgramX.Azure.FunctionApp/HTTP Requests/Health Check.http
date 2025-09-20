@@ -1,0 +1,5 @@
+# Health Check
+
+###
+# @name Get Health Check
+GET {{host}} /api/v1/healthcheck
