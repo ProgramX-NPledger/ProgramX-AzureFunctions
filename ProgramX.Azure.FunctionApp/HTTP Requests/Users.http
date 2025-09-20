@@ -20,12 +20,12 @@ Content-Type: application/json
 
 ###
 # @name Update User
-POST {{host}}/api/v1/user
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImFueXRoaW5nIiwicm9sZXMiOlsiYWRtaW4iXX0.GIdLW6fmKuxENzwAdLNbQcnaZSNnkTmeh_qDsjSx4zA
+PUT {{host}}/api/v1/user/nathan-test
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "userName": "newuser1",
+  "userName": "nathan-test",
   "emailAddress": "testEmail",
   "password": "password",
   "addToRoles": []

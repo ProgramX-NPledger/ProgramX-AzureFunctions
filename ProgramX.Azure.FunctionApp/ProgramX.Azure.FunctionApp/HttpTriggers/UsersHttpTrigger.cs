@@ -118,11 +118,14 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         HttpRequestData httpRequestData,
         string id)
     {
+        var updateUserRequest = await httpRequestData.ReadFromJsonAsync<UpdateUserRequest>();
+        if (updateUserRequest==null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
+
+        var isChangePasswordRequest=updateUserRequest.updatePasswordScope 
+                                    && updateUserRequest is { newPassword: not null, updateProfilePictureScope: false, updateProfileScope: false, updateRolesScope: false };
+        
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var updateUserRequest = await httpRequestData.ReadFromJsonAsync<UpdateUserRequest>();
-            if (updateUserRequest==null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
-
             // get the User to get the password hash
             var pagedAndFilteredCosmosDbReader =
                 new PagedCosmosDBReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
@@ -155,7 +158,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             if (updateUserRequest.updatePasswordScope)
             {
                 if (string.IsNullOrWhiteSpace(updateUserRequest.newPassword)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password cannot be empty");
-                if (updateUserRequest.newPassword!=updateUserRequest.confirmPassword) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Passwords do not match");
                 if (originalUser.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect username");
                 if (!string.IsNullOrEmpty(originalUser.passwordConfirmationNonce) && originalUser.passwordConfirmationNonce!=updateUserRequest.passwordConfirmationNonce) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect password confirmation nonce");
                 if (originalUser.passwordLinkExpiresAt.HasValue && originalUser.passwordLinkExpiresAt.Value < DateTime.UtcNow) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password confirmation link has expired");
@@ -190,7 +192,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
         
             return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to update user");
-        });
+        },isChangePasswordRequest);
     }
     
     
