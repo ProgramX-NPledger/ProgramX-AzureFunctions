@@ -73,7 +73,7 @@ public class LoginHttpTrigger
             userFromDb.userName,
             userFromDb.emailAddress,
             roles = userFromDb.roles.Select(q=>q.name),
-            applications = userFromDb.roles.SelectMany(q=>q.applications).GroupBy(g=>g.Name).Select(q=>q.First()).ToList(),
+            applications = userFromDb.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList(),
             profilePhotoBase64 = string.Empty,
             userFromDb.firstName,
             userFromDb.lastName,

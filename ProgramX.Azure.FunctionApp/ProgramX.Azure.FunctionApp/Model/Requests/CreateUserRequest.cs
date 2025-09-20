@@ -15,6 +15,8 @@ public class CreateUserRequest
     public string? password { get; set; }
 
     public required IEnumerable<string> addToRoles { get; set; }
-    
+
+    public DateTime? passwordConfirmationLinkExpiryDate { get; set; }
+
     
 }
