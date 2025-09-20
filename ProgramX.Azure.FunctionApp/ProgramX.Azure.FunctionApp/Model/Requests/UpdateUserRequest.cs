@@ -25,11 +25,7 @@ public class UpdateUserRequest
     public bool updateSettingsScope { get; set; } = false;
 
     public string? newPassword { get; set; }
-
-    public string? confirmPassword { get; set; }
-
-    public byte[] photo { get; set; } = [];
-
+    
     public string theme { get; set; }
     
 
