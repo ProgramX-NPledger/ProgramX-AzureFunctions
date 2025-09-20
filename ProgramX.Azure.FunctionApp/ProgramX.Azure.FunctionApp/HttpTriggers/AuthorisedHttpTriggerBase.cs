@@ -22,33 +22,40 @@ public abstract class AuthorisedHttpTriggerBase
         _configuration = configuration;
     }
 
-    public async Task<HttpResponseData> RequiresAuthentication(HttpRequestData httpRequestData, string? requiredRole, Func<string,IEnumerable<string>,Task<HttpResponseData>> httpResponseDelegate)
+    public async Task<HttpResponseData> RequiresAuthentication(HttpRequestData httpRequestData, string? requiredRole, Func<string?,IEnumerable<string>?,Task<HttpResponseData>> httpResponseDelegate, bool permitAnonymous=false)
     {
-        if (!httpRequestData.Headers.Contains(AuthenticationHeaderName))
+        if (!permitAnonymous)
         {
-            return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "No authentication header was found.");
+            if (!httpRequestData.Headers.Contains(AuthenticationHeaderName))
+            {
+                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
+                    "No authentication header was found.");
+            }
+
+            var authorisationHeader = httpRequestData.Headers.GetValues(AuthenticationHeaderName);
+            var safeAuthorisationHeader = authorisationHeader.First();
+            if (safeAuthorisationHeader.StartsWith("Bearer "))
+                safeAuthorisationHeader = safeAuthorisationHeader.Substring(7);
+
+            try
+            {
+                Auth = new AuthenticationInfo(safeAuthorisationHeader, _configuration["JwtKey"]);
+            }
+            catch (Exception exception)
+            {
+                return await HttpResponseDataFactory.CreateForServerError(httpRequestData, exception);
+            }
+
+            if (!Auth.IsValid)
+            {
+                // this should redirect
+                return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
+            }
+            
+            return await httpResponseDelegate.Invoke(Auth.Username, Auth.Roles);
         }
 
-        var authorisationHeader = httpRequestData.Headers.GetValues(AuthenticationHeaderName);
-        var safeAuthorisationHeader = authorisationHeader.First();
-        if (safeAuthorisationHeader.StartsWith("Bearer ")) safeAuthorisationHeader = safeAuthorisationHeader.Substring(7);
-        
-        try
-        {
-            Auth = new AuthenticationInfo(safeAuthorisationHeader,_configuration["JwtKey"]);
-        }
-        catch (Exception exception)
-        {
-            return await HttpResponseDataFactory.CreateForServerError(httpRequestData, exception);
-        }
-
-        if (!Auth.IsValid)
-        {
-            // this should redirect
-            return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
-        }
-
-        return await httpResponseDelegate.Invoke(Auth.Username, Auth.Roles);
+        return await httpResponseDelegate.Invoke(null,null);
     }
 
 }
