@@ -465,7 +465,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 Hi,
 
 Please complete your programx.co.uk login by navigating to the following link:
-{Configuration["ClientUrl"]}/complete-login?username={createUserRequest.userName}&n={newUser.passwordConfirmationNonce}
+{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.userName}&n={newUser.passwordConfirmationNonce}
 
 This link is valid until {newUser.passwordLinkExpiresAt}.
 
@@ -473,7 +473,7 @@ This link is valid until {newUser.passwordLinkExpiresAt}.
                     Html = @$"<h1>Please complete your programx.co.uk login</h1>
 <p>Hi,</p>
 <p>Please complete your programx.co.uk login by navigating to the following link:<br />
-<a href=""{Configuration["ClientUrl"]}/complete-login?username={createUserRequest.userName}&n={newUser.passwordConfirmationNonce}"">Complete login by entering your password</a></p>
+<a href=""{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.userName}&n={newUser.passwordConfirmationNonce}"">Complete login by entering your password</a></p>
 <p>This link is valid until {newUser.passwordLinkExpiresAt}.</p>"
                 };
 
