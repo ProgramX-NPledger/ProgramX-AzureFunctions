@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using JWT;
 using JWT.Algorithms;
 using JWT.Serializers;
@@ -47,6 +48,8 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                 new PagedCosmosDBReader<Role>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);;
             
             var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
+            var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]);
+            
             QueryDefinition queryDefinition;
             if (name == null)
             {
@@ -61,13 +64,11 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
             
             if (name==null)
             {
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>()
-                {
-                    ContinuationToken = roles.ContinuationToken,
-                    Items = roles.Items,
-                    IsLastPage = !roles.IsMorePages(),
-                    ItemsPerPage = roles.MaximumItemsRequested
-                });
+                var nextPageUrl =
+                    BuildNextPageUrl(
+                        $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}",
+                        containsText, continuationToken);
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>(roles,nextPageUrl));
             }
             else
             {
@@ -111,6 +112,35 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                 
             }
         });
+    }
+    
+    
+    
+    private string BuildNextPageUrl(string baseUrl, string? containsText, string? continuationToken)
+    {
+        var parametersDictionary = new Dictionary<string, string>();
+        if (!string.IsNullOrWhiteSpace(containsText))
+        {
+            parametersDictionary.Add("containsText", Uri.EscapeDataString(containsText));
+        }
+
+        if (!string.IsNullOrWhiteSpace(continuationToken))
+        {
+            parametersDictionary.Add("continuationToken", Uri.EscapeDataString(continuationToken));
+        }
+        
+        var sb=new StringBuilder(baseUrl);
+        if (parametersDictionary.Any())
+        {
+            sb.Append("?");
+            foreach (var param in parametersDictionary)
+            {
+                sb.Append($"{param.Key}={param.Value}&");
+            }
+            sb.Remove(sb.Length-1,1);
+        }
+
+        return sb.ToString();
     }
 
     [Function(nameof(CreateRole))]

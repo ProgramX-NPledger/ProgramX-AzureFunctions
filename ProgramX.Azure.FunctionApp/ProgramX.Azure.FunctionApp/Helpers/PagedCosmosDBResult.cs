@@ -16,11 +16,17 @@ public class PagedCosmosDBResult<T>
     {
         return MaximumItemsRequested != null;
     }
+    
+    public double RequestCharge { get; private set; }
 
-    public PagedCosmosDBResult(IEnumerable<T> items, string? continuationToken, int? maximumItemsRequested)
+    public int EstimatedTotalPageCount { get; private set;  }
+    
+    public PagedCosmosDBResult(IEnumerable<T> items, string? continuationToken, int? maximumItemsRequested, double requestCharge, int estimatedTotalPageCount)
     {
         Items = items;
         ContinuationToken = continuationToken;
         MaximumItemsRequested = maximumItemsRequested;
+        RequestCharge = requestCharge;
+        EstimatedTotalPageCount = estimatedTotalPageCount;
     }
 }

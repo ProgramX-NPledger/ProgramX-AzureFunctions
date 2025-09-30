@@ -18,7 +18,7 @@ const data = typeof response.body === 'string'
 const token = data.token;
 
 if (!token) {
-  throw new Error("Token not found in login response.");
+  throw new Error("Token not found in login response.");    
 }
 
 // Store globally for reuse across files/tabs

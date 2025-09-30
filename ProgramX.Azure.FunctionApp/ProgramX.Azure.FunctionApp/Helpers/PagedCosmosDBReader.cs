@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+using ProgramX.Azure.FunctionApp.Constants;
 
 namespace ProgramX.Azure.FunctionApp.Helpers;
 
@@ -41,7 +42,8 @@ public class PagedCosmosDBReader<T>
         if (databaseResponse.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Database created",[_databaseName]);
         var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(_containerName, _partitionKeyPath);
         if (containerResponse.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Container created",[_containerName,_partitionKeyPath]);
-        
+
+        var requestCharge = 0.0;
         using (var feedIterator = containerResponse.Container.GetItemQueryIterator<T>(queryDefinition, continuationToken,
                    new QueryRequestOptions
                    {
@@ -53,6 +55,8 @@ public class PagedCosmosDBReader<T>
             {
                 var response = await feedIterator.ReadNextAsync();
                 continuationToken = response.ContinuationToken;
+                requestCharge = response.RequestCharge;
+                
                 items.AddRange(response);
             }
             else
@@ -61,15 +65,29 @@ public class PagedCosmosDBReader<T>
                 {
                     var response = await feedIterator.ReadNextAsync();
                     items.AddRange(response);
+                    requestCharge = response.RequestCharge;
                 }
                 
             }
         }
-        var pagedCosmosDbResult = new PagedCosmosDBResult<T>(items,continuationToken,itemsPerPage);
+        
+        var countQueryDefinition = new QueryDefinition("SELECT VALUE COUNT(1) "+queryDefinition.QueryText.Substring(queryDefinition.QueryText.IndexOf("FROM")));
+        var totalCount = await GetCountAsync(containerResponse.Container, countQueryDefinition);
+
+
+        var pagedCosmosDbResult = new PagedCosmosDBResult<T>(items,continuationToken,itemsPerPage,requestCharge,(int)Math.Ceiling((double)totalCount / itemsPerPage ?? DataConstants.ItemsPerPage));
         return pagedCosmosDbResult;
         
         // {"OptimisticDirectExecutionToken":{"token":"-RID:~fahmANNVhRoHAAAAAAAAAA==#RT:1#TRC:5#ISV:2#IEO:65567#QCF:8","range":{"min":"","max":"FF"}}}
 
     }
+    
+    private async Task<int> GetCountAsync(Container container, QueryDefinition queryDefinition)
+    {
+        using var iterator = container.GetItemQueryIterator<int>(queryDefinition);
+        var response = await iterator.ReadNextAsync();
+        return response.FirstOrDefault();
+    }
+
     
 }

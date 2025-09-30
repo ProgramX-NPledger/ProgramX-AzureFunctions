@@ -78,14 +78,12 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             if (string.IsNullOrWhiteSpace(id))
             {
                 continuationToken=users.ContinuationToken;
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<SecureUser>()
-                {
-                    NextPageUrl = BuildNextPageUrl($"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}", containsText,withRoles,hasAccessToApplications, continuationToken),
-                    ContinuationToken = continuationToken,
-                    Items = users.Items,
-                    IsLastPage = !users.IsMorePages(),
-                    ItemsPerPage = users.MaximumItemsRequested
-                });
+                var nextPageUrl = BuildNextPageUrl(
+                    $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}",
+                    containsText, withRoles, hasAccessToApplications, continuationToken);
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<SecureUser>(
+                    users,
+                    nextPageUrl));
             }
             else
             {
