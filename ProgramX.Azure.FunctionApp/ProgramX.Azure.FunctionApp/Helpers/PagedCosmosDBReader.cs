@@ -45,7 +45,8 @@ public class PagedCosmosDBReader<T>
         using (var feedIterator = containerResponse.Container.GetItemQueryIterator<T>(queryDefinition, continuationToken,
                    new QueryRequestOptions
                    {
-                       MaxItemCount = itemsPerPage
+                       MaxItemCount = itemsPerPage,
+                       
                    }))
         {
             if (isPaged)

@@ -38,6 +38,24 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImFue
 
 ###
 # @name Get Users
-GET {{host}}/api/v1/user?
-    continuationToken=httpRequestData.Query["continuationToken"]
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImFueXRoaW5nIiwicm9sZXMiOlsiYWRtaW4iXX0.GIdLW6fmKuxENzwAdLNbQcnaZSNnkTmeh_qDsjSx4zA
+GET {{host}}/api/v1/user
+Authorization: Bearer {{token}}
+
+###
+# @name Get Users containing text
+GET {{host}}/api/v1/user?containsText=t
+Authorization: Bearer {{token}}
+
+###
+# @name Get Users with role
+GET {{host}}/api/v1/user?withRoles=admin-readonly
+Authorization: Bearer {{token}}
+
+###
+# @name Get Users with access to application
+GET {{host}}/api/v1/user?hasAccessToApplications=Home
+Authorization: Bearer {{token}}
+
+###
+GET http://localhost:7276/api/v1/user?containsText=t&continuationToken=%7B%22OptimisticDirectExecutionToken%22%3A%7B%22token%22%3A%22%2BRID%3A~fahmANNVhRonAAAAAAAAAA%3D%3D%23RT%3A1%23TRC%3A5%23RTD%3AT8SNn3c92%2FvoSTjZ4ohMBU9idWlib1VmdHU3AA%3D%3D%23ISV%3A2%23IEO%3A65567%23QCF%3A8%23FPC%3AASIAAAAAAAAALQAAAAAAAAA%3D%22%2C%22range%22%3A%7B%22min%22%3A%22%22%2C%22max%22%3A%22FF%22%7D%7D%7D
+Authorization: Bearer {{token}}

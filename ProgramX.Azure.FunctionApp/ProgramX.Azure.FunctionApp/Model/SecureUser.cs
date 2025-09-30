@@ -11,7 +11,7 @@ public class SecureUser
     [JsonPropertyName("emailAddress")]
     public required string emailAddress { get; set; }
     [JsonPropertyName("roles")]
-    public  IEnumerable<Role> roles { get; set; }
+    public  IEnumerable<Role> roles { get; set; } 
 
     public string firstName { get; set; }
     public string lastName { get; set; }

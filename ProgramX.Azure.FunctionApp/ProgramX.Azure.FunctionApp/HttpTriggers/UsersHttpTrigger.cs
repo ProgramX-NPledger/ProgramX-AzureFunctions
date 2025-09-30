@@ -68,23 +68,21 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 new PagedCosmosDBReader<SecureUser>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
             
             var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
-            QueryDefinition queryDefinition;
-            if (string.IsNullOrWhiteSpace(id))
-            {
-                queryDefinition = new QueryDefinition("SELECT * FROM c order by c.userName");
-            }
-            else
-            {
-                queryDefinition = new QueryDefinition("SELECT * FROM c where c.id=@id or c.userName=@id");
-                queryDefinition.WithParameter("@id", id);
-            }
-            var users = await pagedAndFilteredCosmosDbReader.GetItems(queryDefinition,continuationToken,DataConstants.ItemsPerPage);
+            var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]);
+            var withRoles = httpRequestData.Query["withRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["withRoles"]).Split(new [] {','});
+            var hasAccessToApplications = httpRequestData.Query["hasAccessToApplications"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["hasAccessToApplications"]).Split(new [] {','});
             
+            QueryDefinition queryDefinition = BuildQueryDefinition(id,containsText, withRoles, hasAccessToApplications);
+            
+            var users = await pagedAndFilteredCosmosDbReader.GetItems(queryDefinition,continuationToken,DataConstants.ItemsPerPage);
+
             if (string.IsNullOrWhiteSpace(id))
             {
+                continuationToken=users.ContinuationToken;
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<SecureUser>()
                 {
-                    ContinuationToken = users.ContinuationToken,
+                    NextPageUrl = BuildNextPageUrl($"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}", containsText,withRoles,hasAccessToApplications, continuationToken),
+                    ContinuationToken = continuationToken,
                     Items = users.Items,
                     IsLastPage = !users.IsMorePages(),
                     ItemsPerPage = users.MaximumItemsRequested
@@ -106,10 +104,114 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     applications,
                     profilePhotoBase64 = string.Empty
                 });
-                
-                
             }
         });
+    }
+
+    private string BuildNextPageUrl(string baseUrl, string? containsText, string[]? withRoles, string[]? hasAccessToApplications, string? continuationToken)
+    {
+        var parametersDictionary = new Dictionary<string, string>();
+        if (!string.IsNullOrWhiteSpace(containsText))
+        {
+            parametersDictionary.Add("containsText", Uri.EscapeDataString(containsText));
+        }
+
+        if (withRoles != null && withRoles.Any())
+        {
+            parametersDictionary.Add("withRoles", Uri.EscapeDataString(string.Join(",", withRoles)));
+        }
+
+        if (hasAccessToApplications != null && hasAccessToApplications.Any())
+        {
+            parametersDictionary.Add("hasAccessToApplications", Uri.EscapeDataString(string.Join(",", hasAccessToApplications)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(continuationToken))
+        {
+            parametersDictionary.Add("continuationToken", Uri.EscapeDataString(continuationToken));
+        }
+        
+        var sb=new StringBuilder(baseUrl);
+        if (parametersDictionary.Any())
+        {
+            sb.Append("?");
+            foreach (var param in parametersDictionary)
+            {
+                sb.Append($"{param.Key}={param.Value}&");
+            }
+            sb.Remove(sb.Length-1,1);
+        }
+
+        return sb.ToString();
+    }
+
+    private QueryDefinition BuildQueryDefinition(string? id, string? containsText, IEnumerable<string>? withRoles, IEnumerable<string>? hasAccessToApplications)
+    {
+        var sb = new StringBuilder("SELECT c.id, c.userName, c.emailAddress, c.roles,c.type,c.versionNumber,c.firstName,c.lastName,c.profilePhotographSmall,c.profilePhotographOriginal,c.theme,c.createdAt,c.updatedAt,c.lastLoginAt,c.lastPasswordChangeAt FROM c WHERE 1=1");
+        var parameters = new List<(string name, object value)>();
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            if (!string.IsNullOrWhiteSpace(containsText))
+            {
+                sb.Append(@" AND (
+                                CONTAINS(UPPER(c.userName), @containsText) OR 
+                                CONTAINS(UPPER(c.emailAddress), @containsText) OR 
+                                CONTAINS(UPPER(c.firstName), @containsText) OR 
+                                CONTAINS(UPPER(c.lastName), @containsText)
+                                )");
+                parameters.Add(("@containsText", containsText.ToUpperInvariant()));
+            }
+
+            if (withRoles != null && withRoles.Any())
+            {
+                var conditions = new List<string>();
+                var rolesList = withRoles.ToList();
+            
+                for (int i = 0; i < rolesList.Count; i++)
+                {
+                    conditions.Add($"EXISTS(SELECT VALUE r FROM r IN c.roles WHERE r.name = @role{i})");
+                    parameters.Add(($"@role{i}", rolesList[i]));
+                }
+            
+                sb.Append($" AND ({string.Join(" OR ", conditions)})");
+            }
+
+            if (hasAccessToApplications != null && hasAccessToApplications.Any())
+            {
+                var conditions = new List<string>();
+                var applicationsList = hasAccessToApplications.ToList();
+            
+                for (int i = 0; i < applicationsList.Count; i++)
+                {
+                    conditions.Add(@$"EXISTS(SELECT VALUE r 
+                            FROM r IN c.roles 
+                            JOIN a IN r.applications 
+                            WHERE a.name =  @appname{i})");
+                    parameters.Add(($"@appname{i}", applicationsList[i]));
+                }
+            
+                sb.Append($" AND ({string.Join(" OR ", conditions)})");
+
+
+            }
+            
+            sb.Append(" ORDER BY c.userName");
+            
+
+        }
+        else
+        {
+            sb.Append(" AND (c.id=@id OR c.userName=@id)");
+            parameters.Add(("@id", id));
+        }
+
+        var queryDefinition = new QueryDefinition(sb.ToString());
+        foreach (var param in parameters)
+        {
+            queryDefinition.WithParameter(param.name, param.value);
+        }
+        return queryDefinition;
+        
     }
 
     [Function(nameof(UpdateUser))]

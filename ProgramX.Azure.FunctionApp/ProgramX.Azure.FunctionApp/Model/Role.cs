@@ -5,6 +5,7 @@ namespace ProgramX.Azure.FunctionApp.Model;
 public class Role
 {
 
+    [JsonPropertyName("name")]
     public string name { get; set; }
     public string description { get; set; }
     public IEnumerable<Application> applications { get; set; }

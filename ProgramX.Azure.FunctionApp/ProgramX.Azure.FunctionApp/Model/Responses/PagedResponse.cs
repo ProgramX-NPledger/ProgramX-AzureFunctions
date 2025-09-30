@@ -6,6 +6,11 @@ public class PagedResponse<T>
 {
     [JsonPropertyName("items")]
     public IEnumerable<T> Items { get; set; }
+    
+    [JsonPropertyName("nextPageUrl")]
+
+    public string? NextPageUrl { get; set; }
+    
     [JsonPropertyName("continuationToken")]
     public string? ContinuationToken { get; set; }
     [JsonPropertyName("itemsPerPage")]
