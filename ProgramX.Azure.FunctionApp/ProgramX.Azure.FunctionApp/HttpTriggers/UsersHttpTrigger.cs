@@ -63,7 +63,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, null, async (userName, _) =>
         {
-            // pass a filter into the below
             var pagedAndFilteredCosmosDbReader =
                 new PagedCosmosDBReader<SecureUser>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
             
