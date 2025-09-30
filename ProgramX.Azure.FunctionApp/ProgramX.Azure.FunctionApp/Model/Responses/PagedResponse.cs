@@ -19,8 +19,10 @@ public class PagedResponse<T>
     [JsonPropertyName("isLastPage")]
     public bool IsLastPage { get; set; }
     
+    [JsonPropertyName("requestCharge")]
     public double RequestCharge { get; set; }
 
+    [JsonPropertyName("estimatedTotalPageCount")]
     public int EstimatedTotalPageCount { get; set;  }
 
     public PagedResponse(PagedCosmosDBResult<T> pagedCosmosDBResult, string? nextPageUrl)
