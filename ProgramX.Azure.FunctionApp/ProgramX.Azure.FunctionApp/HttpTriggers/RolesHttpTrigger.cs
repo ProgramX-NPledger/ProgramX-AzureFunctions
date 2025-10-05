@@ -43,16 +43,12 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
-            var rolesPagedCosmosDbReader =
-                new PagedCosmosDbReader<Role>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);;
-            
-            HttpResponseData httpResponseData;
             if (name == null)
             {
                 var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
                 var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]);
-                var offset = GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]);
-                var itemsPerPage = GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]);
+                var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]);
+                var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]);
                 
                 var pagedCosmosDbRolesResults=await GetPagedMultipleItemsAsync(containsText,continuationToken,offset,itemsPerPage);
                 var baseUrl =
@@ -146,8 +142,6 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         List<UrlAccessiblePage> pageUrls = new List<UrlAccessiblePage>();
         for (var pageNumber = 1; pageNumber <= pagedCosmosDbRolesResults.TotalItems; pageNumber++)
         {
-
-            
             pageUrls.Add(new UrlAccessiblePage()
             {
                 Url = BuildPageUrl(baseUrl, containsText, continuationToken, offset, itemsPerPage),
@@ -204,15 +198,6 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         
         return pagedCosmosDbResultForRoles;
     }
-
-    private int? GetValidIntegerQueryStringParameterOrNull(string? s)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return null;
-        if (!int.TryParse(s, out var offset)) return null;
-        if (offset < 0) return null;
-        return offset;
-    }
-
 
     private string BuildPageUrl(string baseUrl, string? containsText, string? continuationToken, int? offset, int? itemsPerPage)
     {
