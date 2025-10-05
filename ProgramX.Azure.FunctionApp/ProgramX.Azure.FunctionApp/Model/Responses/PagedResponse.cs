@@ -11,7 +11,10 @@ public class PagedResponse<T>
     [JsonPropertyName("nextPageUrl")]
 
     public string? NextPageUrl { get; set; }
-    
+
+    [JsonPropertyName("pagesWithUrls")]
+    public IEnumerable<UrlAccessiblePage> PagesWithUrls { get; set; }
+
     [JsonPropertyName("continuationToken")]
     public string? ContinuationToken { get; set; }
     [JsonPropertyName("itemsPerPage")]
@@ -24,16 +27,23 @@ public class PagedResponse<T>
 
     [JsonPropertyName("estimatedTotalPageCount")]
     public int EstimatedTotalPageCount { get; set;  }
+    
+    [JsonPropertyName("timeDelta")]
+    public TimeSpan? TimeDelta { get; set; }
 
-    public PagedResponse(PagedCosmosDBResult<T> pagedCosmosDBResult, string? nextPageUrl)
+    
+
+    public PagedResponse(PagedCosmosDBResult<T> pagedCosmosDBResult, string? nextPageUrl, IEnumerable<UrlAccessiblePage> pagesWithUrls)
     {
         NextPageUrl = nextPageUrl;
+        PagesWithUrls = pagesWithUrls;
         ContinuationToken = pagedCosmosDBResult.ContinuationToken;
         Items = pagedCosmosDBResult.Items;
         IsLastPage = !pagedCosmosDBResult.IsMorePages();
         ItemsPerPage = pagedCosmosDBResult.MaximumItemsRequested;
         RequestCharge = pagedCosmosDBResult.RequestCharge;
-        EstimatedTotalPageCount = pagedCosmosDBResult.EstimatedTotalPageCount;
+        TimeDelta = pagedCosmosDBResult.TimeDelta;
+        EstimatedTotalPageCount = pagedCosmosDBResult.TotalItems;
     }
 }
 

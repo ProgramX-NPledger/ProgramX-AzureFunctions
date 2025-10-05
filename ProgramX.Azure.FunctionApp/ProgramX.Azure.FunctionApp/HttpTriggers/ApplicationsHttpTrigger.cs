@@ -37,14 +37,14 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
         return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
             var pagedAndFilteredCosmosDbReader =
-                new PagedCosmosDBReader<Application>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
+                new PagedCosmosDbReader<Application>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
             
             var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
             var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]);
             
             QueryDefinition queryDefinition = BuildQueryDefinition(name,containsText);
             
-            var applications = await pagedAndFilteredCosmosDbReader.GetItems(queryDefinition,continuationToken,DataConstants.ItemsPerPage);
+            var applications = await pagedAndFilteredCosmosDbReader.GetNextItemsAsync(queryDefinition,continuationToken,DataConstants.ItemsPerPage);
 
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -54,7 +54,7 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
                         $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}",
                         containsText, continuationToken);
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
-                    new PagedResponse<Application>(applications, nextPageUrl));
+                    new PagedResponse<Application>(applications, nextPageUrl,Enumerable.Empty<UrlAccessiblePage>()));
             }
             else
             {
