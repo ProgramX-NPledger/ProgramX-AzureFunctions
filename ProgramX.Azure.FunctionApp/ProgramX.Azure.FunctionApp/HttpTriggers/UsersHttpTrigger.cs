@@ -71,10 +71,11 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 var withRoles = httpRequestData.Query["withRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["withRoles"]).Split(new [] {','});
                 var hasAccessToApplications = httpRequestData.Query["hasAccessToApplications"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["hasAccessToApplications"]).Split(new [] {','});
 
+                var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]);
                 var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]);
                 var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]);
                 
-                var pagedCosmosDbUsersResults=await GetPagedMultipleItemsAsync(containsText,withRoles, hasAccessToApplications, continuationToken,offset,itemsPerPage);
+                var pagedCosmosDbUsersResults=await GetPagedMultipleItemsAsync(containsText,withRoles, hasAccessToApplications, sortByColumn ?? "userName",offset,itemsPerPage);
                 var baseUrl =
                     $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
                 var pageUrls = CalculatePageUrls(pagedCosmosDbUsersResults,
@@ -199,7 +200,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     private async Task<PagedCosmosDbResult<SecureUser>> GetPagedMultipleItemsAsync(string? containsText,
         string[]? withRoles,
         string[]? hasAccessToApplications,
-        string sortByColumn="userName",
+        string sortByColumn,
         int? offset = 0,
         int? itemsPerPage = DataConstants.ItemsPerPage)
     {
