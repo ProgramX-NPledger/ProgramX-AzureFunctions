@@ -199,14 +199,14 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     private async Task<PagedCosmosDbResult<SecureUser>> GetPagedMultipleItemsAsync(string? containsText,
         string[]? withRoles,
         string[]? hasAccessToApplications,
-        string? continuationToken,
+        string sortByColumn="userName",
         int? offset = 0,
         int? itemsPerPage = DataConstants.ItemsPerPage)
     {
         QueryDefinition queryDefinition = BuildQueryDefinition(null, containsText, withRoles, hasAccessToApplications);
         
         var usersCosmosDbReader = new PagedCosmosDbReader<SecureUser>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-        PagedCosmosDbResult<SecureUser> pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,"r.name",offset,itemsPerPage);
+        PagedCosmosDbResult<SecureUser> pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,sortByColumn,offset,itemsPerPage);
         
         return pagedCosmosDbResult;
     }
