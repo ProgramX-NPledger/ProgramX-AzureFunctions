@@ -86,7 +86,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     offset ?? 0,
                     itemsPerPage ?? DataConstants.ItemsPerPage);
                 
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<User>(pagedCosmosDbUsersResults,pageUrls));
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<SecureUser>(pagedCosmosDbUsersResults,pageUrls));
             }
             else
             {
@@ -122,7 +122,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
     
     
-    private IEnumerable<UrlAccessiblePage> CalculatePageUrls(PagedCosmosDbResult<User> pagedCosmosDbRolesResults, 
+    private IEnumerable<UrlAccessiblePage> CalculatePageUrls(PagedCosmosDbResult<SecureUser> pagedCosmosDbRolesResults, 
         string baseUrl, 
         string? containsText, 
         IEnumerable<string>? withRoles, 
@@ -196,7 +196,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     }
     
     
-    private async Task<PagedCosmosDbResult<User>> GetPagedMultipleItemsAsync(string? containsText,
+    private async Task<PagedCosmosDbResult<SecureUser>> GetPagedMultipleItemsAsync(string? containsText,
         string[]? withRoles,
         string[]? hasAccessToApplications,
         string? continuationToken,
@@ -205,8 +205,8 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     {
         QueryDefinition queryDefinition = BuildQueryDefinition(null, containsText, withRoles, hasAccessToApplications);
         
-        var usersCosmosDbReader = new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-        PagedCosmosDbResult<User> pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,"r.name",offset,itemsPerPage);
+        var usersCosmosDbReader = new PagedCosmosDbReader<SecureUser>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
+        PagedCosmosDbResult<SecureUser> pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,"r.name",offset,itemsPerPage);
         
         return pagedCosmosDbResult;
     }
