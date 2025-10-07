@@ -1,8 +1,11 @@
+using System.Text.Json.Serialization;
+
 namespace ProgramX.Azure.FunctionApp.Helpers;
 
-public class PagedCosmosDBResult<T>
+public class PagedCosmosDbResult<T>
 {
     public IEnumerable<T> Items { get; private set; }
+    
     public string? ContinuationToken { get; private set;  }
 
     public int? MaximumItemsRequested { get; private set; }
@@ -11,7 +14,7 @@ public class PagedCosmosDBResult<T>
     {
         return ContinuationToken != null;
     }
-
+    
     public bool IsConstrainedByPageLength()
     {
         return MaximumItemsRequested != null;
@@ -20,27 +23,28 @@ public class PagedCosmosDBResult<T>
     public double RequestCharge { get; private set; }
 
     public int TotalItems { get; private set;  }
-    public TimeSpan? TimeDelta { get; private set; }
+    
+    public double TimeDeltaMs { get; private set; }
 
-    public PagedCosmosDBResult(IEnumerable<T> items, string? continuationToken, int? maximumItemsRequested, double requestCharge, int totalItems, TimeSpan? timeDelta = null)
+    public PagedCosmosDbResult(IEnumerable<T> items, string? continuationToken, int? maximumItemsRequested, double requestCharge, int totalItems, double timeDeltaMs)
     {
         Items = items;
         ContinuationToken = continuationToken;
         MaximumItemsRequested = maximumItemsRequested;
         RequestCharge = requestCharge;
         TotalItems = totalItems;
-        TimeDelta = timeDelta;
+        TimeDeltaMs = timeDeltaMs;
     }
     
     /// <summary>
-    /// Creates a new <seealso cref="PagedCosmosDBResult{T}"/> by transforming the items to a different type.
+    /// Creates a new <seealso cref="PagedCosmosDbResult{T}"/> by transforming the items to a different type.
     /// </summary>
     /// <remarks>This is useful when a child-model needs to be "brought up" into a higher model for paging purposes.</remarks>
     /// <param name="transformDelegate">Delegate called per item in <see cref="Items"/>.</param>
     /// <param name="disambiguationDelegate">Delegate called to ensure uniqueness of items in resulting collection.</param>
     /// <typeparam name="TTargetType">Type of the transformed type.</typeparam>
-    /// <returns>A new <see cref="PagedCosmosDBResult{T}"/> with the same metrics but a transformed Items collection.</returns>
-    public PagedCosmosDBResult<TTargetType> TransformItemsToDifferentType<TTargetType>(Func<T, IEnumerable<TTargetType>> transformDelegate,
+    /// <returns>A new <see cref="PagedCosmosDbResult{T}"/> with the same metrics but a transformed Items collection.</returns>
+    public PagedCosmosDbResult<TTargetType> TransformItemsToDifferentType<TTargetType>(Func<T, IEnumerable<TTargetType>> transformDelegate,
         Func<TTargetType,IEnumerable<TTargetType>, bool> disambiguationDelegate
         )
     {
@@ -53,6 +57,6 @@ public class PagedCosmosDBResult<T>
                 transformedItems.AddRange(transformDelegate.Invoke(item));    
             }
         }
-        return new PagedCosmosDBResult<TTargetType>(transformedItems, ContinuationToken, MaximumItemsRequested, RequestCharge, TotalItems, TimeDelta);
+        return new PagedCosmosDbResult<TTargetType>(transformedItems, ContinuationToken, MaximumItemsRequested, RequestCharge, TotalItems, TimeDeltaMs);
     }
 }

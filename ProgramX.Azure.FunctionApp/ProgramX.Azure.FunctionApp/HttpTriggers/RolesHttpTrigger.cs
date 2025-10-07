@@ -55,7 +55,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                     $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
                 var pageUrls = CalculatePageUrls(pagedCosmosDbRolesResults,baseUrl,continuationToken,containsText, offset,itemsPerPage);
                 
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>(pagedCosmosDbRolesResults,null,pageUrls));
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>(pagedCosmosDbRolesResults,pageUrls));
             }
             else
             {
@@ -109,7 +109,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         queryDefinition.WithParameter("@name",name);       
         
         var usersCosmosDbReader = new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-        PagedCosmosDBResult<User> pagedCosmosDbResult;
+        PagedCosmosDbResult<User> pagedCosmosDbResult;
         pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,"r.name");
         
         var pagedCosmosDbResultForRoles = pagedCosmosDbResult.TransformItemsToDifferentType<Role>(m =>
@@ -127,7 +127,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 
 
     
-    private IEnumerable<UrlAccessiblePage> CalculatePageUrls(PagedCosmosDBResult<Role> pagedCosmosDbRolesResults, 
+    private IEnumerable<UrlAccessiblePage> CalculatePageUrls(PagedCosmosDbResult<Role> pagedCosmosDbRolesResults, 
         string baseUrl, 
         string? containsText, 
         string? continuationToken,
@@ -146,16 +146,14 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
             {
                 Url = BuildPageUrl(baseUrl, containsText, continuationToken, offset, itemsPerPage),
                 PageNumber = pageNumber,
-                IsCurrentPage = pageNumber == currentPageNumber,
-                IsFirstPage = pageNumber == 1,
-                IsLastPage = pageNumber == totalPages,
+                IsCurrentPage = pageNumber == currentPageNumber
             });
         }
         return pageUrls;
     }
 
     
-    private async  Task<PagedCosmosDBResult<Role>> GetPagedMultipleItemsAsync(string? containsText,
+    private async  Task<PagedCosmosDbResult<Role>> GetPagedMultipleItemsAsync(string? containsText,
         string? continuationToken,
         int? offset=0,
         int? itemsPerPage = DataConstants.ItemsPerPage)
@@ -176,7 +174,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         
         // if continuationToken is null, then we are returning the first page or all items up to itemsPerPage
         var usersCosmosDbReader = new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-        PagedCosmosDBResult<User> pagedCosmosDbResult;
+        PagedCosmosDbResult<User> pagedCosmosDbResult;
         if (string.IsNullOrEmpty(continuationToken))
         {
             pagedCosmosDbResult = await usersCosmosDbReader.GetNextItemsAsync(new QueryDefinition("SELECT * FROM u"),null,itemsPerPage);

@@ -54,7 +54,7 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
                         $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}",
                         containsText, continuationToken);
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
-                    new PagedResponse<Application>(applications, nextPageUrl,Enumerable.Empty<UrlAccessiblePage>()));
+                    new PagedResponse<Application>(applications, Enumerable.Empty<UrlAccessiblePage>()));
             }
             else
             {
