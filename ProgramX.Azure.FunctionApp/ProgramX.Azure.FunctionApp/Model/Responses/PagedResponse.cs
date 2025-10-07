@@ -27,7 +27,9 @@ public class PagedResponse<T>
     [JsonPropertyName("timeDeltaMs")]
     public double TimeDeltaMs { get; set; }
 
-    
+    [JsonPropertyName("totalItems")]
+    public long TotalItems { get; set; }
+        
 
     public PagedResponse(PagedCosmosDbResult<T> pagedCosmosDbResult, IEnumerable<UrlAccessiblePage> pagesWithUrls)
     {
@@ -42,7 +44,7 @@ public class PagedResponse<T>
         ItemsPerPage = pagedCosmosDbResult.MaximumItemsRequested ?? DataConstants.ItemsPerPage;
         RequestCharge = pagedCosmosDbResult.RequestCharge;
         TimeDeltaMs = pagedCosmosDbResult.TimeDeltaMs;
-        
+        TotalItems = pagedCosmosDbResult.TotalItems;
     }
 }
 

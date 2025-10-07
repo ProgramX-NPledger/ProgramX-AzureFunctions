@@ -203,27 +203,10 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         int? offset = 0,
         int? itemsPerPage = DataConstants.ItemsPerPage)
     {
-        var sql = new StringBuilder("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles WHERE 1=1 ");
-        var parameters = new List<(string name, object value)>();
-        if (!string.IsNullOrWhiteSpace(containsText))
-        {
-            parameters.Add(("containsText", containsText));
-            sql.Append($" AND CONTAINS(UPPER(r.name), @containsText)");
-        }
-
         QueryDefinition queryDefinition = BuildQueryDefinition(null, containsText, withRoles, hasAccessToApplications);
         
-        // if continuationToken is null, then we are returning the first page or all items up to itemsPerPage
         var usersCosmosDbReader = new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-        PagedCosmosDbResult<User> pagedCosmosDbResult;
-        if (string.IsNullOrEmpty(continuationToken))
-        {
-            pagedCosmosDbResult = await usersCosmosDbReader.GetNextItemsAsync(new QueryDefinition("SELECT * FROM u"),null,itemsPerPage);
-        }
-        else
-        {
-            pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,"r.name",offset,itemsPerPage);
-        }
+        PagedCosmosDbResult<User> pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,"r.name",offset,itemsPerPage);
         
         return pagedCosmosDbResult;
     }

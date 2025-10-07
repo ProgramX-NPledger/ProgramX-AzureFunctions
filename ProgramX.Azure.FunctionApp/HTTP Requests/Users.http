@@ -43,7 +43,7 @@ Authorization: Bearer {{token}}
 
 ###
 # @name Get Users containing text
-GET {{host}}/api/v1/user?containsText=t
+GET {{host}}/api/v1/user?containsText=xx
 Authorization: Bearer {{token}}
 
 ###

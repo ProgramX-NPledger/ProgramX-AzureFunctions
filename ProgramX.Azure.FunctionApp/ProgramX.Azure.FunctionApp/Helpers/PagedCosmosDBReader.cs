@@ -118,7 +118,10 @@ public class PagedCosmosDbReader<T>
         List<T> items = new List<T>();
 
         var containerResponse = await PrepareAndGetContainerAsync();
-        var pagedQueryDefinition = BuildPagedQueryDefinition(queryDefinition,offset ?? 0,itemsPerPage ?? DataConstants.ItemsPerPage);
+        var pagedQueryDefinition = BuildPagedQueryDefinition(queryDefinition,
+            orderByField,
+            offset ?? 0,
+            itemsPerPage ?? DataConstants.ItemsPerPage);
         
         double requestCharge;
         using (var feedIterator = containerResponse.Container.GetItemQueryIterator<T>(pagedQueryDefinition, null,
@@ -133,6 +136,10 @@ public class PagedCosmosDbReader<T>
         }
         
         var countQueryDefinition = new QueryDefinition("SELECT VALUE COUNT(1) "+queryDefinition.QueryText.Substring(queryDefinition.QueryText.IndexOf("FROM",StringComparison.InvariantCultureIgnoreCase)));
+        foreach (var parameter in queryDefinition.GetQueryParameters())
+        {
+            countQueryDefinition.WithParameter(parameter.Name,parameter.Value);
+        }
         var totalCount = await GetCountAsync(containerResponse.Container, countQueryDefinition);
         stopwatch.Stop();
         
@@ -140,12 +147,32 @@ public class PagedCosmosDbReader<T>
         return pagedCosmosDbResult;
     }
 
-    private QueryDefinition BuildPagedQueryDefinition(QueryDefinition queryDefinition, int offset, int itemsPerPage)
+    private QueryDefinition BuildPagedQueryDefinition(QueryDefinition queryDefinition, string? orderBy, int offset, int itemsPerPage)
     {
         var sql = queryDefinition.QueryText;
+        // add order by
+        var splitSqlOnOrderBy = queryDefinition.QueryText.Split("ORDER BY");
+        if (splitSqlOnOrderBy.Length <= 1 && !string.IsNullOrEmpty(orderBy))
+        {
+            string containerAlias;
+            if (orderBy.Contains("."))
+            {
+                // looks like the alias is already in the order by
+                containerAlias = orderBy.Substring(0, orderBy.IndexOf(".", StringComparison.InvariantCultureIgnoreCase));
+            }
+            else
+            {
+                // get the container alias name
+                var containerAliasSplit = queryDefinition.QueryText.Split("FROM ");
+                containerAlias = containerAliasSplit[0];
+            }
+            
+            sql += $" ORDER BY {containerAlias}.{orderBy}";
+        }
+        
         // ensure offset is not already in query SQL
-        var splitSql = queryDefinition.QueryText.Split("OFFSET");
-        if (splitSql.Length <= 1)
+        var splitSqlOnOffset = queryDefinition.QueryText.Split("OFFSET");
+        if (splitSqlOnOffset.Length <= 1)
         {
             // add it to query SQL
             sql += $" OFFSET @offset LIMIT @itemsPerPage";
