@@ -43,44 +43,30 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
-            // pass a filter into the below
-            var rolesPagedCosmosDbReader =
-                new PagedCosmosDBReader<Role>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);;
-            
-            var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
-            var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]);
-            
-            QueryDefinition queryDefinition;
             if (name == null)
             {
-                queryDefinition = new QueryDefinition("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles");
+                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
+                var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]);
+                var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]);
+                var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]);
+                
+                var pagedCosmosDbRolesResults=await GetPagedMultipleItemsAsync(containsText,continuationToken,offset,itemsPerPage);
+                var baseUrl =
+                    $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
+                var pageUrls = CalculatePageUrls(pagedCosmosDbRolesResults,baseUrl,continuationToken,containsText, offset,itemsPerPage);
+                
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>(pagedCosmosDbRolesResults,pageUrls));
             }
             else
             {
-                queryDefinition = new QueryDefinition("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles where r.name=@name");
-                queryDefinition.WithParameter("@name", name);
-            }
-            var roles = await rolesPagedCosmosDbReader.GetItems(queryDefinition,continuationToken,DataConstants.ItemsPerPage);
-            
-            if (name==null)
-            {
-                var nextPageUrl =
-                    BuildNextPageUrl(
-                        $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}",
-                        containsText, continuationToken);
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>(roles,nextPageUrl));
-            }
-            else
-            {
-                var role = roles.Items.FirstOrDefault(q=>q.name==name);
+                var role = await GetSingleItemAsync(name);
                 if (role == null)
                 {
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
-                    
                 }
 
-                var usersCosmosDbReader = new PagedCosmosDBReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-                var users = await usersCosmosDbReader.GetItems(new QueryDefinition("SELECT * FROM u"),null,null);
+                var usersCosmosDbReader = new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
+                var users = await usersCosmosDbReader.GetNextItemsAsync(new QueryDefinition("SELECT * FROM u"),null,null);
                 var distinctUsers = users.Items.GroupBy(q=>q.id).Select(q=>new SecureUser()
                 {
                     id = q.First().id,
@@ -113,10 +99,105 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
             }
         });
     }
+
     
+    private async  Task<Role?> GetSingleItemAsync(string name)
+    {
+        var sql = new StringBuilder("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles where r.name=@name");
+
+        QueryDefinition queryDefinition  = new QueryDefinition(sql.ToString());
+        queryDefinition.WithParameter("@name",name);       
+        
+        var usersCosmosDbReader = new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
+        PagedCosmosDbResult<User> pagedCosmosDbResult;
+        pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,"r.name");
+        
+        var pagedCosmosDbResultForRoles = pagedCosmosDbResult.TransformItemsToDifferentType<Role>(m =>
+        {
+            List<Role> roles = new List<Role>();
+            foreach (var role in m.roles)
+            {
+                roles.Add(role);           
+            }
+            return roles;
+        },(role,allRoles) => allRoles.Any(q=>q.name.Equals(role.name,StringComparison.InvariantCultureIgnoreCase)));
+        
+        return pagedCosmosDbResultForRoles.Items.FirstOrDefault();
+    }
+
+
     
+    private IEnumerable<UrlAccessiblePage> CalculatePageUrls(PagedCosmosDbResult<Role> pagedCosmosDbRolesResults, 
+        string baseUrl, 
+        string? containsText, 
+        string? continuationToken,
+        int? offset=0, 
+        int? itemsPerPage=DataConstants.ItemsPerPage)
+    {
+        var totalPages = (int)Math.Ceiling((double)pagedCosmosDbRolesResults.TotalItems / itemsPerPage ??
+                                           DataConstants.ItemsPerPage);
+        var currentPageNumber = (int)Math.Ceiling((double)offset / itemsPerPage ??
+                                                  DataConstants.ItemsPerPage);
+        
+        List<UrlAccessiblePage> pageUrls = new List<UrlAccessiblePage>();
+        for (var pageNumber = 1; pageNumber <= pagedCosmosDbRolesResults.TotalItems; pageNumber++)
+        {
+            pageUrls.Add(new UrlAccessiblePage()
+            {
+                Url = BuildPageUrl(baseUrl, containsText, continuationToken, offset, itemsPerPage),
+                PageNumber = pageNumber,
+                IsCurrentPage = pageNumber == currentPageNumber
+            });
+        }
+        return pageUrls;
+    }
+
     
-    private string BuildNextPageUrl(string baseUrl, string? containsText, string? continuationToken)
+    private async  Task<PagedCosmosDbResult<Role>> GetPagedMultipleItemsAsync(string? containsText,
+        string? continuationToken,
+        int? offset=0,
+        int? itemsPerPage = DataConstants.ItemsPerPage)
+    {
+        var sql = new StringBuilder("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles WHERE 1=1 ");
+        var parameters = new List<(string name, object value)>();
+        if (!string.IsNullOrWhiteSpace(containsText))
+        {
+            parameters.Add(("containsText", containsText));
+            sql.Append($" AND CONTAINS(UPPER(r.name), @containsText)");
+        }
+        
+        QueryDefinition queryDefinition  = new QueryDefinition(sql.ToString());
+        foreach (var parameter in parameters)
+        {
+            queryDefinition.WithParameter(parameter.name, parameter.value);       // do we need to prefix the name with @? 
+        }
+        
+        // if continuationToken is null, then we are returning the first page or all items up to itemsPerPage
+        var usersCosmosDbReader = new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
+        PagedCosmosDbResult<User> pagedCosmosDbResult;
+        if (string.IsNullOrEmpty(continuationToken))
+        {
+            pagedCosmosDbResult = await usersCosmosDbReader.GetNextItemsAsync(new QueryDefinition("SELECT * FROM u"),null,itemsPerPage);
+        }
+        else
+        {
+            pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,"r.name",offset,itemsPerPage);
+        }
+        
+        var pagedCosmosDbResultForRoles = pagedCosmosDbResult.TransformItemsToDifferentType<Role>(m =>
+        {
+            List<Role> roles = new List<Role>();
+            foreach (var role in m.roles)
+            {
+                roles.Add(role);           
+            }
+            return roles;
+        },(role,allRoles) => allRoles.Any(q=>q.name.Equals(role.name,StringComparison.InvariantCultureIgnoreCase)));
+        
+        return pagedCosmosDbResultForRoles;
+    }
+
+    private string BuildPageUrl(string baseUrl, string? containsText, string? continuationToken, int? offset, int? itemsPerPage)
     {
         var parametersDictionary = new Dictionary<string, string>();
         if (!string.IsNullOrWhiteSpace(containsText))
@@ -127,6 +208,16 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         if (!string.IsNullOrWhiteSpace(continuationToken))
         {
             parametersDictionary.Add("continuationToken", Uri.EscapeDataString(continuationToken));
+        }
+
+        if (offset != null)
+        {
+            parametersDictionary.Add("offset",offset.Value.ToString());
+        }
+
+        if (itemsPerPage != null)
+        {
+            parametersDictionary.Add("itemsPerPage",itemsPerPage.Value.ToString());       
         }
         
         var sb=new StringBuilder(baseUrl);
@@ -156,19 +247,19 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 
             // get all users that were selected for the role
             var usersCosmosDbReader =
-                new PagedCosmosDBReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
+                new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
             
             var usersQueryDefinition= new QueryDefinition("SELECT * from u "); // TODO: Limit to addToUsers
-            var users = await usersCosmosDbReader.GetItems(usersQueryDefinition,null,null);
+            var users = await usersCosmosDbReader.GetNextItemsAsync(usersQueryDefinition,null,null);
             
             var allUsers = users.Items.ToList(); // avoid multiple enumeration
             
             // get all applications that were selected for the role
             var applicationsCosmosDbReader =
-                new PagedCosmosDBReader<Application>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
+                new PagedCosmosDbReader<Application>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
             
             var applicationsQueryDefinition= new QueryDefinition("SELECT a.name, a.description, a.imageUrl, a.targetUrl, a.isDefaultApplicationOnLogin, a.ordinal, a.type, a.schemeVersionNumber FROM c JOIN a IN c.roles.applications"); // TODO: fix SQL
-            var applications = await applicationsCosmosDbReader.GetItems(applicationsQueryDefinition,null,null);
+            var applications = await applicationsCosmosDbReader.GetNextItemsAsync(applicationsQueryDefinition,null,null);
             
             var allApplications = applications.Items.ToList(); // avoid multiple enumeration
             
