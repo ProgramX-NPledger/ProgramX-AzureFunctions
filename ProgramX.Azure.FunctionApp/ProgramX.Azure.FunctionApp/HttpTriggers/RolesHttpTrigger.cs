@@ -53,7 +53,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                 var pagedCosmosDbRolesResults=await GetPagedMultipleItemsAsync(containsText,continuationToken,offset,itemsPerPage);
                 var baseUrl =
                     $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
-                var pageUrls = CalculatePageUrls(pagedCosmosDbRolesResults,baseUrl,continuationToken,containsText, offset,itemsPerPage);
+                var pageUrls = CalculatePageUrls(pagedCosmosDbRolesResults,baseUrl,continuationToken,containsText, offset ?? 0,itemsPerPage ?? DataConstants.ItemsPerPage);;
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>(pagedCosmosDbRolesResults,pageUrls));
             }
@@ -131,16 +131,14 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         string baseUrl, 
         string? containsText, 
         string? continuationToken,
-        int? offset=0, 
-        int? itemsPerPage=DataConstants.ItemsPerPage)
+        int offset=0, 
+        int itemsPerPage=DataConstants.ItemsPerPage)
     {
-        var totalPages = (int)Math.Ceiling((double)pagedCosmosDbRolesResults.TotalItems / itemsPerPage ??
-                                           DataConstants.ItemsPerPage);
-        var currentPageNumber = (int)Math.Ceiling((double)offset / itemsPerPage ??
-                                                  DataConstants.ItemsPerPage);
+        var totalPages = (int)Math.Ceiling((double)pagedCosmosDbRolesResults.TotalItems / itemsPerPage);
+        var currentPageNumber = offset==0 ? 1 : (int)Math.Ceiling((double)offset / itemsPerPage);
         
         List<UrlAccessiblePage> pageUrls = new List<UrlAccessiblePage>();
-        for (var pageNumber = 1; pageNumber <= pagedCosmosDbRolesResults.TotalItems; pageNumber++)
+        for (var pageNumber = 1; pageNumber <= totalPages; pageNumber++)
         {
             pageUrls.Add(new UrlAccessiblePage()
             {

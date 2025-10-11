@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker.Http;
 
 namespace ProgramX.Azure.FunctionApp.Model.Responses;
@@ -60,7 +61,11 @@ public class HttpResponseDataFactory
         {
             httpResponseData.Headers.Add("x-continuation-token", Uri.EscapeDataString(pagedResponse.ContinuationToken));
         }
-        await httpResponseData.WriteAsJsonAsync(pagedResponse);
+        //await httpResponseData.WriteAsJsonAsync(pagedResponse);
+        //var serializedPagedResponse = JsonSerializer.Serialize(pagedResponse);
+        var serializedPagedResponse = JsonSerializer.Serialize(pagedResponse, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        //httpResponseData.Headers..Headers.Add("Content-Type", "application/json");
+        await httpResponseData.WriteStringAsync(serializedPagedResponse);
         return httpResponseData;
     }
     public async static Task<HttpResponseData> CreateForCreated(HttpRequestData httpRequestData, object created, string type, string uniqueId)
