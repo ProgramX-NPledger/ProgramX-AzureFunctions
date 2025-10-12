@@ -166,6 +166,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         var usersCosmosDbReader = new PagedCosmosDbReader<SecureUser>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
         PagedCosmosDbResult<SecureUser> pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,null,offset,itemsPerPage);
         
+        var addedUserIds = new List<string>();
         var pagedCosmosDbResultForRoles = pagedCosmosDbResult.TransformItemsToDifferentType<Role>(m =>
         {
             List<Role> roles = new List<Role>();
@@ -173,12 +174,17 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
             {
                 foreach (var role in m.roles)
                 {
-                    roles.Add(role);           
+                    if (!addedUserIds.Contains(m.id))
+                    {
+                        addedUserIds.Add(m.id);
+                        roles.Add(role);           
+                    }
                 }
             }
 
             return roles;
-        },(role,allRoles) => allRoles.Any(q=>q.name.Equals(role.name,StringComparison.InvariantCultureIgnoreCase)));
+        },(role,allRoles) => allRoles.Any(q=>
+           q.name.Equals(role.name,StringComparison.InvariantCultureIgnoreCase)));
         
         // it isn't possible to order within a collection, so we need to sort the results here
         pagedCosmosDbResultForRoles.OrderItemsBy(q=>q.name);
@@ -247,7 +253,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                 for (int i = 0; i < applicationsList.Count; i++)
                 {
                     conditions.Add(@$"EXISTS(SELECT VALUE r 
-                            FROM r IN c.roles 
+                            FROM r 
                             JOIN a IN r.applications 
                             WHERE a.name =  @appname{i})");
                     parameters.Add(($"@appname{i}", applicationsList[i]));

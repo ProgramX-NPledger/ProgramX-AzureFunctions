@@ -10,6 +10,16 @@ GET {{host}}/api/v1/role
 Authorization: Bearer {{token}}
 
 ###
+# @name Get Users containing text
+GET {{host}}/api/v1/role?containsText=xx
+Authorization: Bearer {{token}}
+
+###
+# @name Get Roles used in application
+GET {{host}}/api/v1/role?usedInApplications=Home
+Authorization: Bearer {{token}}
+
+###
 # @name Get Role
 GET {{host}}/api/v1/role/admin-readwrite
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImFueXRoaW5nIiwicm9sZXMiOlsiYWRtaW4iXX0.GIdLW6fmKuxENzwAdLNbQcnaZSNnkTmeh_qDsjSx4zA
