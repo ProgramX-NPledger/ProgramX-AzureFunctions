@@ -108,7 +108,7 @@ public class PagedCosmosDbReader<T>
     /// <returns>A <seealso cref="PagedCosmosDbResult{T}"/> containing the strongly typed result.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the provided container name is invalid.</exception>
     public async Task<PagedCosmosDbResult<T>> GetPagedItemsAsync(QueryDefinition queryDefinition,
-        string orderByField,
+        string? orderByField,
         int? offset=0,
         int? itemsPerPage = DataConstants.ItemsPerPage)
     {
@@ -147,7 +147,8 @@ public class PagedCosmosDbReader<T>
         return pagedCosmosDbResult;
     }
 
-    private QueryDefinition BuildPagedQueryDefinition(QueryDefinition queryDefinition, string? orderBy, int offset, int itemsPerPage)
+    private QueryDefinition BuildPagedQueryDefinition(QueryDefinition queryDefinition, 
+        string? orderBy, int offset, int itemsPerPage)
     {
         var sql = queryDefinition.QueryText;
         // add order by

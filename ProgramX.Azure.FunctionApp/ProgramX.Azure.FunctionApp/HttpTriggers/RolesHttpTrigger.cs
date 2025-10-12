@@ -27,7 +27,8 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 
  
     public RolesHttpTrigger(ILogger<RolesHttpTrigger> logger,
-        CosmosClient cosmosClient, IConfiguration configuration) : base(configuration)
+        CosmosClient cosmosClient, 
+        IConfiguration configuration) : base(configuration)
     {
         _logger = logger;
         _cosmosClient = cosmosClient;
@@ -47,13 +48,20 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
             {
                 var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
                 var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]);
+                var usedInApplications = httpRequestData.Query["usedInApplications"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["usedInApplications"]).Split(new [] {','});
+
+                //var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]);
                 var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]);
                 var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]);
-                
-                var pagedCosmosDbRolesResults=await GetPagedMultipleItemsAsync(containsText,continuationToken,offset,itemsPerPage);
+
+                var pagedCosmosDbRolesResults=await GetPagedMultipleItemsAsync(containsText, usedInApplications, offset,itemsPerPage);
                 var baseUrl =
                     $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
-                var pageUrls = CalculatePageUrls(pagedCosmosDbRolesResults,baseUrl,continuationToken,containsText, offset ?? 0,itemsPerPage ?? DataConstants.ItemsPerPage);;
+                var pageUrls = CalculatePageUrls(pagedCosmosDbRolesResults,
+                    baseUrl, 
+                    containsText, 
+                    continuationToken,
+                    offset ?? 0,itemsPerPage ?? DataConstants.ItemsPerPage);;
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>(pagedCosmosDbRolesResults,pageUrls));
             }
@@ -103,10 +111,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     
     private async  Task<Role?> GetSingleItemAsync(string name)
     {
-        var sql = new StringBuilder("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles where r.name=@name");
-
-        QueryDefinition queryDefinition  = new QueryDefinition(sql.ToString());
-        queryDefinition.WithParameter("@name",name);       
+        QueryDefinition queryDefinition = BuildQueryDefinition(name,null,null);
         
         var usersCosmosDbReader = new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
         PagedCosmosDbResult<User> pagedCosmosDbResult;
@@ -152,45 +157,31 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 
     
     private async  Task<PagedCosmosDbResult<Role>> GetPagedMultipleItemsAsync(string? containsText,
-        string? continuationToken,
+        string[]? usedInApplications,
         int? offset=0,
         int? itemsPerPage = DataConstants.ItemsPerPage)
     {
-        var sql = new StringBuilder("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles WHERE 1=1 ");
-        var parameters = new List<(string name, object value)>();
-        if (!string.IsNullOrWhiteSpace(containsText))
-        {
-            parameters.Add(("containsText", containsText));
-            sql.Append($" AND CONTAINS(UPPER(r.name), @containsText)");
-        }
+        QueryDefinition queryDefinition = BuildQueryDefinition(null, containsText, usedInApplications);
         
-        QueryDefinition queryDefinition  = new QueryDefinition(sql.ToString());
-        foreach (var parameter in parameters)
-        {
-            queryDefinition.WithParameter(parameter.name, parameter.value);       // do we need to prefix the name with @? 
-        }
-        
-        // if continuationToken is null, then we are returning the first page or all items up to itemsPerPage
-        var usersCosmosDbReader = new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-        PagedCosmosDbResult<User> pagedCosmosDbResult;
-        if (string.IsNullOrEmpty(continuationToken))
-        {
-            pagedCosmosDbResult = await usersCosmosDbReader.GetNextItemsAsync(new QueryDefinition("SELECT * FROM u"),null,itemsPerPage);
-        }
-        else
-        {
-            pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,"r.name",offset,itemsPerPage);
-        }
+        var usersCosmosDbReader = new PagedCosmosDbReader<SecureUser>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
+        PagedCosmosDbResult<SecureUser> pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,null,offset,itemsPerPage);
         
         var pagedCosmosDbResultForRoles = pagedCosmosDbResult.TransformItemsToDifferentType<Role>(m =>
         {
             List<Role> roles = new List<Role>();
-            foreach (var role in m.roles)
+            if (m.roles != null)
             {
-                roles.Add(role);           
+                foreach (var role in m.roles)
+                {
+                    roles.Add(role);           
+                }
             }
+
             return roles;
         },(role,allRoles) => allRoles.Any(q=>q.name.Equals(role.name,StringComparison.InvariantCultureIgnoreCase)));
+        
+        // it isn't possible to order within a collection, so we need to sort the results here
+        pagedCosmosDbResultForRoles.OrderItemsBy(q=>q.name);
         
         return pagedCosmosDbResultForRoles;
     }
@@ -231,6 +222,58 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 
         return sb.ToString();
     }
+    
+    
+    private QueryDefinition BuildQueryDefinition(string? id, string? containsText, IEnumerable<string>? usedInApplications)
+    {
+        var sb = new StringBuilder("SELECT c.id, c.userName, c.emailAddress, c.roles,  r.name, r.description, r.applications FROM c JOIN r IN c.roles WHERE 1=1");
+        var parameters = new List<(string name, object value)>();
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            if (!string.IsNullOrWhiteSpace(containsText))
+            {
+                sb.Append(@" AND (
+                                CONTAINS(UPPER(r.name), @containsText) OR 
+                                CONTAINS(UPPER(r.description), @containsText)
+                                )");
+                parameters.Add(("@containsText", containsText.ToUpperInvariant()));
+            }
+
+            if (usedInApplications != null && usedInApplications.Any())
+            {
+                var conditions = new List<string>();
+                var applicationsList = usedInApplications.ToList();
+            
+                for (int i = 0; i < applicationsList.Count; i++)
+                {
+                    conditions.Add(@$"EXISTS(SELECT VALUE r 
+                            FROM r IN c.roles 
+                            JOIN a IN r.applications 
+                            WHERE a.name =  @appname{i})");
+                    parameters.Add(($"@appname{i}", applicationsList[i]));
+                }
+            
+                sb.Append($" AND ({string.Join(" OR ", conditions)})");
+
+
+            }
+        }
+        else
+        {
+            sb.Append(" AND (r.name=@id)");
+            parameters.Add(("@id", id));
+        }
+
+        var queryDefinition = new QueryDefinition(sb.ToString());
+        foreach (var param in parameters)
+        {
+            queryDefinition.WithParameter(param.name, param.value);
+        }
+        return queryDefinition;
+        
+    }
+
+    
 
     [Function(nameof(CreateRole))]
     public async Task<HttpResponseData> CreateRole(

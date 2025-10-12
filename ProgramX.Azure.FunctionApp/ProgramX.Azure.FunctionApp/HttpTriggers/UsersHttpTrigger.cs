@@ -94,7 +94,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 var user = await GetSingleItemAsync(id);
                 if (user == null)
                 {
-                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
+                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
                 }
                 
                 List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
@@ -149,6 +149,22 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     }
     
     
+    private async Task<PagedCosmosDbResult<SecureUser>> GetPagedMultipleItemsAsync(string? containsText,
+        string[]? withRoles,
+        string[]? hasAccessToApplications,
+        string sortByColumn,
+        int? offset = 0,
+        int? itemsPerPage = DataConstants.ItemsPerPage)
+    {
+        QueryDefinition queryDefinition = BuildQueryDefinition(null, containsText, withRoles, hasAccessToApplications);
+        
+        var usersCosmosDbReader = new PagedCosmosDbReader<SecureUser>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
+        PagedCosmosDbResult<SecureUser> pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,sortByColumn,offset,itemsPerPage);
+        
+        return pagedCosmosDbResult;
+    }
+    
+    
     private string BuildPageUrl(string baseUrl, string? containsText, IEnumerable<string>? withRoles, IEnumerable<string>? hasAccessToApplications, string continuationToken, int? offset, int? itemsPerPage)
     {
         var parametersDictionary = new Dictionary<string, string>();
@@ -197,20 +213,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     }
     
     
-    private async Task<PagedCosmosDbResult<SecureUser>> GetPagedMultipleItemsAsync(string? containsText,
-        string[]? withRoles,
-        string[]? hasAccessToApplications,
-        string sortByColumn,
-        int? offset = 0,
-        int? itemsPerPage = DataConstants.ItemsPerPage)
-    {
-        QueryDefinition queryDefinition = BuildQueryDefinition(null, containsText, withRoles, hasAccessToApplications);
-        
-        var usersCosmosDbReader = new PagedCosmosDbReader<SecureUser>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-        PagedCosmosDbResult<SecureUser> pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,sortByColumn,offset,itemsPerPage);
-        
-        return pagedCosmosDbResult;
-    }
 
     
 

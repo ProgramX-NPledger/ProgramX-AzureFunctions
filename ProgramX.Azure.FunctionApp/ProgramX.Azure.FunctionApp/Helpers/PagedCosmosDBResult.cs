@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 
 namespace ProgramX.Azure.FunctionApp.Helpers;
@@ -58,5 +59,17 @@ public class PagedCosmosDbResult<T>
             }
         }
         return new PagedCosmosDbResult<TTargetType>(transformedItems, ContinuationToken, MaximumItemsRequested, RequestCharge, TotalItems, TimeDeltaMs);
+    }
+
+    public void OrderItemsBy<TKey>(
+        [NotNull] Func<T, TKey> keySelector)
+    {
+        Items = Items.OrderBy(keySelector);
+    }
+    
+    public void OrderItemsByDescending<TKey>(
+        [NotNull] Func<T, TKey> keySelector)
+    {
+        Items = Items.OrderByDescending(keySelector);
     }
 }
