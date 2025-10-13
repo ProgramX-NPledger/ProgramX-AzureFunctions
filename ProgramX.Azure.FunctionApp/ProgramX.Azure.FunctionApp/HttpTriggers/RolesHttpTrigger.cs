@@ -113,21 +113,21 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     {
         QueryDefinition queryDefinition = BuildQueryDefinition(name,null,null);
         
-        var usersCosmosDbReader = new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-        PagedCosmosDbResult<User> pagedCosmosDbResult;
-        pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,"r.name");
+        var rolesCosmosDbReader = new PagedCosmosDbReader<Role>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
+        PagedCosmosDbResult<Role> pagedCosmosDbResult;
+        pagedCosmosDbResult = await rolesCosmosDbReader.GetPagedItemsAsync(queryDefinition,null);
         
-        var pagedCosmosDbResultForRoles = pagedCosmosDbResult.TransformItemsToDifferentType<Role>(m =>
-        {
-            List<Role> roles = new List<Role>();
-            foreach (var role in m.roles)
-            {
-                roles.Add(role);           
-            }
-            return roles;
-        },(role,allRoles) => allRoles.Any(q=>q.name.Equals(role.name,StringComparison.InvariantCultureIgnoreCase)));
-        
-        return pagedCosmosDbResultForRoles.Items.FirstOrDefault();
+        // var pagedCosmosDbResultForRoles = pagedCosmosDbResult.TransformItemsToDifferentType<Role>(m =>
+        // {
+        //     List<Role> roles = new List<Role>();
+        //     foreach (var role in m.roles)
+        //     {
+        //         roles.Add(role);           
+        //     }
+        //     return roles;
+        // },(role,allRoles) => allRoles.Any(q=>q.name.Equals(role.name,StringComparison.InvariantCultureIgnoreCase)));
+        //
+        return pagedCosmosDbResult.Items.FirstOrDefault();
     }
 
 
