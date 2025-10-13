@@ -135,7 +135,7 @@ public class PagedCosmosDbReader<T>
             items.AddRange(response);
         }
         
-        var countQueryDefinition = new QueryDefinition("SELECT VALUE COUNT(1) "+queryDefinition.QueryText.Substring(queryDefinition.QueryText.IndexOf("FROM",StringComparison.InvariantCultureIgnoreCase)));
+        var countQueryDefinition = new QueryDefinition("SELECT VALUE COUNT(1) FROM ("+queryDefinition.QueryText+")");
         foreach (var parameter in queryDefinition.GetQueryParameters())
         {
             countQueryDefinition.WithParameter(parameter.Name,parameter.Value);

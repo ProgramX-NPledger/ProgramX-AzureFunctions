@@ -163,33 +163,13 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     {
         QueryDefinition queryDefinition = BuildQueryDefinition(null, containsText, usedInApplications);
         
-        var usersCosmosDbReader = new PagedCosmosDbReader<SecureUser>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-        PagedCosmosDbResult<SecureUser> pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,null,offset,itemsPerPage);
-        
-        var addedUserIds = new List<string>();
-        var pagedCosmosDbResultForRoles = pagedCosmosDbResult.TransformItemsToDifferentType<Role>(m =>
-        {
-            List<Role> roles = new List<Role>();
-            if (m.roles != null)
-            {
-                foreach (var role in m.roles)
-                {
-                    if (!addedUserIds.Contains(m.id))
-                    {
-                        addedUserIds.Add(m.id);
-                        roles.Add(role);           
-                    }
-                }
-            }
-
-            return roles;
-        },(role,allRoles) => allRoles.Any(q=>
-           q.name.Equals(role.name,StringComparison.InvariantCultureIgnoreCase)));
+        var rolesCosmosDbReader = new PagedCosmosDbReader<Role>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
+        PagedCosmosDbResult<Role> pagedCosmosDbResult = await rolesCosmosDbReader.GetPagedItemsAsync(queryDefinition,null,offset,itemsPerPage);
         
         // it isn't possible to order within a collection, so we need to sort the results here
-        pagedCosmosDbResultForRoles.OrderItemsBy(q=>q.name);
+        pagedCosmosDbResult.OrderItemsBy(q=>q.name);
         
-        return pagedCosmosDbResultForRoles;
+        return pagedCosmosDbResult;
     }
 
     private string BuildPageUrl(string baseUrl, string? containsText, string? continuationToken, int? offset, int? itemsPerPage)
@@ -232,7 +212,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     
     private QueryDefinition BuildQueryDefinition(string? id, string? containsText, IEnumerable<string>? usedInApplications)
     {
-        var sb = new StringBuilder("SELECT c.id, c.userName, c.emailAddress, c.roles,  r.name, r.description, r.applications FROM c JOIN r IN c.roles WHERE 1=1");
+        var sb = new StringBuilder("SELECT r.name, r.description, r.applications, r.type, r.schemaVersionNumber, r.createdAt,r.updatedAt FROM c JOIN r IN c.roles JOIN a IN r.applications WHERE 1=1");
         var parameters = new List<(string name, object value)>();
         if (string.IsNullOrWhiteSpace(id))
         {
@@ -247,22 +227,23 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 
             if (usedInApplications != null && usedInApplications.Any())
             {
-                var conditions = new List<string>();
+                var applicationNames = new List<string>();
                 var applicationsList = usedInApplications.ToList();
-            
+
                 for (int i = 0; i < applicationsList.Count; i++)
                 {
-                    conditions.Add(@$"EXISTS(SELECT VALUE r 
-                            FROM r 
-                            JOIN a IN r.applications 
-                            WHERE a.name =  @appname{i})");
+                    applicationNames.Add($"@appname{i}");
                     parameters.Add(($"@appname{i}", applicationsList[i]));
                 }
-            
-                sb.Append($" AND ({string.Join(" OR ", conditions)})");
 
-
+                sb.Append($" AND a.name IN ({string.Join(",", 
+                    parameters
+                        .Where(q=>q.name.StartsWith("@appname"))
+                        .Select(s => s.name)
+                    )})");
             }
+
+            sb.Append(" GROUP BY r.name, r.description, r.applications, r.type, r.schemaVersionNumber, r.createdAt,r.updatedAt");
         }
         else
         {
