@@ -51,8 +51,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         _blobServiceClient = blobServiceClient;
 
         _container = _cosmosClient.GetContainer("core", "users");
-
-        
     }
 
 
@@ -215,43 +213,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
 
     
-
-    private string BuildNextPageUrl(string baseUrl, string? containsText, string[]? withRoles, string[]? hasAccessToApplications, string? continuationToken)
-    {
-        var parametersDictionary = new Dictionary<string, string>();
-        if (!string.IsNullOrWhiteSpace(containsText))
-        {
-            parametersDictionary.Add("containsText", Uri.EscapeDataString(containsText));
-        }
-
-        if (withRoles != null && withRoles.Any())
-        {
-            parametersDictionary.Add("withRoles", Uri.EscapeDataString(string.Join(",", withRoles)));
-        }
-
-        if (hasAccessToApplications != null && hasAccessToApplications.Any())
-        {
-            parametersDictionary.Add("hasAccessToApplications", Uri.EscapeDataString(string.Join(",", hasAccessToApplications)));
-        }
-
-        if (!string.IsNullOrWhiteSpace(continuationToken))
-        {
-            parametersDictionary.Add("continuationToken", Uri.EscapeDataString(continuationToken));
-        }
-        
-        var sb=new StringBuilder(baseUrl);
-        if (parametersDictionary.Any())
-        {
-            sb.Append("?");
-            foreach (var param in parametersDictionary)
-            {
-                sb.Append($"{param.Key}={param.Value}&");
-            }
-            sb.Remove(sb.Length-1,1);
-        }
-
-        return sb.ToString();
-    }
 
     private QueryDefinition BuildQueryDefinition(string? id, string? containsText, IEnumerable<string>? withRoles, IEnumerable<string>? hasAccessToApplications)
     {

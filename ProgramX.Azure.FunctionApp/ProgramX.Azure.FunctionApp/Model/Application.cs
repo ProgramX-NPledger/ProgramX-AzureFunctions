@@ -10,11 +10,15 @@ public class Application
     public required string targetUrl { get; set; }
     public string type { get; } = "application";
 
-    public int versionNumber { get; } = 1;
+    public int schemaVersionNumber { get; } = 1;
 
     public bool isDefaultApplicationOnLogin { get; set; } = false;
 
     public int ordinal { get; set; }
+
+    public DateTime? createdAt { get; set; }
+    public DateTime? updatedAt { get; set; }
+    
     
 
 }

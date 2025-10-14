@@ -159,16 +159,17 @@ public class PagedCosmosDbReader<T>
             if (orderBy.Contains("."))
             {
                 // looks like the alias is already in the order by
-                containerAlias = orderBy.Substring(0, orderBy.IndexOf(".", StringComparison.InvariantCultureIgnoreCase));
+                sql += $" ORDER BY {orderBy}";
             }
             else
             {
                 // get the container alias name
                 var containerAliasSplit = queryDefinition.QueryText.Split("FROM ");
                 containerAlias = containerAliasSplit[0];
+                sql += $" ORDER BY {containerAlias}.{orderBy}";
             }
             
-            sql += $" ORDER BY {containerAlias}.{orderBy}";
+
         }
         
         // ensure offset is not already in query SQL

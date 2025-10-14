@@ -9,6 +9,24 @@ GET
 GET {{host}}/api/v1/application
 Authorization: Bearer {{token}}
 #
+
+###
+# @name Get Applications by text
+GET {{host}}/api/v1/application?containsText=Home
+Authorization: Bearer {{token}}
+
+###
+# @name Get Applications by text
+GET {{host}}/api/v1/application?withinRoles=dsadas
+Authorization: Bearer {{token}}
+
+###
+# @name Get Application
+GET {{host}}/api/v1/application/Home
+Authorization: Bearer {{token}}
+#
+
+
 ####
 ## @name Get Role
 #GET {{host}}/api/v1/role/admin-readwrite
