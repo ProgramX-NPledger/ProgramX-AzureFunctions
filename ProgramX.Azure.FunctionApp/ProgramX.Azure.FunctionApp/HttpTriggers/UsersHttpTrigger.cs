@@ -73,7 +73,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]);
                 var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]);
                 
-                var pagedCosmosDbUsersResults=await GetPagedMultipleItemsAsync(containsText,withRoles, hasAccessToApplications, sortByColumn ?? "userName",offset,itemsPerPage);
+                var pagedCosmosDbUsersResults=await GetPagedMultipleItemsAsync(containsText,withRoles, hasAccessToApplications, sortByColumn ?? "c.userName",offset,itemsPerPage);
                 var baseUrl =
                     $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
                 var pageUrls = CalculatePageUrls(pagedCosmosDbUsersResults,
@@ -264,7 +264,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
             }
             
-            sb.Append(" ORDER BY c.userName");
+            //sb.Append(" ORDER BY c.userName");
             
 
         }
