@@ -27,9 +27,12 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
         CosmosClient cosmosClient, 
         IConfiguration configuration) : base(configuration)
     {
+        if (logger==null) throw new ArgumentNullException(nameof(logger));
+        if (cosmosClient==null) throw new ArgumentNullException(nameof(cosmosClient));
+        if (configuration==null) throw new ArgumentNullException(nameof(configuration));
+        
         _logger = logger;
         _cosmosClient = cosmosClient;
-        
         _container = _cosmosClient.GetContainer("core", "users");
     }
 
