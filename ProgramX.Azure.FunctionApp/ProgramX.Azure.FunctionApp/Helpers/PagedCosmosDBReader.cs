@@ -10,7 +10,7 @@ namespace ProgramX.Azure.FunctionApp.Helpers;
 /// Provides paging query functionality for CosmosDB.
 /// </summary>
 /// <typeparam name="T">Type of model to query.</typeparam>
-public class PagedCosmosDbReader<T>
+public class PagedCosmosDbReader<T> : IPagedReader<T>
 {
     private readonly CosmosClient _client;
     private readonly string _databaseName;

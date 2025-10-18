@@ -46,9 +46,11 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         BlobServiceClient blobServiceClient,
         IConfiguration configuration) : base(configuration)
     {
-        _logger = logger;
-        _cosmosClient = cosmosClient;
-        _blobServiceClient = blobServiceClient;
+        if (configuration==null) throw new ArgumentNullException(nameof(configuration));
+        
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cosmosClient = cosmosClient ?? throw new ArgumentNullException(nameof(cosmosClient));
+        _blobServiceClient = blobServiceClient ?? throw new ArgumentNullException(nameof(blobServiceClient));
 
         _container = _cosmosClient.GetContainer("core", "users");
     }
@@ -131,7 +133,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         int itemsPerPage=DataConstants.ItemsPerPage)
     {
         var totalPages = (int)Math.Ceiling((double)pagedCosmosDbRolesResults.TotalItems / itemsPerPage);
-        var currentPageNumber = offset==0 ? 1 : (int)Math.Ceiling((double)offset / itemsPerPage);
+        var currentPageNumber = offset==0 ? 1 : (int)Math.Ceiling((offset+1.0) / itemsPerPage);
         
         List<UrlAccessiblePage> pageUrls = new List<UrlAccessiblePage>();
         for (var pageNumber = 1; pageNumber <= totalPages; pageNumber++)
@@ -252,10 +254,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             
                 for (int i = 0; i < applicationsList.Count; i++)
                 {
-                    conditions.Add(@$"EXISTS(SELECT VALUE r 
-                            FROM r IN c.roles 
-                            JOIN a IN r.applications 
-                            WHERE a.name =  @appname{i})");
+                    conditions.Add(@$"EXISTS(SELECT VALUE r FROM r IN c.roles JOIN a IN r.applications WHERE a.name = @appname{i})");
                     parameters.Add(($"@appname{i}", applicationsList[i]));
                 }
             
