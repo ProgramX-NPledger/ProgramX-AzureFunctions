@@ -282,6 +282,39 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         return queryDefinition;
         
     }
+    
+    
+    [Function(nameof(DeleteUser))]
+    public async Task<HttpResponseData> DeleteUser(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/{id}")]
+        HttpRequestData httpRequestData,
+        string id)
+    {
+        return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
+        {
+            var pagedAndFilteredCosmosDbReader =
+                new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
+
+            QueryDefinition queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id=@id OR c.userName=@id");
+            queryDefinition.WithParameter("@id", id);
+            var users = await pagedAndFilteredCosmosDbReader.GetNextItemsAsync(queryDefinition);
+            var originalUser = users.Items.FirstOrDefault();
+            if (originalUser == null)
+            {
+                return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+            }
+            
+            var response = await _container.DeleteItemAsync<User>(originalUser.id, new PartitionKey(id));
+
+            if (response.StatusCode == HttpStatusCode.NoContent)
+            {
+                return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
+            }
+        
+            return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to delete user");
+        });
+    }
+    
 
     [Function(nameof(UpdateUser))]
     public async Task<HttpResponseData> UpdateUser(

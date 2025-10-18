@@ -52,6 +52,13 @@ public class HttpResponseDataFactory
         return httpResponseData;
     }
     
+    
+    public static HttpResponseData CreateForSuccessNoContent(HttpRequestData httpRequestData)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.NoContent);;
+        return httpResponseData;
+    }
+    
  
     public static async Task<HttpResponseData> CreateForSuccess<T>(HttpRequestData httpRequestData,
         PagedResponse<T> pagedResponse)
