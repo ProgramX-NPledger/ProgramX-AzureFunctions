@@ -1,14 +1,24 @@
 using System.Collections.Specialized;
+using System.Net;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Configuration;
+using ProgramX.Azure.FunctionApp.Helpers;
+using ProgramX.Azure.FunctionApp.HttpTriggers;
+using ProgramX.Azure.FunctionApp.Model.Requests;
+using ProgramX.Azure.FunctionApp.Model.Responses;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers;
 
 
 public class TestHttpRequestData : HttpRequestData
 {
+    public HttpStatusCode HttpStatusCode { get; }
     private NameValueCollection _query = new();
     private Uri _url = new("https://localhost");
+    private readonly JwtTokenIssuer _jwtTokenIssuer = new JwtTokenIssuer(null);
     
     public override Stream Body { get; }
     public override HttpHeadersCollection Headers { get; }
@@ -16,7 +26,8 @@ public class TestHttpRequestData : HttpRequestData
     public override Uri Url => _url;
     public override IEnumerable<ClaimsIdentity> Identities { get; }
     public override string Method { get; }
-    public override HttpResponseData CreateResponse() => throw new NotImplementedException();
+    public override HttpResponseData CreateResponse() => new TestHttpResponseData(this.FunctionContext,HttpStatusCode); // HttpResponseData.CreateResponse(this);
+    private readonly IConfiguration _configuration;
 
     public TestHttpRequestData() : base(new TestFunctionContext())
     {
@@ -25,6 +36,39 @@ public class TestHttpRequestData : HttpRequestData
         Cookies = new List<IHttpCookie>();
         Identities = new List<ClaimsIdentity>();
         Method = "GET";
+        _configuration = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build();
+    }
+
+    public TestHttpRequestData(FunctionContext functionContext, 
+        NameValueCollection mockQuery, 
+        Uri uri,
+        HttpStatusCode httpStatusCode = HttpStatusCode.OK,
+        IEnumerable<string>? testWithRoles = null) : base(functionContext)
+    {
+        HttpStatusCode = httpStatusCode;
+        _url = uri;
+        _query = mockQuery;
+        Body = new MemoryStream();
+        _configuration = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build();
+        Headers = new HttpHeadersCollection()
+        {
+            { AuthorisedHttpTriggerBase.AuthenticationHeaderName, $"Bearer {CreateJwtTokenForTesting(testWithRoles ?? [])}" }
+        };
+        Cookies = new List<IHttpCookie>();
+        Identities = new List<ClaimsIdentity>();
+        Method = "GET";
+    }
+
+    private string CreateJwtTokenForTesting(IEnumerable<string> testWithRoles)
+    {
+        // no need to check the password hash, just create a token
+        
+        string token = _jwtTokenIssuer.IssueTokenForUser(new Credentials()
+        {
+            UserName = "test-user",
+            Password = ""
+        },testWithRoles,_configuration["JwtKey"]);
+        return token;
     }
 
     public void SetQuery(NameValueCollection query) => _query = query;

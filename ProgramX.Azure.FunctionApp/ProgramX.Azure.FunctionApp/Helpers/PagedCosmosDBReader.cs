@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Constants;
 
@@ -60,7 +61,6 @@ public class PagedCosmosDbReader<T> : IPagedReader<T>
                    new QueryRequestOptions
                    {
                        MaxItemCount = itemsPerPage,
-                       
                    }))
         {
             if (isPaged)
@@ -79,7 +79,6 @@ public class PagedCosmosDbReader<T> : IPagedReader<T>
                     items.AddRange(response);
                     requestCharge = response.RequestCharge;
                 }
-                
             }
         }
         
@@ -193,9 +192,9 @@ public class PagedCosmosDbReader<T> : IPagedReader<T>
 
     private async Task<ContainerResponse> PrepareAndGetContainerAsync()
     {
-        var databaseResponse = await _client.CreateDatabaseIfNotExistsAsync(_databaseName);
+        var databaseResponse = await _client.CreateDatabaseIfNotExistsAsync(_databaseName,ThroughputProperties.CreateManualThroughput(100),new RequestOptions(),default(CancellationToken));
         if (databaseResponse.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Database {_databaseName} created",[_databaseName]);
-        var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(_containerName, _partitionKeyPath);
+        var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(_containerName, _partitionKeyPath,null,new RequestOptions(),default(CancellationToken));
         if (containerResponse.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Container {containerName} created",[_containerName,_partitionKeyPath]);
 
         return containerResponse;

@@ -25,6 +25,31 @@ public abstract class TestBase
             .Setup(x => x.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName))
             .Returns(MockContainer.Object);
 
+        var mockDatabaseResponse = new Mock<DatabaseResponse>();
+        mockDatabaseResponse
+            .Setup(x=>x.StatusCode)
+            .Returns(System.Net.HttpStatusCode.Created);
+        
+        MockCosmosClient
+            .Setup(x => x.CreateDatabaseIfNotExistsAsync(
+                It.IsAny<string>(),
+                It.IsAny<ThroughputProperties>(),
+                It.IsAny<RequestOptions>(),
+                It.IsNotNull<CancellationToken>()))
+            .ReturnsAsync(mockDatabaseResponse.Object);
+
+        var mockContainerResponse = new Mock<ContainerResponse>();
+        
+        var mockDatabase = new Mock<Database>();
+            
+        mockDatabaseResponse
+            .Setup(x=>x.Database)
+            .Returns(mockDatabase.Object);
+
+        mockDatabase.Setup(x => x.CreateContainerIfNotExistsAsync(It.IsAny<ContainerProperties>(), It.IsAny<int?>(), It.IsAny<RequestOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockContainerResponse.Object);
+
+        
         Configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.test.json")
             .Build();

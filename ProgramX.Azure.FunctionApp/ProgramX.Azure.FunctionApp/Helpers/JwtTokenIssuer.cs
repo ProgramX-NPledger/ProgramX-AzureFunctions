@@ -13,13 +13,13 @@ namespace ProgramX.Azure.FunctionApp.Helpers
     /// </summary>
     public class JwtTokenIssuer
     {
-        private readonly IConfiguration _configuration;
+        private readonly IConfiguration? _configuration;
         private readonly IJwtAlgorithm _algorithm;
         private readonly IJsonSerializer _serializer;
         private readonly IBase64UrlEncoder _base64Encoder;
         private readonly IJwtEncoder _jwtEncoder;
 
-        public JwtTokenIssuer(IConfiguration configuration)
+        public JwtTokenIssuer(IConfiguration? configuration)
         {
             _configuration = configuration;
             // JWT specific initialization.
@@ -35,8 +35,9 @@ namespace ProgramX.Azure.FunctionApp.Helpers
         /// </summary>
         /// <param name="credentials">The user that the token is being issued for.</param>
         /// <returns>A JWT token which can be returned to the user.</returns>
-        public string IssueTokenForUser(Credentials credentials, IEnumerable<string> roles)
+        public string IssueTokenForUser(Credentials credentials, IEnumerable<string> roles, string? jwtKey = null)
         {
+            if (string.IsNullOrWhiteSpace(jwtKey)) jwtKey = _configuration["JwtKey"];
             // Instead of returning a string, we'll return the JWT with a set of claims about the user
             Dictionary<string, object> claims = new Dictionary<string, object>
             {
@@ -47,7 +48,7 @@ namespace ProgramX.Azure.FunctionApp.Helpers
                 }
             };
 
-            string token = _jwtEncoder.Encode(claims, _configuration["JwtKey"]);
+            string token = _jwtEncoder.Encode(claims, jwtKey);
 
             return token;
         }

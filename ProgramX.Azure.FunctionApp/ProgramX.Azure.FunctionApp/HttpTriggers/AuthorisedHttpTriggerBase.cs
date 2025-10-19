@@ -10,7 +10,7 @@ namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 public abstract class AuthorisedHttpTriggerBase 
 {
     private readonly IConfiguration _configuration;
-    private const string AuthenticationHeaderName = "Authorization";
+    public const string AuthenticationHeaderName = "Authorization";
 
     public IConfiguration Configuration => _configuration;
     
@@ -37,9 +37,10 @@ public abstract class AuthorisedHttpTriggerBase
             if (safeAuthorisationHeader.StartsWith("Bearer "))
                 safeAuthorisationHeader = safeAuthorisationHeader.Substring(7);
 
+            var jwtKey = _configuration["JwtKey"];
             try
             {
-                Auth = new AuthenticationInfo(safeAuthorisationHeader, _configuration["JwtKey"]);
+                Auth = new AuthenticationInfo(safeAuthorisationHeader, jwtKey);
             }
             catch (Exception exception)
             {
