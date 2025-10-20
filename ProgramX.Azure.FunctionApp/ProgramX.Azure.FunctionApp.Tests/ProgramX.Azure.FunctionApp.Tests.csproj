@@ -39,11 +39,6 @@
 
 
     <ItemGroup>
-      <Folder Include="Mocks\" />
-    </ItemGroup>
-
-
-    <ItemGroup>
       <Compile Remove="Mocks\InMemoryPagedReader.cs" />
     </ItemGroup>
 

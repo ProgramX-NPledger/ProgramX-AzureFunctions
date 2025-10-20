@@ -16,6 +16,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using Microsoft.Azure.Functions.Worker;
+using ProgramX.Azure.FunctionApp.Tests.Mocks;
 using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers;
@@ -51,21 +52,11 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
             DataConstants.UsersContainerName, 
             DataConstants.UserNamePartitionKeyPath);
         
-        //_mockHttpRequestData = new Mock<HttpRequestData>();
-        //_mockQuery = new NameValueCollection();
-        //_mockFunctionContext = new Mock<FunctionContext>();
-
-        //_mockHttpRequestData.Setup(x => x.Query).Returns(_mockQuery);
-//        _mockHttpRequestData.Setup(x => x.Url).Returns(new Uri("https://localhost:7071/api/user"));
-
-        _usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithConfiguration(Configuration)
-            .Build();
+        // _usersHttpTrigger = new UsersHttpTriggerBuilder()
+        //     .WithDefaultMocks()
+        //     .WithConfiguration(Configuration)
+        //     .Build();
         
- //       var mockResponse = new Mock<HttpResponseData>();
-//        _mockHttpRequestData.Setup(x => x.CreateResponse()).Returns(mockResponse.Object);
-
     }
    
     [Test]
@@ -73,9 +64,7 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
     {
         // Arrange
         const string userId = "test-user-id";
-        //const string authenticatedUser = "admin";
-        
-        
+
         var existingUser = new User
         {
             id = userId,
@@ -89,94 +78,30 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
             }
         };
 
-        List<User> existingUsers = new List<User> { existingUser };
-        
         var mockHttpRequest = CreateMockHttpRequestWithAuth(HttpStatusCode.NoContent);
-        
-        var mockFeedResponseOfUser = new Mock<FeedResponse<User>>();
-        mockFeedResponseOfUser.Setup(x=>x.Count).Returns(0); 
-        mockFeedResponseOfUser.Setup(x=>x.GetEnumerator())
-            .Returns(existingUsers.GetEnumerator());
-        
-        var mockFeedIteratorOfUser = new Mock<FeedIterator<User>>();
-        mockFeedIteratorOfUser.SetupSequence(x => x.HasMoreResults)
-            .Returns(true)
-            .Returns(false);
-        mockFeedIteratorOfUser.Setup(x => x.ReadNextAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockFeedResponseOfUser.Object);
 
-        var mockFeedResponseOfInt = new Mock<FeedResponse<int>>();
-        mockFeedResponseOfInt.Setup(x=>x.Count).Returns(1); 
-        mockFeedResponseOfInt.Setup(x=> x.GetEnumerator())
-            .Returns(new List<int>() { 1 }.GetEnumerator());
-        
-        var mockFeedIteratorOfInt = new Mock<FeedIterator<int>>();
-        mockFeedIteratorOfInt.SetupSequence(x => x.HasMoreResults)
-            .Returns(true)
-            .Returns(false);
-        mockFeedIteratorOfInt.Setup(x => x.ReadNextAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockFeedResponseOfInt.Object);
-        mockFeedIteratorOfInt.Setup(x=>x.ReadNextAsync(CancellationToken.None))
-            .ReturnsAsync(mockFeedResponseOfInt.Object);
-        
-        var mockContainer = new Mock<Container>();
-        mockContainer.Setup(x => x.DeleteItemAsync<User>(
-                existingUser.id, 
-                new PartitionKey(userId), 
-                null, 
-                default))
-            .ReturnsAsync(CreateMockItemResponse<User>(HttpStatusCode.NoContent));
-        mockContainer.Setup(x=>
-                x.GetItemQueryIterator<User>(
-                    It.IsAny<QueryDefinition>(), 
-                    It.IsAny<string>(), 
-                    It.IsAny<QueryRequestOptions>()))
-            .Returns(mockFeedIteratorOfUser.Object);
-        mockContainer.Setup(x=>
-                x.GetItemQueryIterator<int>(
-                    It.IsAny<QueryDefinition>(), 
-                    It.IsAny<string>(), 
-                    It.IsAny<QueryRequestOptions>()))
-            .Returns(mockFeedIteratorOfInt.Object);
+        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
 
-        var mockContainerResponse = new Mock<ContainerResponse>();
-        mockContainerResponse.Setup(x=>x.StatusCode).Returns(System.Net.HttpStatusCode.Created);
-        mockContainerResponse.Setup(x => x.Container).Returns(mockContainer.Object);
+      
+        // configure the container to return the user when queried by id
+        mockedCosmosDbClientFactory.ConfigureContainerFunc = (mockContainer) =>
+        {
+            mockContainer.Setup(x => x.DeleteItemAsync<User>(
+                    existingUser.id,
+                    new PartitionKey(userId),
+                    null,
+                    default))
+                .ReturnsAsync(CreateMockItemResponse<User>(HttpStatusCode.NoContent));
+        };
         
-        var mockDatabase = new Mock<Database>();
-        mockDatabase.Setup(x => x.CreateContainerIfNotExistsAsync(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<int?>(),
-            It.IsAny<RequestOptions>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockContainerResponse.Object);
-        mockDatabase.Setup(x => x.GetContainer(It.IsAny<string>()))
-            .Returns(mockContainer.Object);
-        
-        var mockDatabaseResponse = new Mock<DatabaseResponse>();
-        mockDatabaseResponse.Setup(x=>x.StatusCode).Returns(System.Net.HttpStatusCode.Created);
-        mockDatabaseResponse.Setup(x => x.Database).Returns(mockDatabase.Object);
-        
-        var mockCosmosClient = new Mock<CosmosClient>();
-        mockCosmosClient.Setup(x => x.CreateDatabaseIfNotExistsAsync(
-            It.IsAny<string>(),
-            It.IsAny<ThroughputProperties>(),
-            It.IsAny<RequestOptions>(),
-            It.IsNotNull<CancellationToken>()))
-            .ReturnsAsync(mockDatabaseResponse.Object);
-        mockCosmosClient.Setup(x => x.GetContainer(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(mockContainer.Object);
-        mockCosmosClient.Setup(x => x.GetDatabase(It.IsAny<string>()))
-            .Returns(mockDatabase.Object);
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithDefaultMocks()
-            .WithCosmosClient(mockCosmosClient)
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
 
-        
         // Act
         var result = await usersHttpTrigger.DeleteUser(mockHttpRequest, userId);
 
@@ -184,7 +109,7 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.NoContent);
         
-        mockContainer.Verify(x => x.DeleteItemAsync<User>(existingUser.id, new PartitionKey(userId), null, default), Times.Once);
+        mockedCosmosDbClient.MockedContainer.Verify(x => x.DeleteItemAsync<User>(existingUser.id, new PartitionKey(userId), null, default), Times.Once);
     }
 
     [Test]
