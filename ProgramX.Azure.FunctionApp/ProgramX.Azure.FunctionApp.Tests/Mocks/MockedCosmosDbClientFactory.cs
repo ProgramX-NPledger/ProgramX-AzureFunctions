@@ -43,7 +43,10 @@ public class MockedCosmosDbClientFactory<T>
     public MockedCosmosDbClient Create()
     {
         var mockContainer = CreateDefaultMockContainer();
-        ConfigureContainerFunc(mockContainer);
+        if (ConfigureContainerFunc != null)
+        {
+            ConfigureContainerFunc(mockContainer);
+        }
         var mockDatabase = CreateDefaultMockDatabase(mockContainer);
         var mockCosmosClient = CreateDefaultMockClient(mockDatabase, mockContainer);
 

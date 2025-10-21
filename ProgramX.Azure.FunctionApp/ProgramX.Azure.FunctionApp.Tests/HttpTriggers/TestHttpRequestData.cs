@@ -43,17 +43,19 @@ public class TestHttpRequestData : HttpRequestData
         NameValueCollection mockQuery, 
         Uri uri,
         HttpStatusCode httpStatusCode = HttpStatusCode.OK,
-        IEnumerable<string>? testWithRoles = null) : base(functionContext)
+        IEnumerable<string>? testWithRoles = null,
+        bool useAuthorisation = true) : base(functionContext)
     {
         HttpStatusCode = httpStatusCode;
         _url = uri;
         _query = mockQuery;
         Body = new MemoryStream();
         _configuration = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build();
-        Headers = new HttpHeadersCollection()
+        Headers = new HttpHeadersCollection();
+        if (useAuthorisation)
         {
-            { AuthorisedHttpTriggerBase.AuthenticationHeaderName, $"Bearer {CreateJwtTokenForTesting(testWithRoles ?? [])}" }
-        };
+            Headers.Add(AuthorisedHttpTriggerBase.AuthenticationHeaderName, $"Bearer {CreateJwtTokenForTesting(testWithRoles ?? [])}");
+        }
         Cookies = new List<IHttpCookie>();
         Identities = new List<ClaimsIdentity>();
         Method = "GET";

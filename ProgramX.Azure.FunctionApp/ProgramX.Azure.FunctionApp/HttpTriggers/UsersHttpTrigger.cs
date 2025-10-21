@@ -302,12 +302,19 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             {
                 return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
             }
-            
-            var response = await _container.DeleteItemAsync<User>(originalUser.id, new PartitionKey(id));
 
-            if (response.StatusCode == HttpStatusCode.NoContent)
+            try
             {
-                return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
+                var response = await _container.DeleteItemAsync<User>(originalUser.id, new PartitionKey(id));
+
+                if (response.StatusCode == HttpStatusCode.NoContent)
+                {
+                    return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
+                }
+            }
+            catch (CosmosException e)
+            {
+                return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Error deleting user");
             }
         
             return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to delete user");
