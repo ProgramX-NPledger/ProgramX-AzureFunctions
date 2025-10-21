@@ -1,25 +1,19 @@
-using System.ClientModel;
+using System.Collections.Specialized;
+using System.Net;
 using FluentAssertions;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.Logging;
 using Moq;
-using NUnit.Framework;
 using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.HttpTriggers;
 using ProgramX.Azure.FunctionApp.Model;
-using ProgramX.Azure.FunctionApp.Model.Responses;
-using ProgramX.Azure.FunctionApp.Tests.TestData;
-using System.Collections.Specialized;
-using System.Net;
-using System.Reflection;
-using System.Text;
-using Microsoft.Azure.Functions.Worker;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
+using ProgramX.Azure.FunctionApp.Tests.TestData;
 using User = ProgramX.Azure.FunctionApp.Model.User;
 
-namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers;
+namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 
 [Category("Unit")]
 [Category("HttpTrigger")]
@@ -28,35 +22,11 @@ namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers;
 [TestFixture]
 public class UsersHttpTriggerDeleteUserTests : TestBase
 {
-    private UsersHttpTrigger _usersHttpTrigger = null!;
-    private Mock<PagedCosmosDbReader<SecureUser>> _mockSecureUserReader = null!;
-    private Mock<PagedCosmosDbReader<User>> _mockUserReader = null!;
-    private Mock<HttpRequestData> _mockHttpRequestData = null!;
-    private NameValueCollection _mockQuery = null!;
-    private Mock<FunctionContext> _mockFunctionContext = null!;
 
     [SetUp]
     public override void SetUp()
     {
         base.SetUp();
-        
-        _mockSecureUserReader = new Mock<PagedCosmosDbReader<SecureUser>>(
-            MockCosmosClient.Object, 
-            DataConstants.CoreDatabaseName, 
-            DataConstants.UsersContainerName, 
-            DataConstants.UserNamePartitionKeyPath);
-        
-        _mockUserReader = new Mock<PagedCosmosDbReader<User>>(
-            MockCosmosClient.Object, 
-            DataConstants.CoreDatabaseName, 
-            DataConstants.UsersContainerName, 
-            DataConstants.UserNamePartitionKeyPath);
-        
-        // _usersHttpTrigger = new UsersHttpTriggerBuilder()
-        //     .WithDefaultMocks()
-        //     .WithConfiguration(Configuration)
-        //     .Build();
-        
     }
    
     [Test]
@@ -78,8 +48,12 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
             }
         };
 
-        var mockHttpRequest = CreateMockHttpRequestWithAuth(HttpStatusCode.NoContent);
-
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .Returns(HttpStatusCode.NoContent)
+            .Build();
+        
         var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
         
         // configure the container to return the user when queried by id
@@ -102,7 +76,7 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
             .Build();
 
         // Act
-        var result = await usersHttpTrigger.DeleteUser(mockHttpRequest, userId);
+        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, userId);
 
         // Assert
         result.Should().NotBeNull();
@@ -115,8 +89,12 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
     public async Task DeleteUser_WhenUserDoesNotExist_ShouldReturnNotFound()
     {
         // Arrange
-        var mockHttpRequest = CreateMockHttpRequestWithAuth(HttpStatusCode.NotFound);
-
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .Returns(HttpStatusCode.NotFound)
+            .Build();
+        
         var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User>())
             {
                 // configure the container to return the user when queried by id
@@ -140,7 +118,7 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
             .Build();
 
         // Act
-        var result = await usersHttpTrigger.DeleteUser(mockHttpRequest, "does not exist");
+        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, "does not exist");
 
         // Assert
         result.Should().NotBeNull();
@@ -168,8 +146,12 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
             }
         };
 
-        var mockHttpRequest = CreateMockHttpRequestWithAuth(HttpStatusCode.InternalServerError);
-
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .Returns(HttpStatusCode.InternalServerError)
+            .Build();
+        
         var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
         
         // configure the container to return the user when queried by id
@@ -192,7 +174,7 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
             .Build();
 
         // Act
-        var result = await usersHttpTrigger.DeleteUser(mockHttpRequest, userId);
+        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, userId);
 
         // Assert
         result.Should().NotBeNull();
@@ -208,8 +190,10 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
         // Arrange
         const string userId = "test-user-id";
         
-        var mockHttpRequest = CreateMockHttpRequestWithoutAuth();
-        
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .Returns(HttpStatusCode.Unauthorized)
+            .Build();        
         var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User>());
         
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
@@ -221,7 +205,7 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
             .Build();
 
         // Act
-        var result = await usersHttpTrigger.DeleteUser(mockHttpRequest, userId);
+        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, userId);
 
         // Assert
         result.Should().NotBeNull();
@@ -250,8 +234,12 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
             }
         };
 
-        var mockHttpRequest = CreateMockHttpRequestWithAuth(HttpStatusCode.InternalServerError);
-
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .Returns(HttpStatusCode.InternalServerError)
+            .Build();
+        
         var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
         
         // configure the container to return the user when queried by id
@@ -274,7 +262,7 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
             .Build();
 
         // Act
-        var result = await usersHttpTrigger.DeleteUser(mockHttpRequest, userId);
+        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, userId);
 
         // Assert
         result.Should().NotBeNull();
@@ -285,34 +273,6 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
     
     #region Helper Methods
 
-    private HttpRequestData CreateMockHttpRequestWithAuth(HttpStatusCode respondWithHttpStatusCode = HttpStatusCode.OK)
-    {
-        var mockFunctionContext = new Mock<FunctionContext>();
-        
-        var testHttpRequestData = new TestHttpRequestData(
-            mockFunctionContext.Object, 
-            _mockQuery, 
-            new Uri("https://localhost:7071/api/user"),
-            respondWithHttpStatusCode);
-
-        return testHttpRequestData;
-        
-    }
-
-    private HttpRequestData CreateMockHttpRequestWithoutAuth()
-    {
-        var mockFunctionContext = new Mock<FunctionContext>();
-        
-        var testHttpRequestData = new TestHttpRequestData(
-            mockFunctionContext.Object, 
-            _mockQuery, 
-            new Uri("https://localhost:7071/api/user"),
-            HttpStatusCode.Unauthorized,
-            [],
-            false);
-
-        return testHttpRequestData;
-    }
 
     private ItemResponse<T> CreateMockItemResponse<T>(HttpStatusCode statusCode)
     {

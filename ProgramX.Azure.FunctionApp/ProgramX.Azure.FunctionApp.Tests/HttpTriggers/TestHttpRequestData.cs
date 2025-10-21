@@ -26,7 +26,6 @@ public class TestHttpRequestData : HttpRequestData
     public override Uri Url => _url;
     public override IEnumerable<ClaimsIdentity> Identities { get; }
     public override string Method { get; }
-    public override HttpResponseData CreateResponse() => new TestHttpResponseData(this.FunctionContext,HttpStatusCode); // HttpResponseData.CreateResponse(this);
     private readonly IConfiguration _configuration;
 
     public TestHttpRequestData() : base(new TestFunctionContext())
@@ -73,6 +72,9 @@ public class TestHttpRequestData : HttpRequestData
         return token;
     }
 
+    public override HttpResponseData CreateResponse() 
+        => new TestHttpResponseData(this.FunctionContext,HttpStatusCode); // HttpResponseData.CreateResponse(this);
+    
     public void SetQuery(NameValueCollection query) => _query = query;
     public void SetUrl(Uri url) => _url = url;
     

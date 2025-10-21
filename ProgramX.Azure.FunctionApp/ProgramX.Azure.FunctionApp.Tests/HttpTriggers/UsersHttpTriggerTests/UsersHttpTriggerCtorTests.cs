@@ -1,23 +1,16 @@
+using Azure.Storage.Blobs;
 using FluentAssertions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NUnit.Framework;
 using ProgramX.Azure.FunctionApp.HttpTriggers;
-using ProgramX.Azure.FunctionApp.Model;
-using ProgramX.Azure.FunctionApp.Model.Requests;
-using ProgramX.Azure.FunctionApp.Helpers;
-using System.Net;
-using System.Text.Json;
-using Azure.Storage.Blobs;
 using User = ProgramX.Azure.FunctionApp.Model.User;
 
-namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers;
+namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 
 [TestFixture]
-public class UsersHttpTriggerTests : TestBase
+public class UsersHttpTriggerCtorTests : TestBase
 {
     private UsersHttpTrigger _usersHttpTrigger = null!;
     private Mock<ILogger<UsersHttpTrigger>> _mockSpecificLogger = null!;
