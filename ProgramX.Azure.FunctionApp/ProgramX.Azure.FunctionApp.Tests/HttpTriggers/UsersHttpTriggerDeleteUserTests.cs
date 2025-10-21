@@ -81,8 +81,7 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
         var mockHttpRequest = CreateMockHttpRequestWithAuth(HttpStatusCode.NoContent);
 
         var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
-
-      
+        
         // configure the container to return the user when queried by id
         mockedCosmosDbClientFactory.ConfigureContainerFunc = (mockContainer) =>
         {
@@ -90,7 +89,7 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
                     existingUser.id,
                     new PartitionKey(userId),
                     null,
-                    default))
+                    CancellationToken.None))
                 .ReturnsAsync(CreateMockItemResponse<User>(HttpStatusCode.NoContent));
         };
         
@@ -116,19 +115,38 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
     public async Task DeleteUser_WhenUserDoesNotExist_ShouldReturnNotFound()
     {
         // Arrange
-        const string userId = "non-existent-user";
-        //const string authenticatedUser = "admin";
+        var mockHttpRequest = CreateMockHttpRequestWithAuth(HttpStatusCode.NotFound);
+
+        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User>())
+            {
+                // configure the container to return the user when queried by id
+                ConfigureContainerFunc = (mockContainer) =>
+                {
+                    mockContainer.Setup(x => x.DeleteItemAsync<User>(
+                            It.IsAny<string>(),
+                            new PartitionKey(It.IsAny<string>()),
+                            null,
+                            CancellationToken.None))
+                        .ReturnsAsync(CreateMockItemResponse<User>(HttpStatusCode.NotFound));
+                }
+            };
+
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
-        var mockHttpRequest = CreateMockHttpRequestWithAuth();
-        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+
         // Act
-        var result = await _usersHttpTrigger.DeleteUser(mockHttpRequest, userId);
+        var result = await usersHttpTrigger.DeleteUser(mockHttpRequest, "does not exist");
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
         
-        MockContainer.Verify(x => x.DeleteItemAsync<User>(It.IsAny<string>(), It.IsAny<PartitionKey>(), null, default), Times.Never);
+        mockedCosmosDbClient.MockedContainer.Verify(x => x.DeleteItemAsync<User>(It.IsAny<string>(), new PartitionKey(It.IsAny<string>()), null, CancellationToken.None), Times.Never);
     }
 
     [Test]
@@ -136,8 +154,7 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
     {
         // Arrange
         const string userId = "test-user-id";
-        //const string authenticatedUser = "admin";
-        
+
         var existingUser = new User
         {
             id = userId,
@@ -151,20 +168,38 @@ public class UsersHttpTriggerDeleteUserTests : TestBase
             }
         };
 
-        var mockHttpRequest = CreateMockHttpRequestWithAuth();
+        var mockHttpRequest = CreateMockHttpRequestWithAuth(HttpStatusCode.InternalServerError);
+
+        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
         
-        MockContainer
-            .Setup(x => x.DeleteItemAsync<User>(existingUser.id, new PartitionKey(userId), null, default))
-            .ReturnsAsync(CreateMockItemResponse<User>(HttpStatusCode.InternalServerError));
+        // configure the container to return the user when queried by id
+        mockedCosmosDbClientFactory.ConfigureContainerFunc = (mockContainer) =>
+        {
+            mockContainer.Setup(x => x.DeleteItemAsync<User>(
+                    existingUser.id,
+                    new PartitionKey(userId),
+                    null,
+                    CancellationToken.None))
+                .ReturnsAsync(CreateMockItemResponse<User>(HttpStatusCode.InternalServerError));
+        };
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
 
         // Act
-        var result = await _usersHttpTrigger.DeleteUser(mockHttpRequest, userId);
+        var result = await usersHttpTrigger.DeleteUser(mockHttpRequest, userId);
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
         
-        MockContainer.Verify(x => x.DeleteItemAsync<User>(existingUser.id, new PartitionKey(userId), null, default), Times.Once);
+        mockedCosmosDbClient.MockedContainer.Verify(x => x.DeleteItemAsync<User>(existingUser.id, new PartitionKey(userId), null, CancellationToken.None), Times.Once);
+
     }
 
     [Test]
