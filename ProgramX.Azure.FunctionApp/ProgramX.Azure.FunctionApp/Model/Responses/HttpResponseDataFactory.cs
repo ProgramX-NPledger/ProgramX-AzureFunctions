@@ -15,10 +15,7 @@ public class HttpResponseDataFactory
     public static async Task<HttpResponseData> CreateForServerError(HttpRequestData httpRequestData, string errorMessage)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-        await httpResponseData.WriteAsJsonAsync(new 
-        {
-            errorMessage
-        });
+        await httpResponseData.WriteStringAsync(errorMessage);
         return httpResponseData;
     }
     
