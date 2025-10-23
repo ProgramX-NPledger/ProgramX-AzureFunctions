@@ -5,6 +5,13 @@ namespace ProgramX.Azure.FunctionApp.Model.Responses;
 
 public class HttpResponseDataFactory
 {
+    private static readonly JsonSerializerOptions DefaultJsonOptions = new JsonSerializerOptions 
+    { 
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false
+    };
+
+    
     public static async Task<HttpResponseData> CreateForBadRequest(HttpRequestData httpRequestData, string errorMessage)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.BadRequest);
@@ -45,8 +52,12 @@ public class HttpResponseDataFactory
     public static async Task<HttpResponseData> CreateForSuccess(HttpRequestData httpRequestData, object data)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
-        await httpResponseData.WriteAsJsonAsync(data);
+        var jsonString = JsonSerializer.Serialize(data, DefaultJsonOptions);
+        
+        httpResponseData.Headers.Add("Content-Type", "application/json");
+        await httpResponseData.WriteStringAsync(jsonString);
         return httpResponseData;
+
     }
     
     

@@ -12,7 +12,7 @@ public class TestableHttpRequestDataBuilder
     private NameValueCollection _query = new();
     private Uri _url = new("https://localhost");
     private IEnumerable<string> _roles = new List<string>();
-    private bool _useAuthorisation = false;
+    private bool? _useValidAuthorisation = null;
     
     public TestableHttpRequestDataBuilder Returns(HttpStatusCode httpStatusCode)
     {
@@ -22,7 +22,13 @@ public class TestableHttpRequestDataBuilder
 
     public TestableHttpRequestDataBuilder WithAuthentication()
     {
-        _useAuthorisation = true;
+        _useValidAuthorisation = true;
+        return this;
+    }
+    
+    public TestableHttpRequestDataBuilder WithInvalidAuthentication()
+    {
+        _useValidAuthorisation = false;
         return this;
     }
 
@@ -54,7 +60,7 @@ public class TestableHttpRequestDataBuilder
             _url,
             _httpStatusCode ?? HttpStatusCode.OK,
             _roles,
-            _useAuthorisation);
+            _useValidAuthorisation);
         
         return testHttpRequestData;
     }

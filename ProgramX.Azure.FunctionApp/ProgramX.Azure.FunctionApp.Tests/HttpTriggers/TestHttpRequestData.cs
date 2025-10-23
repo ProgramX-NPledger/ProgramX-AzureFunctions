@@ -43,7 +43,7 @@ public class TestHttpRequestData : HttpRequestData
         Uri uri,
         HttpStatusCode httpStatusCode = HttpStatusCode.OK,
         IEnumerable<string>? testWithRoles = null,
-        bool useAuthorisation = true) : base(functionContext)
+        bool? useAuthorisation = true) : base(functionContext)
     {
         HttpStatusCode = httpStatusCode;
         _url = uri;
@@ -51,10 +51,15 @@ public class TestHttpRequestData : HttpRequestData
         Body = new MemoryStream();
         _configuration = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build();
         Headers = new HttpHeadersCollection();
-        if (useAuthorisation)
+        if (useAuthorisation.HasValue && useAuthorisation.Value)
         {
             Headers.Add(AuthorisedHttpTriggerBase.AuthenticationHeaderName, $"Bearer {CreateJwtTokenForTesting(testWithRoles ?? [])}");
         }
+        if (useAuthorisation.HasValue && !useAuthorisation.Value)
+        {
+            Headers.Add(AuthorisedHttpTriggerBase.AuthenticationHeaderName, $"Bearer InvalidToken");
+        }
+
         Cookies = new List<IHttpCookie>();
         Identities = new List<ClaimsIdentity>();
         Method = "GET";

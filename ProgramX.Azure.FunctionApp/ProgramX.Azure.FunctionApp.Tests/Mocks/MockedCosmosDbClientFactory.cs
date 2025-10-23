@@ -15,9 +15,9 @@ public class MockedCosmosDbClientFactory<T>
     /// If the default behaviour is not sufficient, this can be overridden to customise
     /// for created mock.
     /// </summary>
-    public Action<Mock<Container>> ConfigureContainerFunc { get; set; }
+    public Action<Mock<Container>>? ConfigureContainerFunc { get; set; }
     
-        
+    
     /// <summary>
     /// Configures the mock to return a mock container with no items.
     /// </summary>
