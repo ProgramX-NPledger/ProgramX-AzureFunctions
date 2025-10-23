@@ -12,7 +12,10 @@ using ProgramX.Azure.FunctionApp.Model.Responses;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers;
 
-
+/// <summary>
+/// Inherits and overrides elements of <see cref="HttpRequestData"/> to allow for testing
+/// through the creation of a <see cref="TestHttpRequestData"/> instance.
+/// </summary>
 public class TestHttpRequestData : HttpRequestData
 {
     public HttpStatusCode HttpStatusCode { get; }
