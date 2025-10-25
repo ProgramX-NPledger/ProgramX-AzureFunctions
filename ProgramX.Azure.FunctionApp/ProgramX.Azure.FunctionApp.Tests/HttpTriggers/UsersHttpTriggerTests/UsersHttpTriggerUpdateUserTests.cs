@@ -50,6 +50,7 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
             id = userId,
             userName = userId,
             emailAddress = "old@emailAddress.com",
+            roles = new List<Role>(),
             passwordHash = new byte[]
             {
             },
@@ -106,8 +107,13 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var responseBody = await GetResponseBodyAsync(result);
         
         // get the user
+        var updatedUser = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
         
-        responseBody.Should().Contain(expectedEmailAddress);
+        updatedUser.Should().NotBeNull();
+        updatedUser.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var getUserResponseBody = await GetResponseBodyAsync(updatedUser);
+        getUserResponseBody.Should().Contain(expectedEmailAddress);
     }
     //
     // [Test]
