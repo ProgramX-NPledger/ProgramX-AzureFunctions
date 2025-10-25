@@ -1,17 +1,18 @@
+using Azure.Core.Serialization;
 using Azure.Storage.Blobs;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ProgramX.Azure.FunctionApp.Core;
 using ProgramX.Azure.FunctionApp.Helpers;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
+DependencyInjectionConfiguration.ConfigureServices(builder.Services);
+
 builder.ConfigureFunctionsWebApplication();
-
-
-
 
 builder.Services
     .AddApplicationInsightsTelemetryWorkerService()

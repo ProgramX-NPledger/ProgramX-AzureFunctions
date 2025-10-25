@@ -2,6 +2,8 @@ using System.Collections.Specialized;
 using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
@@ -20,6 +22,7 @@ public class TestHttpRequestData : HttpRequestData
 {
     public HttpStatusCode HttpStatusCode { get; }
     private Uri _url = new("https://localhost");
+    private readonly object? _payload;
     private readonly JwtTokenIssuer _jwtTokenIssuer = new JwtTokenIssuer(null);
     
     public override Stream Body { get; }
@@ -45,10 +48,12 @@ public class TestHttpRequestData : HttpRequestData
         Uri uri,
         HttpStatusCode httpStatusCode = HttpStatusCode.OK,
         IEnumerable<string>? testWithRoles = null,
-        bool? useAuthorisation = true) : base(functionContext)
+        bool? useAuthorisation = true,
+        object? payload = null) : base(functionContext)
     {
         HttpStatusCode = httpStatusCode;
         _url = uri;
+        _payload = payload;
         CopyIntoQueryString(mockQuery);
         Body = new MemoryStream();
         _configuration = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build();
@@ -87,8 +92,25 @@ public class TestHttpRequestData : HttpRequestData
         return token;
     }
 
-    public override HttpResponseData CreateResponse() 
-        => new TestHttpResponseData(this.FunctionContext,HttpStatusCode); // HttpResponseData.CreateResponse(this);
+    public override HttpResponseData CreateResponse()
+    {
+        if (_payload == null)
+        {
+            var serializedPayload = JsonSerializer.Serialize(_payload);
+            MemoryStream stream = new();
+            stream.Write(Encoding.ASCII.GetBytes(serializedPayload), 0, serializedPayload.Length);
+            stream.Position = 0;
+            return new TestHttpResponseData(this.FunctionContext, HttpStatusCode)
+            {
+                Body = stream
+            };
+        }
+        else
+        {
+            return new TestHttpResponseData(this.FunctionContext,HttpStatusCode);
+        }
+    }
+    
     
     public void SetQuery(NameValueCollection query) => CopyIntoQueryString(query);
     public void SetUrl(Uri url) => _url = url;

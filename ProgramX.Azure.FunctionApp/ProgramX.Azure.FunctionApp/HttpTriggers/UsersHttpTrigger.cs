@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Security.Policy;
 using System.Text;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Azure;
 using Azure.Communication.Email;
@@ -328,8 +329,9 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         HttpRequestData httpRequestData,
         string id)
     {
-        var updateUserRequest = await httpRequestData.ReadFromJsonAsync<UpdateUserRequest>();
-        if (updateUserRequest==null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
+        var updateUserRequest =
+            await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateUserRequest>(httpRequestData);
+        if (updateUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
         var isChangePasswordRequest=updateUserRequest.updatePasswordScope 
                                     && updateUserRequest is { newPassword: not null, updateProfilePictureScope: false, updateProfileScope: false, updateRolesScope: false };

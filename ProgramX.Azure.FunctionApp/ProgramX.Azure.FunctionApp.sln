@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgramX.Azure.FunctionApp"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgramX.Azure.FunctionApp.Tests", "ProgramX.Azure.FunctionApp.Tests\ProgramX.Azure.FunctionApp.Tests.csproj", "{C0511B50-98A2-410A-8470-EEA2CB12CC8D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgramX.Azure.FunctionApp.Core", "ProgramX.Azure.FunctionApp.Core\ProgramX.Azure.FunctionApp.Core.csproj", "{AA43138F-2643-4497-BF04-5A3E509EC2E7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{C0511B50-98A2-410A-8470-EEA2CB12CC8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C0511B50-98A2-410A-8470-EEA2CB12CC8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C0511B50-98A2-410A-8470-EEA2CB12CC8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA43138F-2643-4497-BF04-5A3E509EC2E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA43138F-2643-4497-BF04-5A3E509EC2E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA43138F-2643-4497-BF04-5A3E509EC2E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA43138F-2643-4497-BF04-5A3E509EC2E7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

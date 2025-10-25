@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Azure.Cosmos;
 using Moq;
 
@@ -25,6 +26,13 @@ public class MockedCosmosDbClientFactory<T>
     /// <returns>A filtered list of items.</returns>
     public Func<IEnumerable<T>,IEnumerable<T>>? FilterItems { get; set; }
     
+    /// <summary>
+    /// Mutate the items returned by the mocked CosmosDB. Useful when performing
+    /// write operations on the mocked CosmosDB.
+    /// </summary>
+    /// <typeparam name="T">Type of item to return.</typeparam>
+    /// <returns>A mutated list of items.</returns>
+    public Func<IEnumerable<T>,IEnumerable<T>>? MutateItems { get; set; }
     
     /// <summary>
     /// Configures the mock to return a mock container with no items.
@@ -161,12 +169,47 @@ public class MockedCosmosDbClientFactory<T>
                     It.IsAny<QueryRequestOptions>()))
             .Returns(mockFeedIteratorOfInt.Object);
         
+        if (MutateItems != null)
+        {
+            // set-up all the methods that mutate the items
+            mockContainer.Setup(x => x.DeleteItemStreamAsync(It.IsAny<string>(), It.IsAny<PartitionKey>(),
+                It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                .Callback(() =>
+                {
+                    MutateItems.Invoke(_items);
+                })
+                .ReturnsAsync(new ResponseMessage(System.Net.HttpStatusCode.OK));
+            mockContainer.Setup(x => x.UpsertItemAsync(It.IsAny<string>(), It.IsAny<PartitionKey>(),
+                    It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                .Callback(() =>
+                {
+                    MutateItems.Invoke(_items);
+                })
+                .ReturnsAsync(CreateItemResponse<string>());
+            mockContainer.Setup(x => x.ReplaceItemAsync(It.IsAny<T>(), It.IsAny<string>(), It.IsAny<PartitionKey>(),
+                    It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                .Callback(() =>
+                {
+                    MutateItems.Invoke(_items);
+                })
+                .ReturnsAsync(CreateItemResponse<T>());
+        }
+        
         return mockContainer;
         
       
     }
+
+
     
-    
+    private ItemResponse<TResponseType> CreateItemResponse<TResponseType>(HttpStatusCode statusCode = System.Net.HttpStatusCode.OK)
+    {
+        var mockResponse = new Mock<ItemResponse<TResponseType>>();
+        mockResponse.Setup(x => x.StatusCode).Returns(statusCode);
+        return mockResponse.Object;
+    }
+
+
     private Mock<ContainerResponse> CreateContainerResponse(Container returnsContainer)
     {
         var mockContainerResponse = new Mock<ContainerResponse>();

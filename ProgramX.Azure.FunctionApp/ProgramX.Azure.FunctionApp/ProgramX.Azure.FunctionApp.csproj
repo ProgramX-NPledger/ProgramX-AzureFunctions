@@ -13,14 +13,18 @@
     <PackageReference Include="JWT" Version="11.0.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0"/>
     <!-- Removed: Microsoft.Azure.Functions.Extensions (in-process only) -->
-    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.0.0"/>
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.2.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.0.0"/>
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Abstractions" Version="1.3.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.CosmosDB" Version="4.12.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.1"/>
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.2"/>
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.5" />
     <!-- Removed: Microsoft.Azure.WebJobs.Extensions (in-process only) -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0"/>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Core\ProgramX.Azure.FunctionApp.Core.csproj" />
   </ItemGroup>
 </Project>

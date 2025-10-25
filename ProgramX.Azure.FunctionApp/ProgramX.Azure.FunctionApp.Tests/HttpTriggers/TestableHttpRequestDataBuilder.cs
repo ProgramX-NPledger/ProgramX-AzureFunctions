@@ -1,5 +1,7 @@
 using System.Collections.Specialized;
 using System.Net;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Moq;
@@ -16,6 +18,7 @@ public class TestableHttpRequestDataBuilder
     private Uri _url = new("https://localhost");
     private IEnumerable<string> _roles = new List<string>();
     private bool? _useValidAuthorisation = null;
+    private object? _payload = null;
     
     /// <summary>
     /// Specifies which HTTP Status Code the response created from the request should return.
@@ -84,6 +87,17 @@ public class TestableHttpRequestDataBuilder
     }
 
     /// <summary>
+    /// Adds a payload onto the request.
+    /// </summary>
+    /// <param name="payloadObject">A JSON serializable object which should be injected into the request.</param>
+    /// <returns></returns>
+    public TestableHttpRequestDataBuilder WithPayload(object payloadObject)
+    {
+        _payload = payloadObject;
+        return this;
+    }
+    
+    /// <summary>
     /// Build the <see cref="TestHttpRequestData"/> instance.
     /// </summary>
     /// <returns></returns>
@@ -99,6 +113,11 @@ public class TestableHttpRequestDataBuilder
             _roles,
             _useValidAuthorisation);
         
+        if (_payload != null)
+        {
+            var serializedPayload = JsonSerializer.Serialize(_payload);
+            testHttpRequestData.Body.Write(Encoding.UTF8.GetBytes(serializedPayload), 0, serializedPayload.Length);
+        }
         return testHttpRequestData;
     }
 }
