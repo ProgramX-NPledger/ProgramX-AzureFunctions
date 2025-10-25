@@ -31,8 +31,7 @@ public class UsersHttpTriggerGetUserTests : TestBase
 
     }
 
-    //#region Single User Tests (id provided)
-
+    
     [Test]
     public async Task GetUser_WithValidId_ShouldReturnUserWithApplications()
     {
@@ -180,163 +179,248 @@ public class UsersHttpTriggerGetUserTests : TestBase
         result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
     
-    //
-    // #endregion
-    //
-    // #region Multiple Users Tests (no id provided - paged results)
-    //
-    // [Test]
-    // public async Task GetUser_WithoutId_ShouldReturnPagedUsers()
-    // {
-    //     // Arrange
-    //     var users = new List<SecureUser>
-    //     {
-    //         new SecureUser
-    //         {
-    //             id = "user1",
-    //             emailAddress = "user1@example.com",
-    //             userName = "user1"
-    //         },
-    //         new SecureUser
-    //         {
-    //             id = "user2",
-    //             emailAddress = "user2@example.com",
-    //             userName = "user2"
-    //         }
-    //     };
-    //
-    //     var pagedResult = new PagedCosmosDbResult<SecureUser>(
-    //         users, null, DataConstants.ItemsPerPage, 5.0, 2, 0);
-    //     pagedResult.SetTotalItems(2);
-    //
-    //     SetupGetPagedMultipleItemsMock(pagedResult);
-    //
-    //     var mockHttpRequest = CreateMockHttpRequestWithAuth();
-    //
-    //     // Act
-    //     var result = await _usersHttpTrigger.GetUser(mockHttpRequest, null);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.OK);
-    //
-    //     var responseBody = await GetResponseBodyAsync(result);
-    //     responseBody.Should().Contain("user1");
-    //     responseBody.Should().Contain("user2");
-    // }
-    //
-    // [Test]
-    // public async Task GetUser_WithContainsTextFilter_ShouldReturnFilteredUsers()
-    // {
-    //     // Arrange
-    //     var users = new List<SecureUser>
-    //     {
-    //         new SecureUser
-    //         {
-    //             id = "john123",
-    //             emailAddress = "john@example.com",
-    //             userName = "john.doe"
-    //         }
-    //     };
-    //
-    //     var pagedResult = new PagedCosmosDbResult<SecureUser>(
-    //         users, null, DataConstants.ItemsPerPage, 3.2, 1, 0);
-    //     pagedResult.SetTotalItems(1);
-    //
-    //     SetupGetPagedMultipleItemsMock(pagedResult);
-    //
-    //     var mockHttpRequest = CreateMockHttpRequestWithAuth();
-    //     mockHttpRequest.Query.Add("containsText", "john");
-    //
-    //     // Act
-    //     var result = await _usersHttpTrigger.GetUser(mockHttpRequest, null);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.OK);
-    //
-    //     var responseBody = await GetResponseBodyAsync(result);
-    //     responseBody.Should().Contain("john.doe");
-    // }
-    //
-    // [Test]
-    // public async Task GetUser_WithRoleFilter_ShouldReturnUsersWithSpecificRoles()
-    // {
-    //     // Arrange
-    //     var adminRole = new Role { name = "Admin" };
-    //     var users = new List<SecureUser>
-    //     {
-    //         new SecureUser
-    //         {
-    //             id = "admin1",
-    //             userName = "admin.user",
-    //             emailAddress = "admin@example.com",
-    //             roles = new List<Role> { adminRole }
-    //         }
-    //     };
-    //
-    //     var pagedResult = new PagedCosmosDbResult<SecureUser>(
-    //         users, null, DataConstants.ItemsPerPage, 4.1, 1, 0);
-    //     pagedResult.SetTotalItems(1);
-    //
-    //     SetupGetPagedMultipleItemsMock(pagedResult);
-    //
-    //     var mockHttpRequest = CreateMockHttpRequestWithAuth();
-    //     mockHttpRequest.Query.Add("withRoles", "Admin,PowerUser");
-    //
-    //     // Act
-    //     var result = await _usersHttpTrigger.GetUser(mockHttpRequest, null);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.OK);
-    //
-    //     var responseBody = await GetResponseBodyAsync(result);
-    //     responseBody.Should().Contain("admin.user");
-    // }
-    //
-    // [Test]
-    // public async Task GetUser_WithApplicationFilter_ShouldReturnUsersWithAccessToSpecificApplications()
-    // {
-    //     // Arrange
-    //     var application = new Application { name = "Dashboard", targetUrl = "https://dashboard.example.com" };
-    //     var role = new Role 
-    //     { 
-    //         name = "User", 
-    //         applications = new List<Application> { application }
-    //     };
-    //     
-    //     var users = new List<SecureUser>
-    //     {
-    //         new SecureUser
-    //         {
-    //             id = "dash1",
-    //             emailAddress = "dashboard@example.com",
-    //             userName = "dashboard.user",
-    //             roles = new List<Role> { role }
-    //         }
-    //     };
-    //
-    //     var pagedResult = new PagedCosmosDbResult<SecureUser>(
-    //         users, null, DataConstants.ItemsPerPage, 3.8, 1, 0);
-    //     pagedResult.SetTotalItems(1);
-    //
-    //     SetupGetPagedMultipleItemsMock(pagedResult);
-    //
-    //     var mockHttpRequest = CreateMockHttpRequestWithAuth();
-    //     mockHttpRequest.Query.Add("hasAccessToApplications", "Dashboard,Reports");
-    //
-    //     // Act
-    //     var result = await _usersHttpTrigger.GetUser(mockHttpRequest, null);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.OK);
-    //
-    //     var responseBody = await GetResponseBodyAsync(result);
-    //     responseBody.Should().Contain("dashboard.user");
-    // }
-    //
+    
+    
+    [Test]
+    public async Task GetUser_WithoutId_ShouldReturnPagedUsers()
+    {
+        // Arrange
+        var users = new List<SecureUser>
+        {
+            new SecureUser
+            {
+                id = "user1",
+                emailAddress = "user1@example.com",
+                userName = "user1"
+            },
+            new SecureUser
+            {
+                id = "user2",
+                emailAddress = "user2@example.com",
+                userName = "user2"
+            }
+        };
+        
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .Build();
+        
+        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<SecureUser>(new List<SecureUser>(users));
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+    
+        var responseBody = await GetResponseBodyAsync(result);
+        responseBody.Should().Contain("user1");
+        responseBody.Should().Contain("user2");
+    }
+    
+    [Test]
+    public async Task GetUser_WithContainsTextFilter_ShouldReturnFilteredUsers()
+    {
+        // Arrange
+        var users = new List<SecureUser>
+        {
+            new SecureUser
+            {
+                id = "user1",
+                emailAddress = "user1@example.com",
+                userName = "john"
+            },
+            new SecureUser
+            {
+                id = "user2",
+                emailAddress = "user2@example.com",
+                userName = "user2"
+            }
+        };
+        
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithQuery(new NameValueCollection()
+            {
+                {
+                    "containsText",
+                    "john"
+                }
+            })
+            .Build();
+        
+        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<SecureUser>(new List<SecureUser>(users));
+        mockedCosmosDbClientFactory.FilterItems=(items =>
+        {
+            return items.Where(u => u.userName.Contains("john"));
+        });
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+
+        // Act
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+    
+        var responseBody = await GetResponseBodyAsync(result);
+        responseBody.Should().Contain("user1@example.com");
+        responseBody.Should().NotContain("user2@example.com");
+    }
+    
+    [Test]
+    public async Task GetUser_WithRoleFilter_ShouldReturnUsersWithSpecificRoles()
+    {
+        // Arrange
+        var adminRole = new Role { name = "Admin" };
+        var guestRole = new Role { name = "Guest" };
+        
+        var users = new List<SecureUser>
+        {
+            new SecureUser
+            {
+                id = "user1",
+                emailAddress = "user1@example.com",
+                userName = "john",
+                roles = new List<Role> { adminRole, guestRole }
+            },
+            new SecureUser
+            {
+                id = "user2",
+                emailAddress = "user2@example.com",
+                userName = "user2",
+                roles = new List<Role> { guestRole }
+            }
+        };
+        
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithQuery(new NameValueCollection()
+            {
+                {
+                    "withRoles",
+                    "Admin"
+                }
+            })
+            .Build();
+        
+        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<SecureUser>(new List<SecureUser>(users));
+        mockedCosmosDbClientFactory.FilterItems=(items =>
+        {
+            return items.Where(u => u.roles.Any(r => r.name == "Admin"));
+        });
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+
+        // Act
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+    
+        var responseBody = await GetResponseBodyAsync(result);
+        responseBody.Should().Contain("user1");
+        responseBody.Should().NotContain("user2");
+        
+    }
+    
+    [Test]
+    public async Task GetUser_WithApplicationFilter_ShouldReturnUsersWithAccessToSpecificApplications()
+    {
+         // Arrange
+         var application1 = new Application { name = "Dashboard", targetUrl = "https://dashboard.example.com" };
+         var application2 = new Application { name = "Another App", targetUrl = "https://dashboard.example.com" };
+         var application3 = new Application { name = "Not this App", targetUrl = "https://dashboard.example.com" };
+         
+        var adminRole = new Role
+        {
+            name = "Admin",
+            applications = new List<Application> { application1, application2 }
+        };
+        var guestRole = new Role
+        {
+            name = "Guest",
+            applications = new List<Application> { application1, application3 }
+        };
+        
+        var users = new List<SecureUser>
+        {
+            new SecureUser
+            {
+                id = "user1",
+                emailAddress = "user1@example.com",
+                userName = "john",
+                roles = new List<Role> { adminRole, guestRole }
+            },
+            new SecureUser
+            {
+                id = "user2",
+                emailAddress = "user2@example.com",
+                userName = "user2",
+                roles = new List<Role> { guestRole }
+            }
+        };
+        
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithQuery(new NameValueCollection()
+            {
+                {
+                    "hasAccessToApplications",
+                    "Another App"
+                }
+            })
+            .Build();
+        
+        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<SecureUser>(new List<SecureUser>(users));
+        mockedCosmosDbClientFactory.FilterItems=(items =>
+        {
+            return items.Where(u => u.roles.SelectMany(a=>a.applications).Any(r => r.name == "Another App"));
+        });
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+
+        // Act
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+    
+        var responseBody = await GetResponseBodyAsync(result);
+        responseBody.Should().Contain("Another App");
+    }
+    
     // [Test]
     // public async Task GetUser_WithPaginationParameters_ShouldHandlePaging()
     // {

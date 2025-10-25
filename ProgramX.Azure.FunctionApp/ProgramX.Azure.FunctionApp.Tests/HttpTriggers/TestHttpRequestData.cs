@@ -19,7 +19,6 @@ namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers;
 public class TestHttpRequestData : HttpRequestData
 {
     public HttpStatusCode HttpStatusCode { get; }
-    private NameValueCollection _query = new();
     private Uri _url = new("https://localhost");
     private readonly JwtTokenIssuer _jwtTokenIssuer = new JwtTokenIssuer(null);
     
@@ -50,7 +49,7 @@ public class TestHttpRequestData : HttpRequestData
     {
         HttpStatusCode = httpStatusCode;
         _url = uri;
-        _query = mockQuery;
+        CopyIntoQueryString(mockQuery);
         Body = new MemoryStream();
         _configuration = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build();
         Headers = new HttpHeadersCollection();
@@ -68,6 +67,14 @@ public class TestHttpRequestData : HttpRequestData
         Method = "GET";
     }
 
+    private void CopyIntoQueryString(NameValueCollection mockQuery)
+    {
+        foreach (string key in mockQuery.AllKeys)
+        {
+            Query.Add(key, mockQuery[key]);
+        }
+    }
+
     private string CreateJwtTokenForTesting(IEnumerable<string> testWithRoles)
     {
         // no need to check the password hash, just create a token
@@ -83,9 +90,8 @@ public class TestHttpRequestData : HttpRequestData
     public override HttpResponseData CreateResponse() 
         => new TestHttpResponseData(this.FunctionContext,HttpStatusCode); // HttpResponseData.CreateResponse(this);
     
-    public void SetQuery(NameValueCollection query) => _query = query;
+    public void SetQuery(NameValueCollection query) => CopyIntoQueryString(query);
     public void SetUrl(Uri url) => _url = url;
     
-    public NameValueCollection Query => _query;
 }
 

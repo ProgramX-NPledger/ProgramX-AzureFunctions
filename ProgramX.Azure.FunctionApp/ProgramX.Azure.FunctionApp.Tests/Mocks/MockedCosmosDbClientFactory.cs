@@ -17,6 +17,14 @@ public class MockedCosmosDbClientFactory<T>
     /// </summary>
     public Action<Mock<Container>>? ConfigureContainerFunc { get; set; }
     
+    /// <summary>
+    /// Apply a delegate to filter results for the tested subject to pass. Useful
+    /// when performing queries on the mocked CosmosDB.
+    /// </summary>
+    /// <typeparam name="T">Type of item to return.</typeparam>
+    /// <returns>A filtered list of items.</returns>
+    public Func<IEnumerable<T>,IEnumerable<T>>? FilterItems { get; set; }
+    
     
     /// <summary>
     /// Configures the mock to return a mock container with no items.
@@ -100,8 +108,17 @@ public class MockedCosmosDbClientFactory<T>
     {
         var mockFeedResponseOfT = new Mock<FeedResponse<T>>();
         mockFeedResponseOfT.Setup(x => x.Count).Returns(_items.Count);
-        mockFeedResponseOfT.Setup(x => x.GetEnumerator())
-            .Returns(() => _items.GetEnumerator());
+
+        if (FilterItems != null)
+        {
+            mockFeedResponseOfT.Setup(x => x.GetEnumerator())
+                .Returns(() => FilterItems(_items).GetEnumerator());
+        }
+        else
+        {
+            mockFeedResponseOfT.Setup(x => x.GetEnumerator())
+                .Returns(() => _items.GetEnumerator());
+        }
 
         // Setup the FeedIterator to return the items in the list
         var mockFeedIteratorOfT = new Mock<FeedIterator<T>>();
