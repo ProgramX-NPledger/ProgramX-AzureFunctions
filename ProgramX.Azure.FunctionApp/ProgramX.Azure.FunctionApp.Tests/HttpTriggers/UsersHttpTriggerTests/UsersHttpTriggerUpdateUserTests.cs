@@ -768,6 +768,143 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
     }
     
     
+    
+    [Test]
+    public async Task UpdateUserPhoto_WithNonExistentId_ShouldReturnNotFound()
+    {
+        // // Arrange
+        // const string userId = "test-user-123";
+        //
+        // var existingUser = new User
+        // {
+        //     id = userId,
+        //     userName = userId,
+        //     emailAddress = "old@emailAddress.com",
+        //     roles = new List<Role>(),
+        //     passwordHash = new byte[]
+        //     {
+        //     },
+        //     passwordSalt = new byte[]
+        //     {
+        //     }
+        // };
+        // var updateUser = new UpdateUserRequest()
+        // {
+        //     updateProfileScope = true,
+        //     emailAddress = expectedEmailAddress,
+        //     userName = userId
+        // };
+        //
+        // var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        // var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        //     .WithAuthentication()
+        //     .WithPayload(updateUser)
+        //     .Returns(HttpStatusCode.NoContent)
+        //     .Build();
+        //
+        // var mockedCosmosDbClientFactory =
+        //     new MockedCosmosDbClientFactory<User>(new List<User> { existingUser })
+        //     {
+        //         MutateItems = (items) =>
+        //         {   
+        //             items.First(q=>q.id==userId).emailAddress = expectedEmailAddress;
+        //             return items;
+        //         },
+        //         ConfigureContainerFunc = (mockContainer) =>
+        //         {
+        //             mockContainer.Setup(c => c.UpsertItemAsync(It.IsAny<SecureUser>(), It.IsAny<PartitionKey>(),
+        //                 It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+        //                 .ReturnsAsync(CreateMockItemResponse<SecureUser>(HttpStatusCode.OK));
+        //         }
+        //     };
+        //
+        // var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        //
+        // var usersHttpTrigger = new UsersHttpTriggerBuilder()
+        //     .WithDefaultMocks()
+        //     .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+        //     .WithConfiguration(Configuration)
+        //     .Build();
+        //
+        // // Act
+        // var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+        //
+        // // Assert
+        // result.Should().NotBeNull();
+        // result.StatusCode.Should().Be(HttpStatusCode.OK);
+        //
+        // // Verify the response contains user and applications
+        // var responseBody = await GetResponseBodyAsync(result);
+        //
+        // // get the user
+        // var updatedUser = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
+        //
+        // updatedUser.Should().NotBeNull();
+        // updatedUser.StatusCode.Should().Be(HttpStatusCode.OK);
+        //
+        // var getUserResponseBody = await GetResponseBodyAsync(updatedUser);
+        // getUserResponseBody.Should().Contain(expectedEmailAddress);
+    }
+    
+    
+    
+    [Test]
+    public async Task UpdateUserPhoto_WithoutAuthentication_ShouldReturnBadRequest()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+        
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .Returns(HttpStatusCode.BadRequest)
+            .Build();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUserPhoto(testableHttpRequestData, userId);
+        
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        
+    }
+    
+    
+    
+    [Test]
+    public async Task UpdateUserPhoto_WithInvalidAuthentication_ShouldReturnUnauthorized()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+        
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithInvalidAuthentication()
+            .Returns(HttpStatusCode.Unauthorized)
+            .Build();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUserPhoto(testableHttpRequestData, userId);
+        
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+    
+    
+    
+    
+    
+    
     //
     // #region Helper Methods
     //
