@@ -15,6 +15,7 @@ public class TestableHttpRequestDataBuilder
 {
     private HttpStatusCode? _httpStatusCode=null;
     private NameValueCollection _query = new();
+    private NameValueCollection _headers = new();
     private Uri _url = new("https://localhost");
     private IEnumerable<string> _roles = new List<string>();
     private bool? _useValidAuthorisation = null;
@@ -118,6 +119,23 @@ public class TestableHttpRequestDataBuilder
             var serializedPayload = JsonSerializer.Serialize(_payload);
             testHttpRequestData.Body.Write(Encoding.UTF8.GetBytes(serializedPayload), 0, serializedPayload.Length);
         }
+
+        foreach (var header in _headers.AllKeys)
+        {
+            testHttpRequestData.Headers.Add(header,_headers[header]);
+        }
+        
         return testHttpRequestData;
+    }
+    
+    /// <summary>
+    /// Adds HTTP Headers to the request.
+    /// </summary>
+    /// <param name="nameValueCollection">A <see cref="NameValueCollection"/> comprising the HTTP Headers.</param>
+    /// <returns></returns>
+    public TestableHttpRequestDataBuilder WithHeaders(NameValueCollection nameValueCollection)
+    {
+        _headers = nameValueCollection;
+        return this;
     }
 }

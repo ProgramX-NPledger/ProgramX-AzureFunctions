@@ -451,7 +451,10 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
             var multipartReader = new MultipartReader(boundary, httpRequestData.Body);
             var multipartSection = await multipartReader.ReadNextSectionAsync();
-
+            if (multipartSection == null)
+            {
+                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing multipart section.");
+            }
             while (multipartSection != null)
             {
                 if (ContentDispositionHeaderValue.TryParse(multipartSection.ContentDisposition, out var contentDisp)
