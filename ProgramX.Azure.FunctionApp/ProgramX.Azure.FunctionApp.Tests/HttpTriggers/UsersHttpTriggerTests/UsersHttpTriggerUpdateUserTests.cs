@@ -39,8 +39,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
     [Test]
     public async Task UpdateUser_InProfileScope_WithValidId_ShouldReturnOkAndUserShouldBeUpdated()
     {
-
-            
         // Arrange
         const string userId = "test-user-123";
         const string expectedEmailAddress = "new@emailaddress.com";
@@ -115,440 +113,661 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var getUserResponseBody = await GetResponseBodyAsync(updatedUser);
         getUserResponseBody.Should().Contain(expectedEmailAddress);
     }
-    //
-    // [Test]
-    // public async Task GetUser_WithNonExistentId_ShouldReturnNotFound()
-    // {
-    //     // Arrange
-    //     const string userId = "non-existent-user";
-    //
-    //     var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-    //     var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-    //         .WithAuthentication()
-    //         .Returns(HttpStatusCode.NoContent)
-    //         .Build();
-    //     
-    //     var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User>());
-    //     
-    //     var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-    //     
-    //     var usersHttpTrigger = new UsersHttpTriggerBuilder()
-    //         .WithDefaultMocks()
-    //         .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
-    //         .WithConfiguration(Configuration)
-    //         .Build();
-    //     
-    //     // Act
-    //     var result = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    // }
-    //
-    // [Test]
-    // public async Task GetUser_WithoutAuthentication_ShouldReturnUnauthorized()
-    // {
-    //     // Arrange
-    //     const string userId = "test-user-123";
-    //     
-    //     var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-    //     var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-    //         .Returns(HttpStatusCode.NoContent)
-    //         .Build();
-    //     
-    //     var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User>());
-    //     
-    //     var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-    //     
-    //     var usersHttpTrigger = new UsersHttpTriggerBuilder()
-    //         .WithDefaultMocks()
-    //         .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
-    //         .WithConfiguration(Configuration)
-    //         .Build();
-    //     
-    //     // Act
-    //     var result = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    // }
-    //
-    //
-    // [Test]
-    // public async Task GetUser_WithInvalidAuthentication_ShouldReturnUnauthorized()
-    // {
-    //     // Arrange
-    //     const string userId = "test-user-123";
-    //     
-    //     var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-    //     var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-    //         .WithInvalidAuthentication()
-    //         .Returns(HttpStatusCode.NoContent)
-    //         .Build();
-    //     
-    //     var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User>());
-    //     
-    //     var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-    //     
-    //     var usersHttpTrigger = new UsersHttpTriggerBuilder()
-    //         .WithDefaultMocks()
-    //         .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
-    //         .WithConfiguration(Configuration)
-    //         .Build();
-    //     
-    //     // Act
-    //     var result = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    // }
-    //
-    //
-    //
-    // [Test]
-    // public async Task GetUser_WithoutId_ShouldReturnPagedUsers()
-    // {
-    //     // Arrange
-    //     var users = new List<SecureUser>
-    //     {
-    //         new SecureUser
-    //         {
-    //             id = "user1",
-    //             emailAddress = "user1@example.com",
-    //             userName = "user1"
-    //         },
-    //         new SecureUser
-    //         {
-    //             id = "user2",
-    //             emailAddress = "user2@example.com",
-    //             userName = "user2"
-    //         }
-    //     };
-    //     
-    //     var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-    //     var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-    //         .WithAuthentication()
-    //         .Build();
-    //     
-    //     var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<SecureUser>(new List<SecureUser>(users));
-    //     
-    //     var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-    //     
-    //     var usersHttpTrigger = new UsersHttpTriggerBuilder()
-    //         .WithDefaultMocks()
-    //         .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
-    //         .WithConfiguration(Configuration)
-    //         .Build();
-    //     
-    //     // Act
-    //     var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.OK);
-    //
-    //     var responseBody = await GetResponseBodyAsync(result);
-    //     responseBody.Should().Contain("user1");
-    //     responseBody.Should().Contain("user2");
-    // }
-    //
-    // [Test]
-    // public async Task GetUser_WithContainsTextFilter_ShouldReturnFilteredUsers()
-    // {
-    //     // Arrange
-    //     var users = new List<SecureUser>
-    //     {
-    //         new SecureUser
-    //         {
-    //             id = "user1",
-    //             emailAddress = "user1@example.com",
-    //             userName = "john"
-    //         },
-    //         new SecureUser
-    //         {
-    //             id = "user2",
-    //             emailAddress = "user2@example.com",
-    //             userName = "user2"
-    //         }
-    //     };
-    //     
-    //     var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-    //     var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-    //         .WithAuthentication()
-    //         .WithQuery(new NameValueCollection()
-    //         {
-    //             {
-    //                 "containsText",
-    //                 "john"
-    //             }
-    //         })
-    //         .Build();
-    //     
-    //     var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<SecureUser>(new List<SecureUser>(users));
-    //     mockedCosmosDbClientFactory.FilterItems=(items =>
-    //     {
-    //         return items.Where(u => u.userName.Contains("john"));
-    //     });
-    //     var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-    //     
-    //     var usersHttpTrigger = new UsersHttpTriggerBuilder()
-    //         .WithDefaultMocks()
-    //         .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
-    //         .WithConfiguration(Configuration)
-    //         .Build();
-    //
-    //     // Act
-    //     var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.OK);
-    //
-    //     var responseBody = await GetResponseBodyAsync(result);
-    //     responseBody.Should().Contain("user1@example.com");
-    //     responseBody.Should().NotContain("user2@example.com");
-    // }
-    //
-    // [Test]
-    // public async Task GetUser_WithRoleFilter_ShouldReturnUsersWithSpecificRoles()
-    // {
-    //     // Arrange
-    //     var adminRole = new Role { name = "Admin" };
-    //     var guestRole = new Role { name = "Guest" };
-    //     
-    //     var users = new List<SecureUser>
-    //     {
-    //         new SecureUser
-    //         {
-    //             id = "user1",
-    //             emailAddress = "user1@example.com",
-    //             userName = "john",
-    //             roles = new List<Role> { adminRole, guestRole }
-    //         },
-    //         new SecureUser
-    //         {
-    //             id = "user2",
-    //             emailAddress = "user2@example.com",
-    //             userName = "user2",
-    //             roles = new List<Role> { guestRole }
-    //         }
-    //     };
-    //     
-    //     var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-    //     var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-    //         .WithAuthentication()
-    //         .WithQuery(new NameValueCollection()
-    //         {
-    //             {
-    //                 "withRoles",
-    //                 "Admin"
-    //             }
-    //         })
-    //         .Build();
-    //     
-    //     var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<SecureUser>(new List<SecureUser>(users));
-    //     mockedCosmosDbClientFactory.FilterItems=(items =>
-    //     {
-    //         return items.Where(u => u.roles.Any(r => r.name == "Admin"));
-    //     });
-    //     var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-    //     
-    //     var usersHttpTrigger = new UsersHttpTriggerBuilder()
-    //         .WithDefaultMocks()
-    //         .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
-    //         .WithConfiguration(Configuration)
-    //         .Build();
-    //
-    //     // Act
-    //     var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.OK);
-    //
-    //     var responseBody = await GetResponseBodyAsync(result);
-    //     responseBody.Should().Contain("user1");
-    //     responseBody.Should().NotContain("user2");
-    //     
-    // }
-    //
-    // [Test]
-    // public async Task GetUser_WithApplicationFilter_ShouldReturnUsersWithAccessToSpecificApplications()
-    // {
-    //      // Arrange
-    //      var application1 = new Application { name = "Dashboard", targetUrl = "https://dashboard.example.com" };
-    //      var application2 = new Application { name = "Another App", targetUrl = "https://dashboard.example.com" };
-    //      var application3 = new Application { name = "Not this App", targetUrl = "https://dashboard.example.com" };
-    //      
-    //     var adminRole = new Role
-    //     {
-    //         name = "Admin",
-    //         applications = new List<Application> { application1, application2 }
-    //     };
-    //     var guestRole = new Role
-    //     {
-    //         name = "Guest",
-    //         applications = new List<Application> { application1, application3 }
-    //     };
-    //     
-    //     var users = new List<SecureUser>
-    //     {
-    //         new SecureUser
-    //         {
-    //             id = "user1",
-    //             emailAddress = "user1@example.com",
-    //             userName = "john",
-    //             roles = new List<Role> { adminRole, guestRole }
-    //         },
-    //         new SecureUser
-    //         {
-    //             id = "user2",
-    //             emailAddress = "user2@example.com",
-    //             userName = "user2",
-    //             roles = new List<Role> { guestRole }
-    //         }
-    //     };
-    //     
-    //     var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-    //     var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-    //         .WithAuthentication()
-    //         .WithQuery(new NameValueCollection()
-    //         {
-    //             {
-    //                 "hasAccessToApplications",
-    //                 "Another App"
-    //             }
-    //         })
-    //         .Build();
-    //     
-    //     var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<SecureUser>(new List<SecureUser>(users));
-    //     mockedCosmosDbClientFactory.FilterItems=(items =>
-    //     {
-    //         return items.Where(u => u.roles.SelectMany(a=>a.applications).Any(r => r.name == "Another App"));
-    //     });
-    //     var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-    //     
-    //     var usersHttpTrigger = new UsersHttpTriggerBuilder()
-    //         .WithDefaultMocks()
-    //         .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
-    //         .WithConfiguration(Configuration)
-    //         .Build();
-    //
-    //     // Act
-    //     var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.OK);
-    //
-    //     var responseBody = await GetResponseBodyAsync(result);
-    //     responseBody.Should().Contain("Another App");
-    // }
     
-    // [Test]
-    // public async Task GetUser_WithPaginationParameters_ShouldHandlePaging()
-    // {
-    //     // Arrange
-    //     var users = new List<SecureUser>
-    //     {
-    //         new SecureUser
-    //         {
-    //             id = "user1",
-    //             emailAddress = "user1@example.com",
-    //             userName = "user1"
-    //         }
-    //     };
-    //
-    //     var pagedResult = new PagedCosmosDbResult<SecureUser>(
-    //         users, "continuation-token", 10, 2.0, 50, 0);
-    //     pagedResult.SetTotalItems(50);
-    //
-    //     SetupGetPagedMultipleItemsMock(pagedResult);
-    //
-    //     var mockHttpRequest = CreateMockHttpRequestWithAuth();
-    //     mockHttpRequest.Query.Add("offset", "10");
-    //     mockHttpRequest.Query.Add("itemsPerPage", "10");
-    //     mockHttpRequest.Query.Add("sortBy", "c.emailAddress");
-    //
-    //     // Act
-    //     var result = await _usersHttpTrigger.GetUser(mockHttpRequest, null);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.OK);
-    //
-    //     var responseBody = await GetResponseBodyAsync(result);
-    //     responseBody.Should().Contain("pageUrls"); // Should include pagination URLs
-    // }
-    //
-    // [Test]
-    // public async Task GetUser_WithContinuationToken_ShouldHandleTokenBasedPaging()
-    // {
-    //     // Arrange
-    //     var users = new List<SecureUser>
-    //     {
-    //         new SecureUser
-    //         {
-    //             id = "user1",
-    //             emailAddress = "user1@example.com", 
-    //             userName = "user1"
-    //         }
-    //     };
-    //
-    //     var pagedResult = new PagedCosmosDbResult<SecureUser>(
-    //         users, null, 10, 1.5, 20, 0);
-    //     pagedResult.SetTotalItems(20);
-    //
-    //     SetupGetPagedMultipleItemsMock(pagedResult);
-    //
-    //     var mockHttpRequest = CreateMockHttpRequestWithAuth();
-    //     mockHttpRequest.Query.Add("continuationToken", Uri.EscapeDataString("some-continuation-token"));
-    //
-    //     // Act
-    //     var result = await _usersHttpTrigger.GetUser(mockHttpRequest, null);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.OK);
-    // }
-    //
-    // [Test]
-    // public async Task GetUser_WithInvalidPaginationParameters_ShouldUseDefaults()
-    // {
-    //     // Arrange
-    //     var users = new List<SecureUser>
-    //     {
-    //         new SecureUser
-    //         {
-    //             id = "user1",
-    //             emailAddress = "user1@example.com",
-    //             userName = "user1"
-    //         }
-    //     };
-    //
-    //     var pagedResult = new PagedCosmosDbResult<SecureUser>(
-    //         users, null, DataConstants.ItemsPerPage, 2.0, 1, 0);
-    //     pagedResult.SetTotalItems(1);
-    //
-    //     SetupGetPagedMultipleItemsMock(pagedResult);
-    //
-    //     var mockHttpRequest = CreateMockHttpRequestWithAuth();
-    //     mockHttpRequest.Query.Add("offset", "invalid-number");
-    //     mockHttpRequest.Query.Add("itemsPerPage", "not-a-number");
-    //
-    //     // Act
-    //     var result = await _usersHttpTrigger.GetUser(mockHttpRequest, null);
-    //
-    //     // Assert
-    //     result.Should().NotBeNull();
-    //     result.StatusCode.Should().Be(HttpStatusCode.OK);
-    //     // Should handle gracefully and use default values
-    // }
-    //
-    // #endregion
+    
+    [Test]
+    public async Task UpdateUser_InSettingsScope_WithValidId_ShouldReturnOkAndUserShouldBeUpdated()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+        const string expectedTheme = "updated-theme";
+
+        var existingUser = new User
+        {
+            id = userId,
+            userName = userId,
+            emailAddress = "old@emailAddress.com",
+            theme = "old-theme",
+            roles = new List<Role>(),
+            passwordHash = new byte[]
+            {
+            },
+            passwordSalt = new byte[]
+            {
+            }
+        };
+        var updateUser = new UpdateUserRequest()
+        {
+            updateSettingsScope = true,
+            theme = expectedTheme,
+            userName = userId
+        };
+
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithPayload(updateUser)
+            .Returns(HttpStatusCode.NoContent)
+            .Build();
+
+        var mockedCosmosDbClientFactory =
+            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser })
+            {
+                MutateItems = (items) =>
+                {   
+                    items.First(q=>q.id==userId).theme = expectedTheme;
+                    return items;
+                },
+                ConfigureContainerFunc = (mockContainer) =>
+                {
+                    mockContainer.Setup(c => c.UpsertItemAsync(It.IsAny<SecureUser>(), It.IsAny<PartitionKey>(),
+                        It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                        .ReturnsAsync(CreateMockItemResponse<SecureUser>(HttpStatusCode.OK));
+                }
+            };
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Verify the response contains user and applications
+        var responseBody = await GetResponseBodyAsync(result);
+        
+        // get the user
+        var updatedUser = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
+        
+        updatedUser.Should().NotBeNull();
+        updatedUser.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var getUserResponseBody = await GetResponseBodyAsync(updatedUser);
+        getUserResponseBody.Should().Contain(expectedTheme);
+    }
+    
+    
+    [Test]
+    public async Task UpdateUser_InPasswordScope_WithEmptyPassword_ShouldReturnBadRequest()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+        const string expectedEmailAddress = "new@emailaddress.com";
+
+        var existingUser = new User
+        {
+            id = userId,
+            userName = userId,
+            emailAddress = "old@emailAddress.com",
+            roles = new List<Role>(),
+            passwordHash = new byte[]
+            {
+            },
+            passwordSalt = new byte[]
+            {
+            }
+        };
+        var updateUser = new UpdateUserRequest()
+        {
+            updatePasswordScope = true,
+            newPassword = string.Empty,
+            emailAddress = expectedEmailAddress,
+            userName = userId
+        };
+
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithPayload(updateUser)
+            .Returns(HttpStatusCode.BadRequest)
+            .Build();
+
+        var mockedCosmosDbClientFactory =
+            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+    }
+    
+    
+    [Test]
+    public async Task UpdateUser_InPasswordScope_WithDifferentUserName_ShouldReturnBadRequest()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+
+        var existingUser = new User
+        {
+            id = userId,
+            userName = userId,
+            emailAddress = "old@emailAddress.com",
+            roles = new List<Role>(),
+            passwordHash = new byte[]
+            {
+            },
+            passwordSalt = new byte[]
+            {
+            }
+        };
+        var updateUser = new UpdateUserRequest()
+        {
+            updatePasswordScope = true,
+            userName = "different-user-name",
+            newPassword = "new-password"
+        };
+
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithPayload(updateUser)
+            .Returns(HttpStatusCode.BadRequest)
+            .Build();
+
+        var mockedCosmosDbClientFactory =
+            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+    }
+    
+    
+    [Test]
+    public async Task UpdateUser_InPasswordScope_WithDifferentNonce_ShouldReturnBadRequest()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+
+        var existingUser = new User
+        {
+            id = userId,
+            userName = userId,
+            passwordConfirmationNonce = "nonce",
+            emailAddress = "old@emailAddress.com",
+            roles = new List<Role>(),
+            passwordHash = new byte[]
+            {
+            },
+            passwordSalt = new byte[]
+            {
+            }
+        };
+        var updateUser = new UpdateUserRequest()
+        {
+            updatePasswordScope = true,
+            passwordConfirmationNonce = "different-nonce",
+            newPassword = "new-password",
+            userName = userId
+        };
+
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithPayload(updateUser)
+            .Returns(HttpStatusCode.BadRequest)
+            .Build();
+
+        var mockedCosmosDbClientFactory =
+            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+    }
+    
+    
+    [Test]
+    public async Task UpdateUser_InPasswordScope_WithExpiredPasswordChangeRequest_ShouldReturnBadRequest()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+
+        var existingUser = new User
+        {
+            id = userId,
+            userName = userId,
+            passwordLinkExpiresAt = DateTime.UtcNow.AddDays(-1),
+            emailAddress = "old@emailAddress.com",
+            roles = new List<Role>(),
+            passwordHash = new byte[]
+            {
+            },
+            passwordSalt = new byte[]
+            {
+            }
+        };
+        var updateUser = new UpdateUserRequest()
+        {
+            updatePasswordScope = true,
+            newPassword="new-password",
+            userName = userId
+        };
+
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithPayload(updateUser)
+            .Returns(HttpStatusCode.BadRequest)
+            .Build();
+
+        var mockedCosmosDbClientFactory =
+            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+    }
+    
+    
+    [Test]
+    public async Task UpdateUser_InPasswordScope_WithValidId_ShouldReturnOkAndUserShouldBeUpdated()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+        const string expectedNonce = "nonce";
+
+        var existingUser = new User
+        {
+            id = userId,
+            userName = userId,
+            emailAddress = "old@emailAddress.com",
+            passwordLinkExpiresAt = DateTime.MaxValue,
+            passwordConfirmationNonce = expectedNonce,
+            roles = new List<Role>(),
+            passwordHash = new byte[]
+            {
+            },
+            passwordSalt = new byte[]
+            {
+            }
+        };
+        var updateUser = new UpdateUserRequest()
+        {
+            updatePasswordScope = true,
+            newPassword = "new-password",
+            passwordConfirmationNonce = expectedNonce,
+            userName = userId
+        };
+
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithPayload(updateUser)
+            .Returns(HttpStatusCode.NoContent)
+            .Build();
+
+        var mockedCosmosDbClientFactory =
+            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser })
+            {
+                MutateItems = (items) =>
+                {   
+                    items.First(q=>q.id==userId).passwordHash = [1,2,3];
+                    items.First(q=>q.id==userId).passwordSalt = [4,5,6];
+                    return items;
+                },
+                ConfigureContainerFunc = (mockContainer) =>
+                {
+                    mockContainer.Setup(c => c.UpsertItemAsync(It.IsAny<SecureUser>(), It.IsAny<PartitionKey>(),
+                        It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                        .ReturnsAsync(CreateMockItemResponse<SecureUser>(HttpStatusCode.OK));
+                }
+            };
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+
+    }
+    
+    
+    [Test]
+    public async Task UpdateUser_InRoleScope_WithValidId_ShouldReturnOkAndUserShouldBeUpdated()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+        var expectedRole = new Role()
+        {
+            createdAt = DateTime.Now,
+            applications = new List<Application>(),
+            description = "Updated role",
+            name = "updated-role",
+            updatedAt = DateTime.Now
+        };
+        
+        var existingUser = new User
+        {
+            id = userId,
+            userName = userId,
+            emailAddress = "email@address.com",
+            roles = new List<Role>()
+            {
+                new Role()
+                {
+                    createdAt = DateTime.Now,
+                    applications = new List<Application>(),
+                    description = "Test role",
+                    name = "test-role",
+                    updatedAt = DateTime.Now
+                }
+            },
+            passwordHash = new byte[]
+            {
+            },
+            passwordSalt = new byte[]
+            {
+            }
+        };
+        var updateUser = new UpdateUserRequest()
+        {
+            updateRolesScope = true,
+            roles = new List<Role>()
+            {
+                expectedRole
+            },
+            userName = userId
+        };
+
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithPayload(updateUser)
+            .Returns(HttpStatusCode.NoContent)
+            .Build();
+
+        var mockedCosmosDbClientFactory =
+            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser })
+            {
+                MutateItems = (items) =>
+                {   
+                    items.First(q=>q.id==userId).roles = new List<Role>() { expectedRole };
+                    return items;
+                },
+                ConfigureContainerFunc = (mockContainer) =>
+                {
+                    mockContainer.Setup(c => c.UpsertItemAsync(It.IsAny<SecureUser>(), It.IsAny<PartitionKey>(),
+                        It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                        .ReturnsAsync(CreateMockItemResponse<SecureUser>(HttpStatusCode.OK));
+                }
+            };
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Verify the response contains user and applications
+        var responseBody = await GetResponseBodyAsync(result);
+        
+        // get the user
+        var updatedUser = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
+        
+        updatedUser.Should().NotBeNull();
+        updatedUser.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var getUserResponseBody = await GetResponseBodyAsync(updatedUser);
+        getUserResponseBody.Should().Contain(expectedRole.name);
+    }
+    
+    
+    [Test]
+    public async Task UpdateUser_InProfilePictureScope_WithValidId_ShouldReturnBadRequest()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+
+        var existingUser = new User
+        {
+            id = userId,
+            userName = userId,
+            emailAddress = "old@emailAddress.com",
+            roles = new List<Role>(),
+            passwordHash = new byte[]
+            {
+            },
+            passwordSalt = new byte[]
+            {
+            }
+        };
+        var updateUser = new UpdateUserRequest()
+        {
+            updateProfilePictureScope = true,
+            userName = userId
+        };
+
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithPayload(updateUser)
+            .Returns(HttpStatusCode.NoContent)
+            .Build();
+
+        var mockedCosmosDbClientFactory =
+            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+    }
+    
+    [Test]
+    public async Task UpdateUser_WithNonExistentId_ShouldReturnNotFound()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+
+        var updateUser = new UpdateUserRequest()
+        {
+            updateProfileScope = true,
+            emailAddress = "",
+            userName = userId
+        };
+
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithAuthentication()
+            .WithPayload(updateUser)
+            .Returns(HttpStatusCode.NoContent)
+            .Build();
+
+        var mockedCosmosDbClientFactory =
+            new MockedCosmosDbClientFactory<User>(new List<User>())
+            {
+                ConfigureContainerFunc = (mockContainer) =>
+                {
+                    mockContainer.Setup(c => c.UpsertItemAsync(It.IsAny<SecureUser>(), It.IsAny<PartitionKey>(),
+                        It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                        .ReturnsAsync(CreateMockItemResponse<SecureUser>(HttpStatusCode.NotFound));
+                }
+            };
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+    }
+    
+    [Test]
+    public async Task UpdateUser_WithoutAuthentication_ShouldReturnBadRequest()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+        
+        var updateUser = new UpdateUserRequest()
+        {
+            updateProfileScope = true,
+            emailAddress = string.Empty,
+            userName = userId
+        };
+
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithPayload(updateUser)
+            .Returns(HttpStatusCode.NoContent)
+            .Build();
+
+        var mockedCosmosDbClientFactory =
+            new MockedCosmosDbClientFactory<User>(new List<User>());
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+    }
+    
+    
+    [Test]
+    public async Task GetUser_WithInvalidAuthentication_ShouldReturnUnauthorized()
+    {
+        // Arrange
+        const string userId = "test-user-123";
+
+        var updateUser = new UpdateUserRequest()
+        {
+            updateProfileScope = true,
+            emailAddress = string.Empty,
+            userName = userId
+        };
+
+        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
+        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+            .WithInvalidAuthentication()
+            .WithPayload(updateUser)
+            .Returns(HttpStatusCode.Unauthorized)
+            .Build();
+
+        var mockedCosmosDbClientFactory =
+            new MockedCosmosDbClientFactory<User>(new List<User>());
+        
+        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
+        
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithDefaultMocks()
+            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
+            .WithConfiguration(Configuration)
+            .Build();
+        
+        // Act
+        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);;
+
+    }
+    
+    
     //
     // #region Helper Methods
     //

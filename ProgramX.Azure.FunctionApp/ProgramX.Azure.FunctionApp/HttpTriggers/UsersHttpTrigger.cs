@@ -470,7 +470,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     await multipartSection.Body.CopyToAsync(originalImageStream);
                     originalImageStream.Position = 0;
                     
-                    await uploadBlob(avatarImagesBlockContainerClient, multipartSection,  originalImageStream,$"{usernameMakingTheChange}/{originalBlobName}");
+                    await UploadBlob(avatarImagesBlockContainerClient, multipartSection,  originalImageStream,$"{usernameMakingTheChange}/{originalBlobName}");
 
                     // having moved the cursor to the end of the stream, it is reset
                     originalImageStream.Position = 0;
@@ -483,7 +483,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     var resizedImageStream = new MemoryStream(resizedImage);
                     
                     // upload to blob storage
-                    await uploadBlob(avatarImagesBlockContainerClient, multipartSection, resizedImageStream, $"{usernameMakingTheChange}/{avatarSizedBlobName}");
+                    await UploadBlob(avatarImagesBlockContainerClient, multipartSection, resizedImageStream, $"{usernameMakingTheChange}/{avatarSizedBlobName}");
                     
                     // update record in DB
                     originalUser.profilePhotographSmall = avatarSizedBlobName;
@@ -543,7 +543,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
     
 
-    private async Task uploadBlob(BlobContainerClient avatarImagesBlockContainerClient, MultipartSection multipartSection, Stream data, string fileName)
+    private async Task UploadBlob(BlobContainerClient avatarImagesBlockContainerClient, MultipartSection multipartSection, Stream data, string fileName)
     {
         var blob = avatarImagesBlockContainerClient.GetBlobClient(fileName);
         var headers = new BlobHttpHeaders
