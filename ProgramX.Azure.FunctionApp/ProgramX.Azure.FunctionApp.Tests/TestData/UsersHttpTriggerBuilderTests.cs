@@ -3,6 +3,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.HttpTriggers;
 
 namespace ProgramX.Azure.FunctionApp.Tests.TestData;
@@ -13,6 +14,8 @@ public class UsersHttpTriggerBuilder
     private Mock<CosmosClient>? _mockCosmosClient;
     private Mock<BlobServiceClient>? _mockBlobServiceClient;
     private IConfiguration? _configuration;
+    private IRolesProvider? _rolesProvider;
+    private IEmailSender? _emailSender;
 
     public UsersHttpTriggerBuilder WithLogger(Mock<ILogger<UsersHttpTrigger>> mockLogger)
     {
@@ -37,6 +40,19 @@ public class UsersHttpTriggerBuilder
         _configuration = configuration;
         return this;
     }
+    
+    public UsersHttpTriggerBuilder WithRolesProvider(IRolesProvider rolesProvider)
+    {
+        _rolesProvider = rolesProvider;
+        return this;
+    }
+    
+    public UsersHttpTriggerBuilder WithEmailSender(IEmailSender emailSender)
+    {
+        _emailSender = emailSender;
+        return this;
+    }
+    
 
     public UsersHttpTriggerBuilder WithDefaultMocks()
     {
@@ -63,6 +79,8 @@ public class UsersHttpTriggerBuilder
             _mockLogger.Object,
             _mockCosmosClient.Object,
             _mockBlobServiceClient.Object,
-            _configuration);
+            _configuration,
+            _rolesProvider!,
+            _emailSender!);
     }
 }

@@ -91,6 +91,8 @@ public class MockedBlobServiceClientFactory
             .ReturnsAsync(mockCreateIfNotExistsAsyncResponse.Object);
         mockBlobContainerClient.Setup(x=>x.GetBlobClient(It.IsAny<string>()))
             .Returns(mockBlobClient.Object);
+        mockBlobContainerClient.Setup(x => x.DeleteBlobIfExistsAsync(It.IsAny<string>(),
+            It.IsAny<DeleteSnapshotsOption>(), It.IsAny<BlobRequestConditions>(), It.IsAny<CancellationToken>()));
         var mockBlobServiceClient = new Mock<BlobServiceClient>();
         
         mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(It.IsAny<string>()))

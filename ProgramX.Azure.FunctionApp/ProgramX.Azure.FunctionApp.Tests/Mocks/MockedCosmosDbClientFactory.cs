@@ -193,6 +193,13 @@ public class MockedCosmosDbClientFactory<T>
                     MutateItems.Invoke(_items);
                 })
                 .ReturnsAsync(CreateItemResponse<T>());
+            mockContainer.Setup(x => x.CreateItemAsync(It.IsAny<T>(),  It.IsAny<PartitionKey>(),
+                    It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                .Callback(() =>
+                {
+                    MutateItems.Invoke(_items);
+                })
+                .ReturnsAsync(CreateItemResponse<T>());
         }
         
         return mockContainer;

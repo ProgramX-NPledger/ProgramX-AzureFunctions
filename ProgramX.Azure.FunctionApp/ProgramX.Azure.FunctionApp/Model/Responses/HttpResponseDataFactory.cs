@@ -76,10 +76,7 @@ public class HttpResponseDataFactory
         {
             httpResponseData.Headers.Add("x-continuation-token", Uri.EscapeDataString(pagedResponse.ContinuationToken));
         }
-        //await httpResponseData.WriteAsJsonAsync(pagedResponse);
-        //var serializedPagedResponse = JsonSerializer.Serialize(pagedResponse);
         var serializedPagedResponse = JsonSerializer.Serialize(pagedResponse, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-        //httpResponseData.Headers..Headers.Add("Content-Type", "application/json");
         await httpResponseData.WriteStringAsync(serializedPagedResponse);
         return httpResponseData;
     }
@@ -87,7 +84,8 @@ public class HttpResponseDataFactory
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Created);
         httpResponseData.Headers.Add("Location", new[] { $"{httpRequestData.Url}/{type}/{uniqueId}" });
-        await httpResponseData.WriteAsJsonAsync(created);
+        var serializedCreated = JsonSerializer.Serialize(created, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        await httpResponseData.WriteStringAsync(serializedCreated);
         return httpResponseData;
     }
 

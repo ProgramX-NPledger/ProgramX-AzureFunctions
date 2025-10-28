@@ -25,6 +25,8 @@
       <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0"/>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Contract\ProgramX.Azure.FunctionApp.Contract.csproj" />
     <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Core\ProgramX.Azure.FunctionApp.Core.csproj" />
+    <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Model\ProgramX.Azure.FunctionApp.Model.csproj" />
   </ItemGroup>
 </Project>

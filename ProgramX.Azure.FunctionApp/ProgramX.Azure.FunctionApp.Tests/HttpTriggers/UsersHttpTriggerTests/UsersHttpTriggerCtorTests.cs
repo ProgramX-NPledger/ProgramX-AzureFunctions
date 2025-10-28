@@ -35,7 +35,9 @@ public class UsersHttpTriggerCtorTests : TestBase
             _mockSpecificLogger.Object,
             MockCosmosClient.Object,
             _mockBlobServiceClient.Object,
-            Configuration);
+            Configuration,
+            null!,
+            null!);
     }
     
     
@@ -74,7 +76,9 @@ public class UsersHttpTriggerCtorTests : TestBase
             null!,
             MockCosmosClient.Object,
             _mockBlobServiceClient.Object,
-            Configuration));
+            Configuration,
+            null!,
+            null!));
     }
 
     [Test]
@@ -85,7 +89,9 @@ public class UsersHttpTriggerCtorTests : TestBase
             _mockSpecificLogger.Object,
             null!,
             _mockBlobServiceClient.Object,
-            Configuration));
+            Configuration,
+            null!,
+            null!));
     }
 
     [Test]
@@ -96,7 +102,9 @@ public class UsersHttpTriggerCtorTests : TestBase
             _mockSpecificLogger.Object,
             MockCosmosClient.Object,
             null!,
-            Configuration));
+            Configuration,
+            null!,
+            null!));
     }
 
     [Test]
@@ -107,6 +115,8 @@ public class UsersHttpTriggerCtorTests : TestBase
             _mockSpecificLogger.Object,
             MockCosmosClient.Object,
             _mockBlobServiceClient.Object,
+            null!,
+            null!,
             null!));
     }
 }

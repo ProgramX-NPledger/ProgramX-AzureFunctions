@@ -23,6 +23,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using ProgramX.Azure.FunctionApp.Constants;
+using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Requests;
@@ -30,6 +31,7 @@ using ProgramX.Azure.FunctionApp.Model.Responses;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
+using EmailMessage = ProgramX.Azure.FunctionApp.Model.EmailMessage;
 using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.HttpTriggers;
@@ -39,19 +41,25 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     private readonly ILogger<UsersHttpTrigger> _logger;
     private readonly CosmosClient _cosmosClient;
     private readonly BlobServiceClient _blobServiceClient;
+    private readonly IRolesProvider _rolesProvider;
+    private readonly IEmailSender _emailSender;
     private readonly Container _container;
 
  
     public UsersHttpTrigger(ILogger<UsersHttpTrigger> logger,
         CosmosClient cosmosClient,
         BlobServiceClient blobServiceClient,
-        IConfiguration configuration) : base(configuration)
+        IConfiguration configuration,
+        IRolesProvider rolesProvider,
+        IEmailSender emailSender ) : base(configuration)
     {
         if (configuration==null) throw new ArgumentNullException(nameof(configuration));
         
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cosmosClient = cosmosClient ?? throw new ArgumentNullException(nameof(cosmosClient));
         _blobServiceClient = blobServiceClient ?? throw new ArgumentNullException(nameof(blobServiceClient));
+        _rolesProvider = rolesProvider;
+        _emailSender = emailSender;
 
         _container = _cosmosClient.GetContainer("core", "users");
     }
@@ -638,16 +646,11 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
         {
-            var createUserRequest = await httpRequestData.ReadFromJsonAsync<CreateUserRequest>();
-            if (createUserRequest==null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
+            var createUserRequest =
+                await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateUserRequest>(httpRequestData);
+            if (createUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
-            var rolesCosmosDbReader =
-                new PagedCosmosDbReader<Role>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-            
-            var queryDefinition= new QueryDefinition("SELECT r.name, r.description, r.applications FROM c JOIN r IN c.roles");
-            var roles = await rolesCosmosDbReader.GetNextItemsAsync(queryDefinition,null,null);
-            
-            var allRoles = roles.Items.ToList(); // avoid multiple enumeration
+            var allRoles = await _rolesProvider.GetRolesAsync();
         
             var newUser = new User()
             {
@@ -679,20 +682,22 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 newUser.passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(createUserRequest.password));
                 newUser.passwordSalt = hmac.Key;
             }
-            var response = await _container.CreateItemAsync(newUser, new PartitionKey(newUser.userName));;
+            var response = await _container.CreateItemAsync(newUser, new PartitionKey(newUser.userName));
 
             if (response.StatusCode == HttpStatusCode.Created)
             {
                 // redact the password
                 newUser.passwordHash = new byte[0];
                 newUser.passwordSalt = new byte[0];
-                
-               // send email with link to set password
-                var client = new EmailClient(Configuration["AzureCommunicationServicesConnection"]);
 
-                var content = new EmailContent("Please complete your programx.co.uk login")
+                var emailMessage = new EmailMessage()
                 {
-                    PlainText = @$"
+                    To =
+                    [
+                        new EmailRecipient(createUserRequest.emailAddress, $"{createUserRequest.firstName} {createUserRequest.lastName}")
+                    ],
+                    From = new EmailRecipient("DoNotReply@5e4bfc81-f032-4b41-b32b-584d6f5510d0.azurecomm.net", "Support"), // must be a verified sender on your ACS domain
+                    PlainTextBody = @$"
 Hi,
 
 Please complete your programx.co.uk login by navigating to the following link:
@@ -701,34 +706,24 @@ Please complete your programx.co.uk login by navigating to the following link:
 This link is valid until {newUser.passwordLinkExpiresAt}.
 
 ",
-                    Html = @$"<h1>Please complete your programx.co.uk login</h1>
+                    Subject = "Complete your programx.co.uk login",
+                    HtmlBody = @$"<h1>Please complete your programx.co.uk login</h1>
 <p>Hi,</p>
 <p>Please complete your programx.co.uk login by navigating to the following link:<br />
 <a href=""{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.userName}&n={newUser.passwordConfirmationNonce}"">Complete login by entering your password</a></p>
 <p>This link is valid until {newUser.passwordLinkExpiresAt}.</p>"
                 };
-
-                var recipients = new EmailRecipients(new[]
+                
+                try
                 {
-                    new EmailAddress(createUserRequest.emailAddress, $"{createUserRequest.firstName} {createUserRequest.lastName}")
-                });
-
-                var message = new EmailMessage(
-                    senderAddress: "DoNotReply@5e4bfc81-f032-4b41-b32b-584d6f5510d0.azurecomm.net", // must be a verified sender on your ACS domain
-                    content: content,
-                    recipients: recipients);
-
-                // WaitUntil.Completed waits for the initial send operation to complete (not full delivery).
-                EmailSendOperation operation = await client.SendAsync(WaitUntil.Completed, message);
-                EmailSendResult result = operation.Value;
-                if (result.Status == EmailSendStatus.Succeeded)
-                {
-                    return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newUser, "user", newUser.id);    
+                    await _emailSender.SendEmailAsync(emailMessage);
                 }
-                else
+                catch (InvalidOperationException invalidOperationException)
                 {
-                    return await HttpResponseDataFactory.CreateForServerError(httpRequestData, $"Failed to send email: {result.Status}");
+                    return await HttpResponseDataFactory.CreateForServerError(httpRequestData, $"Failed to send email: {invalidOperationException.Message}");
                 }
+
+                return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newUser, "user", newUser.id);    
             }
         
             return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to create user");
