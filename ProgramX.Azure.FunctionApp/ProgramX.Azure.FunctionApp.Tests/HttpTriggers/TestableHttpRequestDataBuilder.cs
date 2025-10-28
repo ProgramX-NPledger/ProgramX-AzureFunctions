@@ -20,6 +20,7 @@ public class TestableHttpRequestDataBuilder
     private IEnumerable<string> _roles = new List<string>();
     private bool? _useValidAuthorisation = null;
     private object? _payload = null;
+    private string? _body = null;
     
     /// <summary>
     /// Specifies which HTTP Status Code the response created from the request should return.
@@ -91,13 +92,28 @@ public class TestableHttpRequestDataBuilder
     /// Adds a payload onto the request.
     /// </summary>
     /// <param name="payloadObject">A JSON serializable object which should be injected into the request.</param>
+    /// <exception cref="InvalidOperationException">Thrown if both a body and a payload are set.</exception>   
     /// <returns></returns>
     public TestableHttpRequestDataBuilder WithPayload(object payloadObject)
     {
+        if (_body!=null) throw new InvalidOperationException("Cannot set both a body and a payload.");
         _payload = payloadObject;
         return this;
     }
     
+    /// <summary>
+    /// Adds a body onto the request.
+    /// </summary>
+    /// <param name="body">A <c>string</c> which will form the body of the request.</param>
+    /// <exception cref="InvalidOperationException">Thrown if both a body and a payload are set.</exception>   
+    /// <returns></returns>
+    public TestableHttpRequestDataBuilder WithBody(string body)
+    {
+        if (_payload!=null) throw new InvalidOperationException("Cannot set both a body and a payload.");
+        _body = body;
+        return this;
+    }
+
     /// <summary>
     /// Build the <see cref="TestHttpRequestData"/> instance.
     /// </summary>
@@ -118,6 +134,11 @@ public class TestableHttpRequestDataBuilder
         {
             var serializedPayload = JsonSerializer.Serialize(_payload);
             testHttpRequestData.Body.Write(Encoding.UTF8.GetBytes(serializedPayload), 0, serializedPayload.Length);
+        }
+
+        if (_body != null)
+        {
+            testHttpRequestData.Body.Write(Encoding.UTF8.GetBytes(_body), 0, _body.Length);       
         }
 
         foreach (var header in _headers.AllKeys)

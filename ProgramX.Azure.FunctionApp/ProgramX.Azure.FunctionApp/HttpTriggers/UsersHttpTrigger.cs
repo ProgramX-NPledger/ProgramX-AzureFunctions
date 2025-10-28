@@ -449,9 +449,14 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             var avatarImagesBlockContainerClient = _blobServiceClient.GetBlobContainerClient(BlobConstants.AvatarImagesBlobName);
             await avatarImagesBlockContainerClient.CreateIfNotExistsAsync(PublicAccessType.None);
 
+            httpRequestData.Body.Position = 0;
             var multipartReader = new MultipartReader(boundary, httpRequestData.Body);
-            var multipartSection = await multipartReader.ReadNextSectionAsync();
-            if (multipartSection == null)
+            MultipartSection? multipartSection;
+            try
+            {
+                multipartSection = await multipartReader.ReadNextSectionAsync();
+            }
+            catch (IOException e)
             {
                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing multipart section.");
             }
@@ -468,10 +473,10 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     var originalBlobName = $"{originalNameWithoutExtension}-orig{ext}";
                     var avatarSizedBlobName = $"{originalNameWithoutExtension}-32x32{ext}";
                     
-                    // the incoming multipart section body stream is re-used, so we copy it into a seekable stream
-                    var originalImageStream = new MemoryStream();
-                    await multipartSection.Body.CopyToAsync(originalImageStream);
-                    originalImageStream.Position = 0;
+                    var base64EncodedData = DataForMultipartSection(multipartSection);
+                    var rawData = Convert.FromBase64String(base64EncodedData);
+                    
+                    using var originalImageStream = new MemoryStream(rawData);
                     
                     await UploadBlob(avatarImagesBlockContainerClient, multipartSection,  originalImageStream,$"{usernameMakingTheChange}/{originalBlobName}");
 
@@ -479,8 +484,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     originalImageStream.Position = 0;
                     
                     // the stream is copied into an array, which can be seeked
-                    var imageArray = originalImageStream.ToArray();
-                    var resizedImage = await ResizeAsync(imageArray, 32);
+                    var resizedImage = await ResizeAsync(rawData, 32);
                     
                     // the array is set back into a stream
                     var resizedImageStream = new MemoryStream(resizedImage);
@@ -515,7 +519,17 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             
         });
     }
-    
+
+    private string DataForMultipartSection(MultipartSection multipartSection)
+    {
+        // Reset position to the beginning if possible
+        if (multipartSection.Body.CanSeek)
+            multipartSection.Body.Position = 0;
+
+        using var reader = new StreamReader(multipartSection.Body, Encoding.UTF8);
+        return reader.ReadToEnd();
+    }
+
     public static async Task<byte[]> ResizeAsync(byte[] input, int targetWidth, int? targetHeight = null)
     {
         using var inStream = new MemoryStream(input);
