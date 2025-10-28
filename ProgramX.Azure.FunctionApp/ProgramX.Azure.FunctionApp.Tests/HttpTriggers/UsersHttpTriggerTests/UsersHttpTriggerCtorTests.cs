@@ -9,6 +9,10 @@ using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 
+[Category("Unit")]
+[Category("HttpTrigger")]
+[Category("UsersHttpTrigger")]
+[Category("Ctor")]
 [TestFixture]
 public class UsersHttpTriggerCtorTests : TestBase
 {
