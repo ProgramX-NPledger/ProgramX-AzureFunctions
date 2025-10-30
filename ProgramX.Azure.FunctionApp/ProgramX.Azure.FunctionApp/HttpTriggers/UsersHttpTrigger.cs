@@ -404,10 +404,11 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserResponse()
                 {
-                    errorMessage = null,
-                    isOk = true
+                    Username = originalUser.userName,
+                    ErrorMessage = null,
+                    IsOk = true
                 });
             }
         
@@ -629,11 +630,11 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
             {
-                errorMessage = null,
-                isOk = true,
-                bytesTransferred = 0,
-                httpEventType = HttpEventType.Response,
-                totalBytesToTransfer = 0
+                ErrorMessage = null,
+                IsOk = true,
+                BytesTransferred = 0,
+                HttpEventType = HttpEventType.Response,
+                TotalBytesToTransfer = 0
             });
             
         });

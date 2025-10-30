@@ -1,13 +1,22 @@
+using System.Text.Json.Serialization;
+
 namespace ProgramX.Azure.FunctionApp.Model.Responses;
 
 public class UpdateResponse
 {
-    public bool isOk { get; set; }
-    public string? errorMessage { get; set; }
+    
+    [JsonPropertyName("isOk")]
+    public bool IsOk { get; set; }
+    
+    [JsonPropertyName("errorMessage")]
+    public string? ErrorMessage { get; set; }
 
-    public HttpEventType httpEventType { get; set; }
+    [JsonPropertyName("httpEventType")]
+    public HttpEventType HttpEventType { get; set; }
 
-    public long? bytesTransferred { get; set; } = null;
+    [JsonPropertyName("bytesTransferred")]
+    public long? BytesTransferred { get; set; } = null;
 
-    public long? totalBytesToTransfer { get; set; } = null;
+    [JsonPropertyName("totalBytesToTransfer")]
+    public long? TotalBytesToTransfer { get; set; } = null;
 }
