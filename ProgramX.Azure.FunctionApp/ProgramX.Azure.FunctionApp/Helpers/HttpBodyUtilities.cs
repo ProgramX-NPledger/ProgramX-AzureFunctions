@@ -15,7 +15,7 @@ public static class HttpBodyUtilities
     /// <returns>The HTTP body as a string.</returns>
     public static async Task<string> GetStringFromHttpRequestDataBodyAsync(HttpRequestData httpRequestData)
     {
-        httpRequestData.Body.Seek(0, SeekOrigin.Begin);
+        if (httpRequestData.Body.CanSeek) httpRequestData.Body.Seek(0, SeekOrigin.Begin);
         using var reader = new StreamReader(httpRequestData.Body);
         return await reader.ReadToEndAsync();
     }
