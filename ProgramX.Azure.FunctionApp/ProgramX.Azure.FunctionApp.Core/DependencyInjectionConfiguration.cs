@@ -9,6 +9,7 @@ public class DependencyInjectionConfiguration
     public static void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton<ObjectSerializer, JsonObjectSerializer>();
+        
 
     }
     
