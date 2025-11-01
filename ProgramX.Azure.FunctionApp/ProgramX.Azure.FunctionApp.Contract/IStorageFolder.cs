@@ -12,12 +12,27 @@ public interface IStorageFolder
     /// <param name="stream">Data to be stored.</param>
     /// <param name="contentType">MIME Content Type of the data.</param>
     /// <returns>The URL of the file.</returns>   
-    Task<string> SaveFileAsync(string fileName, Stream stream, string contentType = "application/octet-stream");
+    Task<SaveFileResult> SaveFileAsync(string fileName, Stream stream, string contentType = "application/octet-stream");
 
     /// <summary>
     /// Deletes a file from the storage folder.
     /// </summary>
     /// <param name="fileName">Filename of file to delete.</param>
     Task DeleteFileAsync(string fileName);
-    
+
+    /// <summary>
+    /// Response from SaveFileAsync.
+    /// </summary>
+    struct SaveFileResult
+    {
+        /// <summary>
+        /// The URL to the file.
+        /// </summary>
+        public string Url { get; set; }
+        
+        /// <summary>
+        /// The MIME Content Type of the file.
+        /// </summary>
+        public string ContentType { get; set; }
+    }
 }

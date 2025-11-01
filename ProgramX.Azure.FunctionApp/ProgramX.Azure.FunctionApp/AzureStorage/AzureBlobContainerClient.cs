@@ -6,7 +6,7 @@ namespace ProgramX.Azure.FunctionApp.AzureStorage;
 
 public class AzureBlobContainerClient(BlobContainerClient blobContainerClient) : IStorageFolder
 {
-    public async Task<string> SaveFileAsync(string fileName, Stream stream, string contentType)
+    public async Task<IStorageFolder.SaveFileResult> SaveFileAsync(string fileName, Stream stream, string contentType = "application/octet-stream")
     {
         var blob = blobContainerClient.GetBlobClient(fileName);
 
@@ -18,7 +18,11 @@ public class AzureBlobContainerClient(BlobContainerClient blobContainerClient) :
         // Stream directly to Blob Storage (no buffering in memory)
         await blob.UploadAsync(stream, new BlobUploadOptions { HttpHeaders = headers });
 
-        return blob.Uri.ToString();
+        return new IStorageFolder.SaveFileResult()
+        {
+            ContentType = contentType,
+            Url = blob.Uri.ToString()
+        };
     }
     
     public async Task DeleteFileAsync(string fileName)

@@ -359,7 +359,9 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     var resizedImageStream = new MemoryStream(resizedImage);
                     
                     // upload to blob storage
-                    thumbnailImageUri = await storageFolder.SaveFileAsync($"{usernameMakingTheChange}/{avatarSizedBlobName}", resizedImageStream, multipartSection.ContentType ?? "application/octet-stream");;
+                    thumbnailImageUri = (await storageFolder.SaveFileAsync(
+                        $"{usernameMakingTheChange}/{avatarSizedBlobName}", resizedImageStream,
+                        multipartSection.ContentType ?? "application/octet-stream")).Url;
 
                     // update record in DB
                     user.profilePhotographSmall = avatarSizedBlobName;
