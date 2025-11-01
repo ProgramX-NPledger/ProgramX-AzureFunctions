@@ -6,6 +6,11 @@ namespace ProgramX.Azure.FunctionApp.Contract;
 public interface IStorageFolder
 {
     /// <summary>
+    /// Name of the Storage Folder.
+    /// </summary>
+    string FolderName { get; }
+
+    /// <summary>
     /// Saves a file to the storage folder.
     /// </summary>
     /// <param name="fileName">Filename of the file.</param>

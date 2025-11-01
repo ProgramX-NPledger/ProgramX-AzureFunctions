@@ -4,11 +4,21 @@ using ProgramX.Azure.FunctionApp.Contract;
 
 namespace ProgramX.Azure.FunctionApp.AzureStorage;
 
-public class AzureBlobContainerClient(BlobContainerClient blobContainerClient) : IStorageFolder
+public class AzureBlobContainerClient : IStorageFolder
 {
+    private readonly BlobContainerClient _blobContainerClient;
+
+    public AzureBlobContainerClient(BlobContainerClient blobContainerClient)
+    {
+        _blobContainerClient = blobContainerClient;
+        FolderName = blobContainerClient.Name;
+    }
+
+    public string FolderName { get; private set; }
+
     public async Task<IStorageFolder.SaveFileResult> SaveFileAsync(string fileName, Stream stream, string contentType = "application/octet-stream")
     {
-        var blob = blobContainerClient.GetBlobClient(fileName);
+        var blob = _blobContainerClient.GetBlobClient(fileName);
 
         var headers = new BlobHttpHeaders
         {
@@ -27,7 +37,7 @@ public class AzureBlobContainerClient(BlobContainerClient blobContainerClient) :
     
     public async Task DeleteFileAsync(string fileName)
     {
-        var blob = blobContainerClient.GetBlobClient(fileName);
+        var blob = _blobContainerClient.GetBlobClient(fileName);
         await blob.DeleteIfExistsAsync();
     }
 }
