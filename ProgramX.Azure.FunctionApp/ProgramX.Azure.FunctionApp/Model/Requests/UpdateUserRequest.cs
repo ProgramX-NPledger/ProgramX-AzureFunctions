@@ -29,7 +29,7 @@ public class UpdateUserRequest
     public string theme { get; set; }
     
 
-    [JsonPropertyName("roles")] public IEnumerable<Role> roles { get; set; } = [];
+    [JsonPropertyName("roles")] public IEnumerable<string> roles { get; set; } = [];
 
     public string? passwordConfirmationNonce { get; set; }
     

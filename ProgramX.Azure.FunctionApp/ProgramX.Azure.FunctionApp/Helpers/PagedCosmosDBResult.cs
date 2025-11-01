@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace ProgramX.Azure.FunctionApp.Helpers;
 
+[Obsolete("Use CosmosResult instead")]
 public class PagedCosmosDbResult<T>
 {
     public IEnumerable<T> Items { get; private set; }

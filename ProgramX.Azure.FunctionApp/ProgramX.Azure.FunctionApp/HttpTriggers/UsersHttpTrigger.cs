@@ -26,6 +26,8 @@ using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
+using ProgramX.Azure.FunctionApp.Model.Constants;
+using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using SixLabors.ImageSharp;
@@ -43,6 +45,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     private readonly BlobServiceClient _blobServiceClient;
     private readonly IRolesProvider _rolesProvider;
     private readonly IEmailSender _emailSender;
+    private readonly IUserRepository _userRepository;
     private readonly Container _container;
 
  
@@ -51,7 +54,8 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         BlobServiceClient blobServiceClient,
         IConfiguration configuration,
         IRolesProvider rolesProvider,
-        IEmailSender emailSender ) : base(configuration)
+        IEmailSender emailSender,
+        IUserRepository userRepository) : base(configuration)
     {
         if (configuration==null) throw new ArgumentNullException(nameof(configuration));
         
@@ -60,6 +64,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         _blobServiceClient = blobServiceClient ?? throw new ArgumentNullException(nameof(blobServiceClient));
         _rolesProvider = rolesProvider;
         _emailSender = emailSender;
+        _userRepository = userRepository;
 
         _container = _cosmosClient.GetContainer("core", "users");
     }
@@ -81,36 +86,51 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 var hasAccessToApplications = httpRequestData.Query["hasAccessToApplications"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["hasAccessToApplications"]).Split(new [] {','});
 
                 var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]);
-                var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]);
-                var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]);
+                var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ??
+                             0;
+                var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
                 
-                var pagedCosmosDbUsersResults=await GetPagedMultipleItemsAsync(containsText,withRoles, hasAccessToApplications, sortByColumn ?? "c.userName",offset,itemsPerPage);
+                var users = await _userRepository.GetUsersAsync(new GetUsersCriteria()
+                {
+                    HasAccessToApplications = hasAccessToApplications,
+                    WithRoles = withRoles,
+                    ContainingText = containsText
+                }, new PagedCriteria()
+                {
+                    ItemsPerPage = itemsPerPage,
+                    Offset = offset
+                });
+                
                 var baseUrl =
                     $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
-                var pageUrls = CalculatePageUrls(pagedCosmosDbUsersResults,
+                
+                var pageUrls = CalculatePageUrls((IPagedResult<SecureUser>)users,
                     baseUrl,
                     containsText,
                     withRoles,
                     hasAccessToApplications,
                     continuationToken, 
-                    offset ?? 0,
-                    itemsPerPage ?? DataConstants.ItemsPerPage);
+                    offset,
+                    itemsPerPage);
                 
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<SecureUser>(pagedCosmosDbUsersResults,pageUrls));
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<SecureUser>((IPagedResult<SecureUser>)users,pageUrls));
             }
             else
             {
-                var user = await GetSingleItemAsync(id);
-                if (user == null)
+                var users = await _userRepository.GetUsersAsync(new GetUsersCriteria()
+                {
+                    Id = id
+                });
+                if (!users.Items.Any())
                 {
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
                 }
                 
-                List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
+                List<Application> applications = users.Items.Single().roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
                 {
-                    user,
+                    user = users.Items.Single(),
                     applications,
                     profilePhotoBase64 = string.Empty
                 });
@@ -119,33 +139,21 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     }
     
     
-    private async  Task<User?> GetSingleItemAsync(string name)
-    {
-        QueryDefinition queryDefinition = BuildQueryDefinition(name,null,null,null);
-        
-        var usersCosmosDbReader = new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-        PagedCosmosDbResult<User> pagedCosmosDbResult;
-        pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,"c.id");
-        
-        return pagedCosmosDbResult.Items.FirstOrDefault();
-    }
-
     
     
-    private IEnumerable<UrlAccessiblePage> CalculatePageUrls(PagedCosmosDbResult<SecureUser> pagedCosmosDbRolesResults, 
+    private IEnumerable<UrlAccessiblePage> CalculatePageUrls(IPagedResult<SecureUser> pagedResults, 
         string baseUrl, 
         string? containsText, 
         IEnumerable<string>? withRoles, 
         IEnumerable<string>? hasAccessToApplications, 
         string? continuationToken,
         int offset=0, 
-        int itemsPerPage=DataConstants.ItemsPerPage)
+        int itemsPerPage=PagingConstants.ItemsPerPage)
     {
-        var totalPages = (int)Math.Ceiling((double)pagedCosmosDbRolesResults.TotalItems / itemsPerPage);
         var currentPageNumber = offset==0 ? 1 : (int)Math.Ceiling((offset+1.0) / itemsPerPage);
         
         List<UrlAccessiblePage> pageUrls = new List<UrlAccessiblePage>();
-        for (var pageNumber = 1; pageNumber <= totalPages; pageNumber++)
+        for (var pageNumber = 1; pageNumber <= pagedResults.NumberOfPages; pageNumber++)
         {
             pageUrls.Add(new UrlAccessiblePage()
             {
@@ -157,21 +165,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         return pageUrls;
     }
     
-    
-    private async Task<PagedCosmosDbResult<SecureUser>> GetPagedMultipleItemsAsync(string? containsText,
-        string[]? withRoles,
-        string[]? hasAccessToApplications,
-        string sortByColumn,
-        int? offset = 0,
-        int? itemsPerPage = DataConstants.ItemsPerPage)
-    {
-        QueryDefinition queryDefinition = BuildQueryDefinition(null, containsText, withRoles, hasAccessToApplications);
-        
-        var usersCosmosDbReader = new PagedCosmosDbReader<SecureUser>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-        PagedCosmosDbResult<SecureUser> pagedCosmosDbResult = await usersCosmosDbReader.GetPagedItemsAsync(queryDefinition,sortByColumn,offset,itemsPerPage);
-        
-        return pagedCosmosDbResult;
-    }
     
     
     private string BuildPageUrl(string baseUrl, string? containsText, IEnumerable<string>? withRoles, IEnumerable<string>? hasAccessToApplications, string continuationToken, int? offset, int? itemsPerPage)
@@ -224,72 +217,72 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
 
     
-
-    private QueryDefinition BuildQueryDefinition(string? id, string? containsText, IEnumerable<string>? withRoles, IEnumerable<string>? hasAccessToApplications)
-    {
-        var sb = new StringBuilder("SELECT c.id, c.userName, c.emailAddress, c.roles,c.type,c.versionNumber,c.firstName,c.lastName,c.profilePhotographSmall,c.profilePhotographOriginal,c.theme,c.createdAt,c.updatedAt,c.lastLoginAt,c.lastPasswordChangeAt FROM c WHERE 1=1");
-        var parameters = new List<(string name, object value)>();
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            if (!string.IsNullOrWhiteSpace(containsText))
-            {
-                sb.Append(@" AND (
-                                CONTAINS(UPPER(c.userName), @containsText) OR 
-                                CONTAINS(UPPER(c.emailAddress), @containsText) OR 
-                                CONTAINS(UPPER(c.firstName), @containsText) OR 
-                                CONTAINS(UPPER(c.lastName), @containsText)
-                                )");
-                parameters.Add(("@containsText", containsText.ToUpperInvariant()));
-            }
-
-            if (withRoles != null && withRoles.Any())
-            {
-                var conditions = new List<string>();
-                var rolesList = withRoles.ToList();
-            
-                for (int i = 0; i < rolesList.Count; i++)
-                {
-                    conditions.Add($"EXISTS(SELECT VALUE r FROM r IN c.roles WHERE r.name = @role{i})");
-                    parameters.Add(($"@role{i}", rolesList[i]));
-                }
-            
-                sb.Append($" AND ({string.Join(" OR ", conditions)})");
-            }
-
-            if (hasAccessToApplications != null && hasAccessToApplications.Any())
-            {
-                var conditions = new List<string>();
-                var applicationsList = hasAccessToApplications.ToList();
-            
-                for (int i = 0; i < applicationsList.Count; i++)
-                {
-                    conditions.Add(@$"EXISTS(SELECT VALUE r FROM r IN c.roles JOIN a IN r.applications WHERE a.name = @appname{i})");
-                    parameters.Add(($"@appname{i}", applicationsList[i]));
-                }
-            
-                sb.Append($" AND ({string.Join(" OR ", conditions)})");
-
-
-            }
-            
-            //sb.Append(" ORDER BY c.userName");
-            
-
-        }
-        else
-        {
-            sb.Append(" AND (c.id=@id OR c.userName=@id)");
-            parameters.Add(("@id", id));
-        }
-
-        var queryDefinition = new QueryDefinition(sb.ToString());
-        foreach (var param in parameters)
-        {
-            queryDefinition.WithParameter(param.name, param.value);
-        }
-        return queryDefinition;
-        
-    }
+    //
+    // private QueryDefinition BuildQueryDefinition(string? id, string? containsText, IEnumerable<string>? withRoles, IEnumerable<string>? hasAccessToApplications)
+    // {
+    //     var sb = new StringBuilder("SELECT c.id, c.userName, c.emailAddress, c.roles,c.type,c.versionNumber,c.firstName,c.lastName,c.profilePhotographSmall,c.profilePhotographOriginal,c.theme,c.createdAt,c.updatedAt,c.lastLoginAt,c.lastPasswordChangeAt FROM c WHERE 1=1");
+    //     var parameters = new List<(string name, object value)>();
+    //     if (string.IsNullOrWhiteSpace(id))
+    //     {
+    //         if (!string.IsNullOrWhiteSpace(containsText))
+    //         {
+    //             sb.Append(@" AND (
+    //                             CONTAINS(UPPER(c.userName), @containsText) OR 
+    //                             CONTAINS(UPPER(c.emailAddress), @containsText) OR 
+    //                             CONTAINS(UPPER(c.firstName), @containsText) OR 
+    //                             CONTAINS(UPPER(c.lastName), @containsText)
+    //                             )");
+    //             parameters.Add(("@containsText", containsText.ToUpperInvariant()));
+    //         }
+    //
+    //         if (withRoles != null && withRoles.Any())
+    //         {
+    //             var conditions = new List<string>();
+    //             var rolesList = withRoles.ToList();
+    //         
+    //             for (int i = 0; i < rolesList.Count; i++)
+    //             {
+    //                 conditions.Add($"EXISTS(SELECT VALUE r FROM r IN c.roles WHERE r.name = @role{i})");
+    //                 parameters.Add(($"@role{i}", rolesList[i]));
+    //             }
+    //         
+    //             sb.Append($" AND ({string.Join(" OR ", conditions)})");
+    //         }
+    //
+    //         if (hasAccessToApplications != null && hasAccessToApplications.Any())
+    //         {
+    //             var conditions = new List<string>();
+    //             var applicationsList = hasAccessToApplications.ToList();
+    //         
+    //             for (int i = 0; i < applicationsList.Count; i++)
+    //             {
+    //                 conditions.Add(@$"EXISTS(SELECT VALUE r FROM r IN c.roles JOIN a IN r.applications WHERE a.name = @appname{i})");
+    //                 parameters.Add(($"@appname{i}", applicationsList[i]));
+    //             }
+    //         
+    //             sb.Append($" AND ({string.Join(" OR ", conditions)})");
+    //
+    //
+    //         }
+    //         
+    //         //sb.Append(" ORDER BY c.userName");
+    //         
+    //
+    //     }
+    //     else
+    //     {
+    //         sb.Append(" AND (c.id=@id OR c.userName=@id)");
+    //         parameters.Add(("@id", id));
+    //     }
+    //
+    //     var queryDefinition = new QueryDefinition(sb.ToString());
+    //     foreach (var param in parameters)
+    //     {
+    //         queryDefinition.WithParameter(param.name, param.value);
+    //     }
+    //     return queryDefinition;
+    //     
+    // }
     
     
     [Function(nameof(DeleteUser))]
@@ -392,7 +385,8 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             
             if (updateUserRequest.updateRolesScope)
             {
-                originalUser.roles=updateUserRequest.roles;
+                var roles=await _userRepository.GetRolesAsync(new GetRolesCriteria());
+                originalUser.roles = roles.Items.Where(q => updateUserRequest.roles.Contains(q.name)).OrderBy(q => q.name).ToList();
             }
 
             if (updateUserRequest.updateProfilePictureScope)

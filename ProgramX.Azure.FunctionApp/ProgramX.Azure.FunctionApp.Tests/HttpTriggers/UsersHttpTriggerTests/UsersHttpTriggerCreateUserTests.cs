@@ -1,11 +1,8 @@
-using System.Collections.Specialized;
 using System.Net;
-using System.Text;
 using FluentAssertions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker.Http;
 using Moq;
-using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Requests;

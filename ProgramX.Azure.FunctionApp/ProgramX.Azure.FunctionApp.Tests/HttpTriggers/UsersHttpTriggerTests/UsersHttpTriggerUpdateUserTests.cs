@@ -520,9 +520,9 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var updateUser = new UpdateUserRequest()
         {
             updateRolesScope = true,
-            roles = new List<Role>()
+            roles = new List<string>()
             {
-                expectedRole
+                expectedRole.name
             },
             userName = userId
         };

@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
+using ProgramX.Azure.FunctionApp.Model.Constants;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 
@@ -62,7 +63,7 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
                     withinRoles,
                     continuationToken, 
                     offset ?? 0,
-                    itemsPerPage ?? DataConstants.ItemsPerPage);
+                    itemsPerPage ?? PagingConstants.ItemsPerPage);
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Application>(pagedCosmosDbApplicationsResults,pageUrls));
             }
@@ -104,7 +105,7 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
         IEnumerable<string>? withinRoles, 
         string? continuationToken,
         int offset=0, 
-        int itemsPerPage=DataConstants.ItemsPerPage)
+        int itemsPerPage=PagingConstants.ItemsPerPage)
     {
         var totalPages = (int)Math.Ceiling((double)pagedCosmosDbApplicationsResults.TotalItems / itemsPerPage);
         var currentPageNumber = offset==0 ? 1 : (int)Math.Ceiling((double)offset / itemsPerPage);
@@ -126,7 +127,7 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
     private async Task<PagedCosmosDbResult<Application>> GetPagedMultipleItemsAsync(string? containsText,
         string[]? withinRoles,
         int? offset = 0,
-        int? itemsPerPage = DataConstants.ItemsPerPage)
+        int? itemsPerPage = PagingConstants.ItemsPerPage)
     {
         QueryDefinition queryDefinition = BuildQueryDefinition(null, containsText, withinRoles);
         

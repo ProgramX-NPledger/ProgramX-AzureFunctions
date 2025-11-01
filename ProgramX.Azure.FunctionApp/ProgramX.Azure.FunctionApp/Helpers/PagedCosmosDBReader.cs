@@ -4,6 +4,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Constants;
+using ProgramX.Azure.FunctionApp.Model.Constants;
 
 namespace ProgramX.Azure.FunctionApp.Helpers;
 
@@ -11,6 +12,7 @@ namespace ProgramX.Azure.FunctionApp.Helpers;
 /// Provides paging query functionality for CosmosDB.
 /// </summary>
 /// <typeparam name="T">Type of model to query.</typeparam>
+[Obsolete("Use CosmosPagedReader instead",false)]
 public class PagedCosmosDbReader<T> : IPagedReader<T>
 {
     private readonly CosmosClient _client;
@@ -26,7 +28,10 @@ public class PagedCosmosDbReader<T> : IPagedReader<T>
     /// <param name="databaseName">Name of the database. The database will be created if it doesn't already exist.</param>
     /// <param name="containerName">Name of the container. The container will be created if it doesn't already exist.</param>
     /// <param name="partitionKeyPath">Partition Key path used by CosmosDB for indexing.</param>
-    public PagedCosmosDbReader(CosmosClient client, string databaseName, string containerName, string partitionKeyPath)
+    public PagedCosmosDbReader(CosmosClient client, 
+        string databaseName, 
+        string containerName, 
+        string partitionKeyPath)
     {
         _client = client;
         _databaseName = databaseName;
@@ -36,6 +41,26 @@ public class PagedCosmosDbReader<T> : IPagedReader<T>
         _logger = new LoggerFactory().CreateLogger<PagedCosmosDbReader<T>>();
     }
 
+    /// <summary>
+    /// Get the Client used by the reader.
+    /// </summary>
+    protected CosmosClient Client => _client;
+    
+    /// <summary>
+    /// Get the Database Name used by the reader.   
+    /// </summary>
+    protected string DatabaseName => _databaseName;
+    
+    /// <summary>
+    /// Get the Container Name used by the reader.  
+    /// </summary>
+    protected string ContainerName => _containerName;
+    
+    /// <summary>
+    /// Get the Partition Key Path used by the reader. 
+    /// </summary>
+    protected string PartitionKeyPath => _partitionKeyPath;
+    
     /// <summary>
     /// Returns a paged, strongly typed result from CosmosDB using Continuation Tokens for forward-only efficiency.
     /// </summary>
@@ -109,7 +134,7 @@ public class PagedCosmosDbReader<T> : IPagedReader<T>
     public async Task<PagedCosmosDbResult<T>> GetPagedItemsAsync(QueryDefinition queryDefinition,
         string? orderByField,
         int? offset=0,
-        int? itemsPerPage = DataConstants.ItemsPerPage)
+        int? itemsPerPage = PagingConstants.ItemsPerPage)
     {
         Stopwatch stopwatch = new Stopwatch();
         stopwatch.Start();
@@ -120,7 +145,7 @@ public class PagedCosmosDbReader<T> : IPagedReader<T>
         var pagedQueryDefinition = BuildPagedQueryDefinition(queryDefinition,
             orderByField,
             offset ?? 0,
-            itemsPerPage ?? DataConstants.ItemsPerPage);
+            itemsPerPage ?? PagingConstants.ItemsPerPage);
         
         double requestCharge;
         using (var feedIterator = containerResponse.Container.GetItemQueryIterator<T>(pagedQueryDefinition, null,

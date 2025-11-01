@@ -1,5 +1,6 @@
 using Microsoft.Azure.Cosmos;
 using ProgramX.Azure.FunctionApp.Constants;
+using ProgramX.Azure.FunctionApp.Model.Constants;
 
 namespace ProgramX.Azure.FunctionApp.Helpers;
 
@@ -29,5 +30,5 @@ public interface IPagedReader<T>
     Task<PagedCosmosDbResult<T>> GetPagedItemsAsync(QueryDefinition queryDefinition,
         string? orderByField,
         int? offset=0,
-        int? itemsPerPage = DataConstants.ItemsPerPage);
+        int? itemsPerPage = PagingConstants.ItemsPerPage);
 }

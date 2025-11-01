@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.HttpTriggers;
+using ProgramX.Azure.FunctionApp.Tests.Mocks;
 
 namespace ProgramX.Azure.FunctionApp.Tests.TestData;
 
@@ -75,12 +76,16 @@ public class UsersHttpTriggerBuilder
             throw new InvalidOperationException("All dependencies must be set before building");
         }
 
+        RepositoryFactory repositoryFactory = new RepositoryFactory();
+        var mockedUserRepository = repositoryFactory.CreateUserRepository();
+
         return new UsersHttpTrigger(
             _mockLogger.Object,
             _mockCosmosClient.Object,
             _mockBlobServiceClient.Object,
             _configuration,
             _rolesProvider!,
-            _emailSender!);
+            _emailSender!,
+            mockedUserRepository.Object);
     }
 }
