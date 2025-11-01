@@ -1,22 +1,7 @@
-using System.Net;
 using System.Security.Cryptography;
-using System.Security.Policy;
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
 using System.Text.RegularExpressions;
-using Azure;
-using Azure.Communication.Email;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
-using JWT;
-using JWT.Algorithms;
-using JWT.Serializers;
-using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
@@ -41,32 +26,26 @@ namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 {
     private readonly ILogger<UsersHttpTrigger> _logger;
-    private readonly CosmosClient _cosmosClient;
-    private readonly BlobServiceClient _blobServiceClient;
+    private readonly IStorageClient _storageClient;
     private readonly IRolesProvider _rolesProvider;
     private readonly IEmailSender _emailSender;
     private readonly IUserRepository _userRepository;
-    private readonly Container _container;
 
  
     public UsersHttpTrigger(ILogger<UsersHttpTrigger> logger,
-        CosmosClient cosmosClient,
-        BlobServiceClient blobServiceClient,
+        IStorageClient storageClient,
         IConfiguration configuration,
-        IRolesProvider rolesProvider,
+        IRolesProvider rolesProvider, // TODO: is this still needed?
         IEmailSender emailSender,
         IUserRepository userRepository) : base(configuration)
     {
         if (configuration==null) throw new ArgumentNullException(nameof(configuration));
         
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cosmosClient = cosmosClient ?? throw new ArgumentNullException(nameof(cosmosClient));
-        _blobServiceClient = blobServiceClient ?? throw new ArgumentNullException(nameof(blobServiceClient));
+        _storageClient = storageClient;
         _rolesProvider = rolesProvider;
         _emailSender = emailSender;
         _userRepository = userRepository;
-
-        _container = _cosmosClient.GetContainer("core", "users");
     }
 
 
@@ -215,74 +194,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     }
     
     
-
-    
-    //
-    // private QueryDefinition BuildQueryDefinition(string? id, string? containsText, IEnumerable<string>? withRoles, IEnumerable<string>? hasAccessToApplications)
-    // {
-    //     var sb = new StringBuilder("SELECT c.id, c.userName, c.emailAddress, c.roles,c.type,c.versionNumber,c.firstName,c.lastName,c.profilePhotographSmall,c.profilePhotographOriginal,c.theme,c.createdAt,c.updatedAt,c.lastLoginAt,c.lastPasswordChangeAt FROM c WHERE 1=1");
-    //     var parameters = new List<(string name, object value)>();
-    //     if (string.IsNullOrWhiteSpace(id))
-    //     {
-    //         if (!string.IsNullOrWhiteSpace(containsText))
-    //         {
-    //             sb.Append(@" AND (
-    //                             CONTAINS(UPPER(c.userName), @containsText) OR 
-    //                             CONTAINS(UPPER(c.emailAddress), @containsText) OR 
-    //                             CONTAINS(UPPER(c.firstName), @containsText) OR 
-    //                             CONTAINS(UPPER(c.lastName), @containsText)
-    //                             )");
-    //             parameters.Add(("@containsText", containsText.ToUpperInvariant()));
-    //         }
-    //
-    //         if (withRoles != null && withRoles.Any())
-    //         {
-    //             var conditions = new List<string>();
-    //             var rolesList = withRoles.ToList();
-    //         
-    //             for (int i = 0; i < rolesList.Count; i++)
-    //             {
-    //                 conditions.Add($"EXISTS(SELECT VALUE r FROM r IN c.roles WHERE r.name = @role{i})");
-    //                 parameters.Add(($"@role{i}", rolesList[i]));
-    //             }
-    //         
-    //             sb.Append($" AND ({string.Join(" OR ", conditions)})");
-    //         }
-    //
-    //         if (hasAccessToApplications != null && hasAccessToApplications.Any())
-    //         {
-    //             var conditions = new List<string>();
-    //             var applicationsList = hasAccessToApplications.ToList();
-    //         
-    //             for (int i = 0; i < applicationsList.Count; i++)
-    //             {
-    //                 conditions.Add(@$"EXISTS(SELECT VALUE r FROM r IN c.roles JOIN a IN r.applications WHERE a.name = @appname{i})");
-    //                 parameters.Add(($"@appname{i}", applicationsList[i]));
-    //             }
-    //         
-    //             sb.Append($" AND ({string.Join(" OR ", conditions)})");
-    //
-    //
-    //         }
-    //         
-    //         //sb.Append(" ORDER BY c.userName");
-    //         
-    //
-    //     }
-    //     else
-    //     {
-    //         sb.Append(" AND (c.id=@id OR c.userName=@id)");
-    //         parameters.Add(("@id", id));
-    //     }
-    //
-    //     var queryDefinition = new QueryDefinition(sb.ToString());
-    //     foreach (var param in parameters)
-    //     {
-    //         queryDefinition.WithParameter(param.name, param.value);
-    //     }
-    //     return queryDefinition;
-    //     
-    // }
     
     
     [Function(nameof(DeleteUser))]
@@ -293,33 +204,10 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var pagedAndFilteredCosmosDbReader =
-                new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
-
-            QueryDefinition queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id=@id OR c.userName=@id");
-            queryDefinition.WithParameter("@id", id);
-            var users = await pagedAndFilteredCosmosDbReader.GetNextItemsAsync(queryDefinition);
-            var originalUser = users.Items.FirstOrDefault();
-            if (originalUser == null)
-            {
-                return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-            }
-
-            try
-            {
-                var response = await _container.DeleteItemAsync<User>(originalUser.id, new PartitionKey(id));
-
-                if (response.StatusCode == HttpStatusCode.NoContent)
-                {
-                    return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
-                }
-            }
-            catch (CosmosException e)
-            {
-                return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Error deleting user");
-            }
-        
-            return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to delete user");
+            var user = await _userRepository.GetUserByIdAsync(id);
+            if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+            await _userRepository.DeleteUserByIdAsync(id);
+            return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
         });
     }
     
@@ -339,74 +227,60 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            // get the User to get the password hash
-            var pagedAndFilteredCosmosDbReader =
-                new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
-
-            QueryDefinition queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id=@id OR c.userName=@id");
-            queryDefinition.WithParameter("@id", id);
-            var users = await pagedAndFilteredCosmosDbReader.GetNextItemsAsync(queryDefinition);
-            var originalUser = users.Items.FirstOrDefault();
-            if (originalUser == null)
-            {
-                return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-            }
+            var user = await _userRepository.GetInsecureUserByIdAsync(id);
+            if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
             
             if (updateUserRequest.updateProfileScope)
             {
-                if (originalUser.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
+                if (user.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
                 if (!IsValidEmail(updateUserRequest.emailAddress!)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid email address");
                 
-                originalUser.emailAddress=updateUserRequest.emailAddress!;
-                originalUser.firstName=updateUserRequest.firstName!;
-                originalUser.lastName=updateUserRequest.lastName!;
+                user.emailAddress=updateUserRequest.emailAddress!;
+                user.firstName=updateUserRequest.firstName!;
+                user.lastName=updateUserRequest.lastName!;
             }
 
             if (updateUserRequest.updateSettingsScope)
             {
-                originalUser.theme = updateUserRequest.theme;
-                originalUser.versionNumber = originalUser.versionNumber >= 3 ? originalUser.versionNumber : 3; 
+                user.theme = updateUserRequest.theme;
+                user.schemaVersionNumber = user.schemaVersionNumber >= 3 ? user.schemaVersionNumber : 3; 
             }
 
             if (updateUserRequest.updatePasswordScope)
             {
                 if (string.IsNullOrWhiteSpace(updateUserRequest.newPassword)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password cannot be empty");
-                if (originalUser.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect username");
-                if (!string.IsNullOrEmpty(originalUser.passwordConfirmationNonce) && originalUser.passwordConfirmationNonce!=updateUserRequest.passwordConfirmationNonce) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect password confirmation nonce");
-                if (originalUser.passwordLinkExpiresAt.HasValue && originalUser.passwordLinkExpiresAt.Value < DateTime.UtcNow) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password confirmation link has expired");
+                if (user.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect username");
+                if (!string.IsNullOrEmpty(user.passwordConfirmationNonce) && user.passwordConfirmationNonce!=updateUserRequest.passwordConfirmationNonce) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect password confirmation nonce");
+                if (user.passwordLinkExpiresAt.HasValue && user.passwordLinkExpiresAt.Value < DateTime.UtcNow) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password confirmation link has expired");
+                // TODO: verify password
                 
-                using var hmac = new HMACSHA512(originalUser.passwordSalt);
+                using var hmac = new HMACSHA512(user.passwordSalt);
                 var passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(updateUserRequest.newPassword));
-                originalUser.passwordHash = passwordHash;
-                originalUser.passwordSalt = hmac.Key;
-                originalUser.passwordConfirmationNonce = null;
-                originalUser.passwordLinkExpiresAt = null;
+                user.passwordHash = passwordHash;
+                user.passwordSalt = hmac.Key;
+                user.passwordConfirmationNonce = null;
+                user.passwordLinkExpiresAt = null;
             }
             
             if (updateUserRequest.updateRolesScope)
             {
                 var roles=await _userRepository.GetRolesAsync(new GetRolesCriteria());
-                originalUser.roles = roles.Items.Where(q => updateUserRequest.roles.Contains(q.name)).OrderBy(q => q.name).ToList();
+                user.roles = roles.Items.Where(q => updateUserRequest.roles.Contains(q.name)).OrderBy(q => q.name).ToList();
             }
 
             if (updateUserRequest.updateProfilePictureScope)
             {
                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect endpoint, use /user/{id}/photo instead");
             }
-            
-            var response = await _container.ReplaceItemAsync(originalUser, originalUser.id, new PartitionKey(updateUserRequest.userName));
 
-            if (response.StatusCode == HttpStatusCode.OK)
+            await _userRepository.UpdateUserAsync(user);
+
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserResponse()
             {
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserResponse()
-                {
-                    Username = originalUser.userName,
-                    ErrorMessage = null,
-                    IsOk = true
-                });
-            }
-        
-            return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to update user");
+                Username = user.userName,
+                ErrorMessage = null,
+                IsOk = true
+            });
         },isChangePasswordRequest);
     }
     
@@ -437,20 +311,10 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing multipart boundary.");
             }
 
-            var pagedAndFilteredCosmosDbReader =
-                new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
+            var user = await _userRepository.GetUserByIdAsync(id);
+            if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
 
-            QueryDefinition queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id=@id OR c.userName=@id");
-            queryDefinition.WithParameter("@id", id);
-            var users = await pagedAndFilteredCosmosDbReader.GetNextItemsAsync(queryDefinition);
-            var originalUser = users.Items.FirstOrDefault();
-            if (originalUser == null)
-            {
-                return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-            }
-            
-            var avatarImagesBlockContainerClient = _blobServiceClient.GetBlobContainerClient(BlobConstants.AvatarImagesBlobName);
-            await avatarImagesBlockContainerClient.CreateIfNotExistsAsync(PublicAccessType.None);
+            var storageFolder = await _storageClient.GetStorageFolderAsync(BlobConstants.AvatarImagesBlobName);
 
             httpRequestData.Body.Position = 0;
             var multipartReader = new MultipartReader(boundary, httpRequestData.Body);
@@ -463,6 +327,8 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             {
                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing multipart section.");
             }
+
+            string thumbnailImageUri=string.Empty;
             while (multipartSection != null)
             {
                 if (ContentDispositionHeaderValue.TryParse(multipartSection.ContentDisposition, out var contentDisp)
@@ -481,7 +347,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     
                     using var originalImageStream = new MemoryStream(rawData);
                     
-                    await UploadBlob(avatarImagesBlockContainerClient, multipartSection,  originalImageStream,$"{usernameMakingTheChange}/{originalBlobName}");
+                    await storageFolder.SaveFileAsync($"{usernameMakingTheChange}/{originalBlobName}", originalImageStream, multipartSection.ContentType ?? "application/octet-stream");;
 
                     // having moved the cursor to the end of the stream, it is reset
                     originalImageStream.Position = 0;
@@ -493,17 +359,13 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     var resizedImageStream = new MemoryStream(resizedImage);
                     
                     // upload to blob storage
-                    await UploadBlob(avatarImagesBlockContainerClient, multipartSection, resizedImageStream, $"{usernameMakingTheChange}/{avatarSizedBlobName}");
-                    
+                    thumbnailImageUri = await storageFolder.SaveFileAsync($"{usernameMakingTheChange}/{avatarSizedBlobName}", resizedImageStream, multipartSection.ContentType ?? "application/octet-stream");;
+
                     // update record in DB
-                    originalUser.profilePhotographSmall = avatarSizedBlobName;
-                    originalUser.profilePhotographOriginal = originalBlobName;
-                    originalUser.versionNumber = originalUser.versionNumber > 2 ? originalUser.versionNumber : 2; // increment version number
-                    var response = await _container.ReplaceItemAsync(originalUser, originalUser.id, new PartitionKey(originalUser.userName));
-                    if (response.StatusCode != HttpStatusCode.OK)
-                    {
-                        return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to update user");
-                    }
+                    user.profilePhotographSmall = avatarSizedBlobName;
+                    user.profilePhotographOriginal = originalBlobName;
+                    user.schemaVersionNumber = user.schemaVersionNumber > 2 ? user.schemaVersionNumber : 2; // increment version number
+                    await _userRepository.UpdateUserAsync(user);
                 }
                 // else: handle form fields if needed (e.g., section.AsFormData())
 
@@ -512,7 +374,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateProfilePhotoResponse()
             {
-                photoUrl = $"{avatarImagesBlockContainerClient.Uri}/{usernameMakingTheChange}/{originalUser.profilePhotographSmall}",
+                photoUrl = thumbnailImageUri,
                 errorMessage = null,
                 isOk = true,
                 bytesTransferred = 0,
@@ -561,20 +423,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         return outStream.ToArray();
     }
 
-    
-
-    private async Task UploadBlob(BlobContainerClient avatarImagesBlockContainerClient, MultipartSection multipartSection, Stream data, string fileName)
-    {
-        var blob = avatarImagesBlockContainerClient.GetBlobClient(fileName);
-        var headers = new BlobHttpHeaders
-        {
-            ContentType = multipartSection.ContentType ?? "application/octet-stream"
-        };
-
-        // Stream directly to Blob Storage (no buffering in memory)
-        await blob.UploadAsync(data, new BlobUploadOptions { HttpHeaders = headers });
-    }
-
     private bool IsValidEmail(string email)
     {
         return Regex.IsMatch(
@@ -594,33 +442,20 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var pagedAndFilteredCosmosDbReader =
-                new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName,DataConstants.UserNamePartitionKeyPath);
+            var user = await _userRepository.GetUserByIdAsync(id);
+            if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
 
-            QueryDefinition queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id=@id OR c.userName=@id");
-            queryDefinition.WithParameter("@id", id);
-            var users = await pagedAndFilteredCosmosDbReader.GetNextItemsAsync(queryDefinition);
-            var originalUser = users.Items.FirstOrDefault();
-            if (originalUser == null)
-            {
-                return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-            }
-
-            // delete files if they already exist
-            var avatarImagesBlockContainerClient = _blobServiceClient.GetBlobContainerClient(BlobConstants.AvatarImagesBlobName);
-            await avatarImagesBlockContainerClient.DeleteBlobIfExistsAsync($"{usernameMakingTheChange}/{originalUser.profilePhotographOriginal}");
-            await avatarImagesBlockContainerClient.DeleteBlobIfExistsAsync($"{usernameMakingTheChange}/{originalUser.profilePhotographSmall}");
+            var storageFolder = await _storageClient.GetStorageFolderAsync(BlobConstants.AvatarImagesBlobName);
+            
+            await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.profilePhotographOriginal}");
+            await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.profilePhotographSmall}");
             
             // update record in DB
-            originalUser.profilePhotographSmall = null;
-            originalUser.profilePhotographOriginal = null;
+            user.profilePhotographSmall = null;
+            user.profilePhotographOriginal = null;
             
-            originalUser.versionNumber = originalUser.versionNumber > 2 ? originalUser.versionNumber : 2; // increment version number
-            var response = await _container.ReplaceItemAsync(originalUser, originalUser.id, new PartitionKey(originalUser.userName));
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to update user");
-            }
+            user.schemaVersionNumber = user.schemaVersionNumber > 2 ? user.schemaVersionNumber : 2; // increment version number
+            await _userRepository.UpdateUserAsync(user);
             
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
             {
@@ -655,7 +490,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 roles = allRoles.Where(q=>createUserRequest.addToRoles.Contains(q.name)),
                 passwordHash = [],
                 passwordSalt = [],
-                versionNumber = 5,
+                schemaVersionNumber = 5,
                 createdAt = DateTime.UtcNow,
                 updatedAt = DateTime.UtcNow,
                 theme = "light",
@@ -677,22 +512,21 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 newUser.passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(createUserRequest.password));
                 newUser.passwordSalt = hmac.Key;
             }
-            var response = await _container.CreateItemAsync(newUser, new PartitionKey(newUser.userName));
 
-            if (response.StatusCode == HttpStatusCode.Created)
+            await _userRepository.CreateUserAsync(newUser);
+
+            // redact the password
+            newUser.passwordHash = new byte[0];
+            newUser.passwordSalt = new byte[0];
+
+            var emailMessage = new EmailMessage()
             {
-                // redact the password
-                newUser.passwordHash = new byte[0];
-                newUser.passwordSalt = new byte[0];
-
-                var emailMessage = new EmailMessage()
-                {
-                    To =
-                    [
-                        new EmailRecipient(createUserRequest.emailAddress, $"{createUserRequest.firstName} {createUserRequest.lastName}")
-                    ],
-                    From = new EmailRecipient("DoNotReply@5e4bfc81-f032-4b41-b32b-584d6f5510d0.azurecomm.net", "Support"), // must be a verified sender on your ACS domain
-                    PlainTextBody = @$"
+                To =
+                [
+                    new EmailRecipient(createUserRequest.emailAddress, $"{createUserRequest.firstName} {createUserRequest.lastName}")
+                ],
+                From = new EmailRecipient("DoNotReply@5e4bfc81-f032-4b41-b32b-584d6f5510d0.azurecomm.net", "Support"), // must be a verified sender on your ACS domain
+                PlainTextBody = @$"
 Hi,
 
 Please complete your programx.co.uk login by navigating to the following link:
@@ -701,27 +535,24 @@ Please complete your programx.co.uk login by navigating to the following link:
 This link is valid until {newUser.passwordLinkExpiresAt}.
 
 ",
-                    Subject = "Complete your programx.co.uk login",
-                    HtmlBody = @$"<h1>Please complete your programx.co.uk login</h1>
+                Subject = "Complete your programx.co.uk login",
+                HtmlBody = @$"<h1>Please complete your programx.co.uk login</h1>
 <p>Hi,</p>
 <p>Please complete your programx.co.uk login by navigating to the following link:<br />
 <a href=""{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.userName}&n={newUser.passwordConfirmationNonce}"">Complete login by entering your password</a></p>
 <p>This link is valid until {newUser.passwordLinkExpiresAt}.</p>"
-                };
-                
-                try
-                {
-                    await _emailSender.SendEmailAsync(emailMessage);
-                }
-                catch (InvalidOperationException invalidOperationException)
-                {
-                    return await HttpResponseDataFactory.CreateForServerError(httpRequestData, $"Failed to send email: {invalidOperationException.Message}");
-                }
-
-                return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newUser, "user", newUser.id);    
+            };
+            
+            try
+            {
+                await _emailSender.SendEmailAsync(emailMessage);
             }
-        
-            return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to create user");
+            catch (InvalidOperationException invalidOperationException)
+            {
+                return await HttpResponseDataFactory.CreateForServerError(httpRequestData, $"Failed to send email: {invalidOperationException.Message}");
+            }
+
+            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newUser, "user", newUser.id);    
         });
      }
     

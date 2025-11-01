@@ -4,6 +4,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
+using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.HttpTriggers;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
 using User = ProgramX.Azure.FunctionApp.Model.User;
@@ -19,7 +20,7 @@ public class UsersHttpTriggerCtorTests : TestBase
 {
     private UsersHttpTrigger _usersHttpTrigger = null!;
     private Mock<ILogger<UsersHttpTrigger>> _mockSpecificLogger = null!;
-    private Mock<BlobServiceClient> _mockBlobServiceClient = null!;
+    private Mock<IStorageClient> _mockStorageClient = null!;
     private Mock<HttpRequestData> _mockHttpRequestData = null!;
 
     [SetUp]
@@ -27,7 +28,7 @@ public class UsersHttpTriggerCtorTests : TestBase
     {
         base.SetUp();
         _mockSpecificLogger = new Mock<ILogger<UsersHttpTrigger>>();
-        _mockBlobServiceClient = new Mock<BlobServiceClient>();
+        _mockStorageClient = new Mock<IStorageClient>();
         _mockHttpRequestData = new Mock<HttpRequestData>();
         
         SetupCosmosDbReaderMocks();
@@ -37,8 +38,7 @@ public class UsersHttpTriggerCtorTests : TestBase
         
         _usersHttpTrigger = new UsersHttpTrigger(
             _mockSpecificLogger.Object,
-            MockCosmosClient.Object,
-            _mockBlobServiceClient.Object,
+            _mockStorageClient.Object,
             Configuration,
             null!,
             null!,
@@ -76,25 +76,7 @@ public class UsersHttpTriggerCtorTests : TestBase
         
         Assert.Throws<ArgumentNullException>(() => new UsersHttpTrigger(
             null!,
-            MockCosmosClient.Object,
-            _mockBlobServiceClient.Object,
-            Configuration,
-            null!,
-            null!,
-            mockedUserRepository.Object));
-    }
-
-    [Test]
-    public void Constructor_WithNullCosmosClient_ShouldThrowArgumentNullException()
-    {
-        // Arrange, Act & Assert
-        RepositoryFactory repositoryFactory = new RepositoryFactory();
-        var mockedUserRepository = repositoryFactory.CreateUserRepository();
-
-        Assert.Throws<ArgumentNullException>(() => new UsersHttpTrigger(
-            _mockSpecificLogger.Object,
-            null!,
-            _mockBlobServiceClient.Object,
+            _mockStorageClient.Object,
             Configuration,
             null!,
             null!,
@@ -110,7 +92,6 @@ public class UsersHttpTriggerCtorTests : TestBase
 
         Assert.Throws<ArgumentNullException>(() => new UsersHttpTrigger(
             _mockSpecificLogger.Object,
-            MockCosmosClient.Object,
             null!,
             Configuration,
             null!,
@@ -127,8 +108,7 @@ public class UsersHttpTriggerCtorTests : TestBase
         
         Assert.Throws<ArgumentNullException>(() => new UsersHttpTrigger(
             _mockSpecificLogger.Object,
-            MockCosmosClient.Object,
-            _mockBlobServiceClient.Object,
+            _mockStorageClient.Object,
             null!,
             null!,
             null!,

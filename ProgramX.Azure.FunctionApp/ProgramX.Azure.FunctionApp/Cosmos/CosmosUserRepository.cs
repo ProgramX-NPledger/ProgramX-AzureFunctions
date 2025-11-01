@@ -1,5 +1,7 @@
+using System.Net;
 using System.Text;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
@@ -9,7 +11,7 @@ using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Cosmos;
 
-public class UserRepository(CosmosClient cosmosClient) : IUserRepository
+public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserRepository> logger) : IUserRepository
 {
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">Thrown if required initialisation properties are <c>null</c>.</exception>
@@ -125,6 +127,89 @@ public class UserRepository(CosmosClient cosmosClient) : IUserRepository
         return users.GroupBy(q=>q.id)
             .Where(q=>q.First().roles.Select(q=>q.name).Contains(roleName))
             .SelectMany((g=>g.ToList()));
+    }
+
+    /// <inheritdoc />
+    public async Task<SecureUser?> GetUserByIdAsync(string id)
+    {
+        var users = await GetUsersAsync(new GetUsersCriteria()
+        {
+            Id = id,
+        });
+        return users.Items.SingleOrDefault();
+    }
+
+    /// <inheritdoc />
+    public async Task<SecureUser?> GetUserByUserNameAsync(string userName)
+    {
+        var users = await GetUsersAsync(new GetUsersCriteria()
+        {
+            UserName = userName
+        });
+        return users.Items.SingleOrDefault();
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteUserByIdAsync(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentNullException(nameof(id));
+        if (cosmosClient == null) throw new InvalidOperationException("CosmosDB client is not set");
+
+        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var response = await  container.DeleteItemAsync<User>(id, new PartitionKey(id));
+
+        if (response.StatusCode != HttpStatusCode.NoContent)
+        {
+            logger.LogError("Failed to delete user with id {id}",id,response.StatusCode,response);
+            throw new Exception("Failed to delete user");
+        }
+    }
+
+    public async Task<User?> GetInsecureUserByIdAsync(string id)
+    {
+        QueryDefinition queryDefinition = BuildQueryDefinitionForUsers(new GetUsersCriteria()
+        {
+            Id = id
+        });
+
+        CosmosReader<User> cosmosReader;
+        IResult<User> result;
+
+        cosmosReader = new CosmosReader<User>(cosmosClient, 
+                DataConstants.CoreDatabaseName, 
+                DataConstants.UsersContainerName, 
+                DataConstants.UserNamePartitionKeyPath);
+        result = await cosmosReader.GetItemsAsync(queryDefinition);
+        
+        return result.Items.SingleOrDefault();
+    }
+
+    public async Task UpdateUserAsync(SecureUser user)
+    {
+        if (cosmosClient == null) throw new InvalidOperationException("CosmosDB client is not set");
+
+        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            logger.LogError("Failed to update user with id {id}",user.id,response.StatusCode,response);
+            throw new Exception($"Failed to update user");
+        }
+    }
+
+    public async Task CreateUserAsync(User user)
+    {
+        if (cosmosClient == null) throw new InvalidOperationException("CosmosDB client is not set");
+
+        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var response = await container.CreateItemAsync(user, new PartitionKey(user.userName));
+
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            logger.LogError("Failed to create user",response.StatusCode,response);
+            throw new Exception($"Failed to create user");
+        }
     }
 
     private QueryDefinition BuildQueryDefinitionForApplications(GetApplicationsCriteria criteria)

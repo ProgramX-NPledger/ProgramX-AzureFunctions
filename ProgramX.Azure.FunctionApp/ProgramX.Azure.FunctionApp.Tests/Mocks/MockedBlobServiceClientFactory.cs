@@ -3,6 +3,7 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Moq;
+using ProgramX.Azure.FunctionApp.Contract;
 
 namespace ProgramX.Azure.FunctionApp.Tests.Mocks;
 
@@ -54,7 +55,7 @@ public class MockedBlobServiceClientFactory
     /// Creates the mock Blob Service client.
     /// </summary>
     /// <returns>A mocked Blob Service client.</returns>
-    public Mock<BlobServiceClient> Create()
+    public Mock<IStorageClient> Create()
     {
         var mockedBlobService = CreateDefaultMockClient();
         // if (ConfigureContainerFunc != null)
@@ -64,40 +65,11 @@ public class MockedBlobServiceClientFactory
         return mockedBlobService;
     }
 
-    private Mock<BlobServiceClient> CreateDefaultMockClient()
+    private Mock<IStorageClient> CreateDefaultMockClient()
     {
-        var mockBlobContainerInfo = new Mock<BlobContainerInfo>();
+        var mockStoageClient = new Mock<IStorageClient>();
+        return mockStoageClient;
         
-        var mockCreateIfNotExistsAsyncResponse = new Mock<Response<BlobContainerInfo>>();
-        mockCreateIfNotExistsAsyncResponse.Setup(x=>x.Value).Returns(mockBlobContainerInfo.Object);
-        
-        var mockUploadAsyncBlobContentInfo = new Mock<BlobContentInfo>();
-        
-        var mockUploadAsyncResponse = new Mock<Response<BlobContentInfo>>();
-        mockUploadAsyncResponse.Setup(x=>x.Value).Returns(mockUploadAsyncBlobContentInfo.Object);
-        
-        var mockBlobClient = new Mock<BlobClient>();
-        mockBlobClient.Setup(x=>x.UploadAsync(It.IsAny<Stream>(),It.IsAny<BlobUploadOptions>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockUploadAsyncResponse.Object);
-            
-        var mockBlobContainerClient = new Mock<BlobContainerClient>();
-        
-        mockBlobContainerClient.Setup(x=>x.CreateIfNotExistsAsync(
-                It.IsAny<PublicAccessType>(),
-                It.IsAny<IDictionary<string,string>?>(), 
-                It.IsAny<BlobContainerEncryptionScopeOptions?>(), 
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockCreateIfNotExistsAsyncResponse.Object);
-        mockBlobContainerClient.Setup(x=>x.GetBlobClient(It.IsAny<string>()))
-            .Returns(mockBlobClient.Object);
-        mockBlobContainerClient.Setup(x => x.DeleteBlobIfExistsAsync(It.IsAny<string>(),
-            It.IsAny<DeleteSnapshotsOption>(), It.IsAny<BlobRequestConditions>(), It.IsAny<CancellationToken>()));
-        var mockBlobServiceClient = new Mock<BlobServiceClient>();
-        
-        mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(It.IsAny<string>()))
-            .Returns(mockBlobContainerClient.Object);
-        return mockBlobServiceClient;
     }
     
 }

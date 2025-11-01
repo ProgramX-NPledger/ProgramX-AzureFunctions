@@ -13,7 +13,7 @@ public class UsersHttpTriggerBuilder
 {
     private Mock<ILogger<UsersHttpTrigger>>? _mockLogger;
     private Mock<CosmosClient>? _mockCosmosClient;
-    private Mock<BlobServiceClient>? _mockBlobServiceClient;
+    private Mock<IStorageClient>? _mockedStorageClient;
     private IConfiguration? _configuration;
     private IRolesProvider? _rolesProvider;
     private IEmailSender? _emailSender;
@@ -30,9 +30,9 @@ public class UsersHttpTriggerBuilder
         return this;
     }
 
-    public UsersHttpTriggerBuilder WithBlobServiceClient(Mock<BlobServiceClient> mockBlobServiceClient)
+    public UsersHttpTriggerBuilder WithBlobServiceClient(Mock<IStorageClient> mockStorageClient)
     {
-        _mockBlobServiceClient = mockBlobServiceClient;
+        _mockedStorageClient = mockStorageClient;
         return this;
     }
 
@@ -59,7 +59,7 @@ public class UsersHttpTriggerBuilder
     {
         _mockLogger = new Mock<ILogger<UsersHttpTrigger>>();
         _mockCosmosClient = new Mock<CosmosClient>();
-        _mockBlobServiceClient = new Mock<BlobServiceClient>();
+        _mockedStorageClient = new Mock<IStorageClient>();
         
         var mockContainer = new Mock<Container>();
         _mockCosmosClient
@@ -71,7 +71,7 @@ public class UsersHttpTriggerBuilder
 
     public UsersHttpTrigger Build()
     {
-        if (_mockLogger == null || _mockCosmosClient == null || _mockBlobServiceClient == null || _configuration == null)
+        if (_mockLogger == null || _mockCosmosClient == null || _mockedStorageClient == null || _configuration == null)
         {
             throw new InvalidOperationException("All dependencies must be set before building");
         }
@@ -81,8 +81,7 @@ public class UsersHttpTriggerBuilder
 
         return new UsersHttpTrigger(
             _mockLogger.Object,
-            _mockCosmosClient.Object,
-            _mockBlobServiceClient.Object,
+            _mockedStorageClient.Object,
             _configuration,
             _rolesProvider!,
             _emailSender!,

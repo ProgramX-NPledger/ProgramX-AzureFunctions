@@ -4,20 +4,31 @@ namespace ProgramX.Azure.FunctionApp.Model;
 
 public class SecureUser
 {
-    [JsonPropertyName("id")]
     public required string id { get; set; }
-    [JsonPropertyName("userName")]
     public required string userName { get; set; }
-    [JsonPropertyName("emailAddress")]
     public required string emailAddress { get; set; }
-    [JsonPropertyName("roles")]
     public  IEnumerable<Role> roles { get; set; } 
 
     public string firstName { get; set; }
     public string lastName { get; set; }
-    public string profilePhotographSmall { get; set; }
-    public string profilePhotographOriginal { get; set; }
+    public string? profilePhotographSmall { get; set; }
+    public string? profilePhotographOriginal { get; set; }
     public string theme { get; set; }
+
+    public int schemaVersionNumber { get; set; } = 1;
     
+    
+    public string type { get; } = "user";
+    
+    
+    public DateTime? createdAt { get; set; }
+    public DateTime? updatedAt { get; set; }
+    public DateTime? lastLoginAt { get; set; }
+    public DateTime? lastPasswordChangeAt { get; set; }
+    public DateTime? passwordLinkExpiresAt { get; set; }
+    public string? passwordConfirmationNonce { get; set; }   
+
+    
+
 
 }
