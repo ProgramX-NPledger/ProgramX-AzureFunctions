@@ -46,6 +46,9 @@ public class UserRepository(CosmosClient cosmosClient) : IUserRepository
         return result;
     }
 
+    /// <inheritdoc />
+    /// <exception cref="InvalidOperationException">Thrown if required initialisation properties are <c>null</c>.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if required parameters are <c>null</c>.</exception>
     public async Task<IResult<SecureUser>> GetUsersAsync(GetUsersCriteria criteria, PagedCriteria? pagedCriteria = null)
     {
         if (cosmosClient == null) throw new InvalidOperationException("CosmosDB client is not set");
@@ -77,6 +80,96 @@ public class UserRepository(CosmosClient cosmosClient) : IUserRepository
         return result;
         
     }
+
+    /// <inheritdoc />
+    /// <exception cref="InvalidOperationException">Thrown if required initialisation properties are <c>null</c>.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if required parameters are <c>null</c>.</exception>
+    public async Task<IResult<Application>> GetApplicationsAsync(GetApplicationsCriteria criteria,
+        PagedCriteria? pagedCriteria = null)
+    {
+        if (cosmosClient == null) throw new InvalidOperationException("CosmosDB client is not set");
+        if (criteria == null) throw new ArgumentNullException(nameof(criteria));
+
+        QueryDefinition queryDefinition = BuildQueryDefinitionForApplications(criteria);
+
+        CosmosReader<Application> cosmosReader;
+        IResult<Application> result;
+        if (pagedCriteria != null)
+        {
+            cosmosReader = new CosmosPagedReader<Application>(cosmosClient,
+                DataConstants.CoreDatabaseName,
+                DataConstants.UsersContainerName,
+                DataConstants.UserNamePartitionKeyPath);
+            result = await ((CosmosPagedReader<Application>)cosmosReader).GetPagedItemsAsync(queryDefinition,
+                pagedCriteria.Offset,
+                pagedCriteria.ItemsPerPage);
+        }
+        else
+        {
+            cosmosReader = new CosmosReader<Application>(cosmosClient,
+                DataConstants.CoreDatabaseName,
+                DataConstants.UsersContainerName,
+                DataConstants.UserNamePartitionKeyPath);
+            result = await cosmosReader.GetItemsAsync(queryDefinition);
+        }
+        
+        // it isn't possible to order within a collection, so we need to get all the items and the caller must sort the results
+        result.IsRequiredToBeOrderedByClient = true;
+        return result;
+
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<SecureUser> GetUsersInRole(string roleName, IEnumerable<SecureUser> users)
+    {
+        return users.GroupBy(q=>q.id)
+            .Where(q=>q.First().roles.Select(q=>q.name).Contains(roleName))
+            .SelectMany((g=>g.ToList()));
+    }
+
+    private QueryDefinition BuildQueryDefinitionForApplications(GetApplicationsCriteria criteria)
+    {
+        var sb = new StringBuilder("SELECT a.name, a.description, a.imageUrl, a.targetUrl, a.type, a.schemaVersionNumber, a.isDefaultApplicationOnLogin, a.ordinal, a.createdAt,a.updatedAt FROM c JOIN r IN c.roles JOIN a IN r.applications WHERE 1=1");
+        var parameters = new List<(string name, object value)>();
+        if (!string.IsNullOrWhiteSpace(criteria.ApplicationName))
+        {
+            sb.Append(" AND (r.name=@id)");
+            parameters.Add(("@id", criteria.ApplicationName));
+        }
+
+        if (!string.IsNullOrWhiteSpace(criteria.ContainingText))
+        {
+            sb.Append(@" AND (
+                            CONTAINS(UPPER(a.name), @containsText) OR 
+                            CONTAINS(UPPER(a.description), @containsText)
+                            )");
+            parameters.Add(("@containsText", criteria.ContainingText.ToUpperInvariant()));
+        }
+
+        if (criteria.WithinRoles != null && criteria.WithinRoles.Any())
+        {
+            var conditions = new List<string>();
+            var rolesList = criteria.WithinRoles.ToList();
+            
+            for (int i = 0; i < rolesList.Count; i++)
+            {
+                conditions.Add($"EXISTS(SELECT VALUE rr FROM rr IN c.roles WHERE rr.name = @role{i})");
+                parameters.Add(($"@role{i}", rolesList[i]));
+            }
+            
+            sb.Append($" AND ({string.Join(" OR ", conditions)})");
+        }
+
+        sb.Append(" GROUP BY a.name, a.description, a.imageUrl, a.targetUrl, a.type, a.schemaVersionNumber, a.isDefaultApplicationOnLogin, a.ordinal, a.createdAt,a.updatedAt");
+        
+        var queryDefinition = new QueryDefinition(sb.ToString());
+        foreach (var param in parameters)
+        {
+            queryDefinition.WithParameter(param.name, param.value);
+        }
+        return queryDefinition;
+    }
+
 
 
     private QueryDefinition BuildQueryDefinitionForRoles(GetRolesCriteria criteria)

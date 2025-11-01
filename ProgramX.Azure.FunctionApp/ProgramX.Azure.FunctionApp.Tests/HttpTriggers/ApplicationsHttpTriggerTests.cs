@@ -4,6 +4,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ProgramX.Azure.FunctionApp.HttpTriggers;
+using ProgramX.Azure.FunctionApp.Tests.Mocks;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers;
 
@@ -18,10 +19,15 @@ public class ApplicationsHttpTriggerTests : TestBase
     {
         base.SetUp();
         _mockSpecificLogger = new Mock<ILogger<LoginHttpTrigger>>();
+        
+        RepositoryFactory repositoryFactory = new RepositoryFactory();
+        var mockedUserRepository = repositoryFactory.CreateUserRepository();
+        
         _applicationsHttpTrigger = new ApplicationsHttpTrigger(
             _mockSpecificLogger.Object,
             MockCosmosClient.Object,
-            Configuration);
+            Configuration,
+            mockedUserRepository.Object);
     }
     
     
@@ -124,29 +130,56 @@ public class ApplicationsHttpTriggerTests : TestBase
     public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
     {
         // Arrange, Act & Assert
+        RepositoryFactory repositoryFactory = new RepositoryFactory();
+        var mockedUserRepository = repositoryFactory.CreateUserRepository();
+
         Assert.Throws<ArgumentNullException>(() => new ApplicationsHttpTrigger(
             null!,
             MockCosmosClient.Object,
-            Configuration));
+            Configuration,
+            mockedUserRepository.Object));
     }
 
     [Test]
     public void Constructor_WithNullCosmosClient_ShouldThrowArgumentNullException()
     {
         // Arrange, Act & Assert
+        RepositoryFactory repositoryFactory = new RepositoryFactory();
+        var mockedUserRepository = repositoryFactory.CreateUserRepository();
+        
         Assert.Throws<ArgumentNullException>(() => new ApplicationsHttpTrigger(
             _mockSpecificLogger.Object,
             null!,
-            Configuration));
+            Configuration,
+            mockedUserRepository.Object));
     }
 
     [Test]
     public void Constructor_WithNullConfiguration_ShouldThrowArgumentNullException()
     {
         // Arrange, Act & Assert
+        RepositoryFactory repositoryFactory = new RepositoryFactory();
+        var mockedUserRepository = repositoryFactory.CreateUserRepository();
+
         Assert.Throws<ArgumentNullException>(() => new ApplicationsHttpTrigger(
             _mockSpecificLogger.Object,
             MockCosmosClient.Object,
-            null!));
+            null!,
+            mockedUserRepository.Object));
+    }
+    
+    
+    [Test]
+    public void Constructor_WithNullUserRepository_ShouldThrowArgumentNullException()
+    {
+        // Arrange, Act & Assert
+        RepositoryFactory repositoryFactory = new RepositoryFactory();
+        var mockedUserRepository = repositoryFactory.CreateUserRepository();
+
+        Assert.Throws<ArgumentNullException>(() => new ApplicationsHttpTrigger(
+            _mockSpecificLogger.Object,
+            MockCosmosClient.Object,
+            Configuration,
+           null!));
     }
 }

@@ -22,19 +22,19 @@ public class ApplicationsIntegrationTests
         
         _mockLogger = new Mock<ILogger<LoginHttpTrigger>>();
     }
-
-    [Test]
-    [Ignore("Requires actual Cosmos DB instance")]
-    public async Task GetApplication_WithRealCosmosDb_ShouldReturnData()
-    {
-        // Arrange
-        var cosmosClient = new CosmosClient(_configuration.GetConnectionString("CosmosDb"));
-        var trigger = new ApplicationsHttpTrigger(_mockLogger.Object, cosmosClient, _configuration);
-        
-        // This test would require a real HTTP request object
-        // Implementation depends on your specific test setup requirements
-        
-        // Act & Assert
-        Assert.Pass("Integration test placeholder - implement based on your specific needs");
-    }
+    //
+    // [Test]
+    // [Ignore("Requires actual Cosmos DB instance")]
+    // public async Task GetApplication_WithRealCosmosDb_ShouldReturnData()
+    // {
+    //     // Arrange
+    //     var cosmosClient = new CosmosClient(_configuration.GetConnectionString("CosmosDb"));
+    //     var trigger = new ApplicationsHttpTrigger(_mockLogger.Object, cosmosClient, _configuration);
+    //     
+    //     // This test would require a real HTTP request object
+    //     // Implementation depends on your specific test setup requirements
+    //     
+    //     // Act & Assert
+    //     Assert.Pass("Integration test placeholder - implement based on your specific needs");
+    // }
 }
