@@ -13,22 +13,21 @@ namespace ProgramX.Azure.FunctionApp.Helpers
     /// </summary>
     public class JwtTokenIssuer
     {
-        private readonly IConfiguration? _configuration;
-        private readonly IJwtAlgorithm _algorithm;
-        private readonly IJsonSerializer _serializer;
-        private readonly IBase64UrlEncoder _base64Encoder;
+        private readonly IConfiguration _configuration;
         private readonly IJwtEncoder _jwtEncoder;
 
-        public JwtTokenIssuer(IConfiguration? configuration)
+        public JwtTokenIssuer(IConfiguration configuration)
         {
             _configuration = configuration;
             // JWT specific initialization.
             // https://github.com/jwt-dotnet/jwt
-            _algorithm = new HMACSHA256Algorithm();
-            _serializer = new JsonNetSerializer();
-            _base64Encoder = new JwtBase64UrlEncoder();
-            _jwtEncoder = new JwtEncoder(_algorithm, _serializer, _base64Encoder);
+            IJwtAlgorithm algorithm = new HMACSHA256Algorithm();
+            IJsonSerializer serializer = new JsonNetSerializer();
+            IBase64UrlEncoder base64Encoder = new JwtBase64UrlEncoder();
+            _jwtEncoder = new JwtEncoder(algorithm, serializer, base64Encoder);
         }
+
+        public IJwtEncoder JwtEncoder => _jwtEncoder;
 
         /// <summary>
         ///     This method is intended to be the main entry point for generation of the JWT.
