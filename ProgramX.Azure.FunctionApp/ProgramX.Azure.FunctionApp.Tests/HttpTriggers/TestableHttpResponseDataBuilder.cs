@@ -21,6 +21,12 @@ public class TestableHttpResponseDataBuilder
     private bool? _useValidAuthorisation = null;
     private object? _payload = null;
     private string? _body = null;
+
+    public TestableHttpResponseDataBuilder WithBody(string body)
+    {
+        _body = body;
+        return this;
+    }
     
     /// <summary>
     /// Specifies which HTTP Status Code the response created from the request should return.
@@ -42,17 +48,14 @@ public class TestableHttpResponseDataBuilder
     /// <returns></returns>
     public HttpResponseData Build()
     {
-        var mockedHttpResponseData = new Mock<HttpResponseData>();
+//        var mockedHttpResponseData = new Mock<HttpResponseData>();
         
         var mockFunctionContext = new Mock<FunctionContext>();
         
-        var testHttpRequestData = new TestHttpRequestData(
+        var testHttpRequestData = new TestHttpResponseData(
             mockFunctionContext.Object, 
-            _query, 
-            _url,
-            _httpStatusCode ?? HttpStatusCode.OK,
-            _roles,
-            _useValidAuthorisation);
+            _httpStatusCode ?? HttpStatusCode.OK
+            );
         
         if (_payload != null)
         {
@@ -70,7 +73,7 @@ public class TestableHttpResponseDataBuilder
             testHttpRequestData.Headers.Add(header,_headers[header]);
         }
         
-        return mockedHttpResponseData.Object;
+        return testHttpRequestData;
     }
     
 }

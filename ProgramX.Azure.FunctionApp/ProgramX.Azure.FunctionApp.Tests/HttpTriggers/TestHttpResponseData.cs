@@ -19,4 +19,6 @@ public sealed class TestHttpResponseData : HttpResponseData
     public override HttpHeadersCollection Headers { get; set; }
     public override Stream Body { get; set; }
     public override HttpCookies Cookies { get; }
+    
+    
 }

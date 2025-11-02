@@ -1,16 +1,9 @@
-using System.Collections.Specialized;
 using System.Net;
 using FluentAssertions;
 using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
 using Moq;
-using ProgramX.Azure.FunctionApp.Constants;
-using ProgramX.Azure.FunctionApp.Helpers;
-using ProgramX.Azure.FunctionApp.HttpTriggers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
-using ProgramX.Azure.FunctionApp.Tests.TestData;
 using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
@@ -20,15 +13,8 @@ namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 [Category("UsersHttpTrigger")]
 [Category("DeleteUser")]
 [TestFixture]
-public class UsersHttpTriggerDeleteUserTests : TestBase
+public class UsersHttpTriggerDeleteUserTests
 {
-
-    [SetUp]
-    public override void SetUp()
-    {
-        base.SetUp();
-    }
-   
     [Test]
     public async Task DeleteUser_WhenUserExists_ShouldDeleteSuccessfully()
     {

@@ -196,7 +196,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         if (response.StatusCode != HttpStatusCode.OK)
         {
             logger.LogError("Failed to create user",response.StatusCode,response);
-            throw new Exception($"Failed to create user");
+            throw new RepositoryException(OperationType.Create,typeof(User));;
         }
     }
 

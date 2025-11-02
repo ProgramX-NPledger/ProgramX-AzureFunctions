@@ -592,7 +592,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         var users = base.CreateTestUsers(1).ToList();
         var newUser = users.First();
         
-        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<SecureUser>()
+        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>()
         {
             MutateItems = (items) =>
             {
@@ -601,10 +601,10 @@ public class CosmosUserRepositoryTests : CosmosTestBase
             },
             ConfigureContainerFunc = (container) =>
             {
-                var mockedItemResponse = new Mock<ItemResponse<SecureUser>>();
+                var mockedItemResponse = new Mock<ItemResponse<User>>();
                 mockedItemResponse.SetupGet(x => x.StatusCode).Returns(System.Net.HttpStatusCode.BadRequest);
 
-                container.Setup(q => q.CreateItemAsync<SecureUser>(It.IsAny<SecureUser>(), It.IsAny<PartitionKey>(),
+                container.Setup(q => q.CreateItemAsync<User>(It.IsAny<User>(), It.IsAny<PartitionKey>(),
                         It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(mockedItemResponse.Object);
             }

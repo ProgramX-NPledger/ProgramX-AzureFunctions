@@ -35,6 +35,7 @@ public class HttpBodyUtilitiesTests
     {
         var testableHttpResponseDataFactory = new TestableHttpResponseDataFactory();
         var testableHttpResponseData = testableHttpResponseDataFactory.Create()
+            .WithBody("ABC")
             .Returns(HttpStatusCode.OK)
             .Build();
         
