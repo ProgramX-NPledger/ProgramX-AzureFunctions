@@ -40,9 +40,6 @@ public class CosmosPagedResult<T> : CosmosResult<T>, IPagedResult<T>
     public override int TotalCount { get; }
 
     /// <inheritdoc />
-    public bool IsLastPage => ContinuationToken == null;
-    
-    /// <inheritdoc />
     public bool IsFirstPage => ContinuationToken == null && TotalCount <= ItemsPerPage;
     
     /// <inheritdoc />

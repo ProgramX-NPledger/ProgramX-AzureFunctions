@@ -7,6 +7,9 @@ using ProgramX.Azure.FunctionApp.Contract;
 
 namespace ProgramX.Azure.FunctionApp.Tests.AzureStorage;
 
+[Category("Unit")]
+[Category("Azure")]
+[Category("AzureStorageClient")]
 [TestFixture]
 public class AzureStorageClientTests
 {

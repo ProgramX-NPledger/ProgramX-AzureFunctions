@@ -50,7 +50,16 @@ public class MockedCosmosDbClientFactory<T>
     {
         _items = items.ToList();
     }
-    
+
+    /// <summary>
+    /// Adds items to the mock container.
+    /// </summary>
+    /// <param name="items">List of items</param>
+    public void AddItems(IEnumerable<T> items)
+    {
+        _items.AddRange(items);
+    }
+
     
     /// <summary>
     /// Creates the mock CosmosDB client.
@@ -116,7 +125,6 @@ public class MockedCosmosDbClientFactory<T>
     {
         var mockFeedResponseOfT = new Mock<FeedResponse<T>>();
         mockFeedResponseOfT.Setup(x => x.Count).Returns(_items.Count);
-
         if (FilterItems != null)
         {
             mockFeedResponseOfT.Setup(x => x.GetEnumerator())

@@ -38,7 +38,6 @@ public class PagedResponse<T>
         PagesWithUrls = pagesWithUrls;
         ContinuationToken = pagedResult.ContinuationToken;
         Items = pagedResult.Items;
-        IsLastPage = pagedResult.IsLastPage;
         ItemsPerPage = pagedResult.ItemsPerPage;
         if (pagedResult is IChargeableResult chargeableResult)
         {

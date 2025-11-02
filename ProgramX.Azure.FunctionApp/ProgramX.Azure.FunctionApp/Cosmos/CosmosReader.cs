@@ -55,12 +55,9 @@ public class CosmosReader<T>
                    new QueryRequestOptions()
                    ))
         {
-            while (feedIterator.HasMoreResults)
-            {
-                var response = await feedIterator.ReadNextAsync();
-                items.AddRange(response);
-                requestCharge += response.RequestCharge;
-            }
+            var response = await feedIterator.ReadNextAsync();
+            items.AddRange(response);
+            requestCharge += response.RequestCharge;
         }
         
         stopwatch.Stop();

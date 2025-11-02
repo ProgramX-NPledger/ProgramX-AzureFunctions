@@ -32,7 +32,7 @@ public static class HttpBodyUtilities
     {
         var serialised = await GetStringFromHttpRequestDataBodyAsync(httpRequestData);
         var deserialised = JsonSerializer.Deserialize<T>(serialised); 
-        if (deserialised==null && throwIfNull) throw new InvalidOperationException("Could not deserialize json");
+        if (deserialised==null && throwIfNull) throw new InvalidOperationException("Could not deserialize JSON from request body");
         return deserialised;
     }
 }
