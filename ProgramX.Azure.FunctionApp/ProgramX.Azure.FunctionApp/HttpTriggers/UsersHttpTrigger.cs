@@ -40,7 +40,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         if (configuration==null) throw new ArgumentNullException(nameof(configuration));
         
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _storageClient = storageClient;
+        _storageClient = storageClient ?? throw new ArgumentNullException(nameof(storageClient));
         _emailSender = emailSender;
         _userRepository = userRepository;
     }

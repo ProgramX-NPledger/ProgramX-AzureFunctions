@@ -14,6 +14,14 @@ public class UsersHttpTriggerBuilder
     private Mock<IUserRepository>? _mockedUserRepository;
     private IConfiguration? _configuration;
 
+    public UsersHttpTriggerBuilder WithIUserRepository(Action<Mock<IUserRepository>>? mockUserRepository)
+    {
+        _mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
+        
+        if (mockUserRepository!=null) mockUserRepository(_mockedUserRepository!);
+        
+        return this;
+    }
 
     public UsersHttpTriggerBuilder WithLogger(Mock<ILogger<UsersHttpTrigger>> mockLogger)
     {
@@ -66,11 +74,9 @@ public class UsersHttpTriggerBuilder
 
     private void CreateDefaultMocksWhereNotSet()
     {
-        
-        RepositoryFactory repositoryFactory = new RepositoryFactory();
         if (_mockedUserRepository == null)
         {
-            _mockedUserRepository = repositoryFactory.CreateUserRepository();       
+            WithIUserRepository(null);
         }
 
         if (_mockedEmailSender == null)

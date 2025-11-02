@@ -33,8 +33,8 @@ public class UsersHttpTriggerCtorTests : TestBase
         
         SetupCosmosDbReaderMocks();
 
-        RepositoryFactory repositoryFactory = new RepositoryFactory();
-        var mockedUserRepository = repositoryFactory.CreateUserRepository();
+        UserRepositoryFactory userRepositoryFactory = new UserRepositoryFactory();
+        var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
         
         _usersHttpTrigger = new UsersHttpTrigger(
             _mockSpecificLogger.Object,
@@ -70,8 +70,8 @@ public class UsersHttpTriggerCtorTests : TestBase
     public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
     {
         // Arrange, Act & Assert
-        RepositoryFactory repositoryFactory = new RepositoryFactory();
-        var mockedUserRepository = repositoryFactory.CreateUserRepository();
+        UserRepositoryFactory userRepositoryFactory = new UserRepositoryFactory();
+        var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
         
         Assert.Throws<ArgumentNullException>(() => new UsersHttpTrigger(
             null!,
@@ -85,8 +85,8 @@ public class UsersHttpTriggerCtorTests : TestBase
     public void Constructor_WithNullBlobServiceClient_ShouldThrowArgumentNullException()
     {
         // Arrange, Act & Assert
-        RepositoryFactory repositoryFactory = new RepositoryFactory();
-        var mockedUserRepository = repositoryFactory.CreateUserRepository();
+        UserRepositoryFactory userRepositoryFactory = new UserRepositoryFactory();
+        var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
 
         Assert.Throws<ArgumentNullException>(() => new UsersHttpTrigger(
             _mockSpecificLogger.Object,
@@ -100,8 +100,8 @@ public class UsersHttpTriggerCtorTests : TestBase
     public void Constructor_WithNullConfiguration_ShouldThrowArgumentNullException()
     {
         // Arrange, Act & Assert
-        RepositoryFactory repositoryFactory = new RepositoryFactory();
-        var mockedUserRepository = repositoryFactory.CreateUserRepository();
+        UserRepositoryFactory userRepositoryFactory = new UserRepositoryFactory();
+        var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
         
         Assert.Throws<ArgumentNullException>(() => new UsersHttpTrigger(
             _mockSpecificLogger.Object,

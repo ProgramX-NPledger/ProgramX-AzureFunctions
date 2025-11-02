@@ -7,10 +7,10 @@ using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Tests.Mocks;
 
-public class RepositoryFactory
+public class UserRepositoryFactory
 {
     
-    public Mock<IUserRepository> CreateUserRepository()
+    public static Mock<IUserRepository> CreateUserRepository()
     {
         var testUsers = CreateTestUsers(10);
         
@@ -33,7 +33,7 @@ public class RepositoryFactory
     }
     
     
-    protected IList<User> CreateTestUsers(int numberOfItems, int? numberOfRolesPerUser = null, int? numberOfApplicationsPerRole = null)
+    protected static IList<User> CreateTestUsers(int numberOfItems, int? numberOfRolesPerUser = null, int? numberOfApplicationsPerRole = null)
     {
         List<User> users = new();
         for (int i = 1; i <= numberOfItems; i++)
