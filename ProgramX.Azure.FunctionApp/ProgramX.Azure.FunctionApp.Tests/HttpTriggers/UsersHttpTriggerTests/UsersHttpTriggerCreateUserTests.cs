@@ -91,7 +91,6 @@ public class UsersHttpTriggerCreateUserTests : TestBase
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithDefaultMocks()
-            .WithRolesProvider(new CosmosDBRolesProvider(mockedRoleCosmosDbClient.MockedCosmosClient.Object))
             .WithEmailSender(mockedEmailSender.Object)
             .WithCosmosClient(mockedUserCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)

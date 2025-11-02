@@ -15,7 +15,6 @@ public class UsersHttpTriggerBuilder
     private Mock<CosmosClient>? _mockCosmosClient;
     private Mock<IStorageClient>? _mockedStorageClient;
     private IConfiguration? _configuration;
-    private IRolesProvider? _rolesProvider;
     private IEmailSender? _emailSender;
 
     public UsersHttpTriggerBuilder WithLogger(Mock<ILogger<UsersHttpTrigger>> mockLogger)
@@ -39,12 +38,6 @@ public class UsersHttpTriggerBuilder
     public UsersHttpTriggerBuilder WithConfiguration(IConfiguration configuration)
     {
         _configuration = configuration;
-        return this;
-    }
-    
-    public UsersHttpTriggerBuilder WithRolesProvider(IRolesProvider rolesProvider)
-    {
-        _rolesProvider = rolesProvider;
         return this;
     }
     
@@ -83,7 +76,6 @@ public class UsersHttpTriggerBuilder
             _mockLogger.Object,
             _mockedStorageClient.Object,
             _configuration,
-            _rolesProvider!,
             _emailSender!,
             mockedUserRepository.Object);
     }

@@ -6,8 +6,10 @@ using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Core;
+using ProgramX.Azure.FunctionApp.Cosmos;
 using ProgramX.Azure.FunctionApp.Helpers;
 
 var builder = FunctionsApplication.CreateBuilder(args);
@@ -30,10 +32,10 @@ builder.Services
         string connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
         return new BlobServiceClient(connectionString);
     })
-    .AddTransient<IRolesProvider, CosmosDBRolesProvider>(serviceProvider =>
+    .AddSingleton<IUserRepository, CosmosUserRepository>(serviceProvider =>
     {
         var cosmosClient = serviceProvider.GetRequiredService<CosmosClient>();
-        return new CosmosDBRolesProvider(cosmosClient);
+        return new CosmosUserRepository(cosmosClient, serviceProvider.GetRequiredService<ILogger<CosmosUserRepository>>());;
     })
     .AddTransient<IEmailSender, AzureCommunicationsServicesEmailSender>(serviceProvoder =>
     {

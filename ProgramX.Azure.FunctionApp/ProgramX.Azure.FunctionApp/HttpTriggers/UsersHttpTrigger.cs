@@ -27,7 +27,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 {
     private readonly ILogger<UsersHttpTrigger> _logger;
     private readonly IStorageClient _storageClient;
-    private readonly IRolesProvider _rolesProvider;
     private readonly IEmailSender _emailSender;
     private readonly IUserRepository _userRepository;
 
@@ -35,7 +34,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     public UsersHttpTrigger(ILogger<UsersHttpTrigger> logger,
         IStorageClient storageClient,
         IConfiguration configuration,
-        IRolesProvider rolesProvider, // TODO: is this still needed?
         IEmailSender emailSender,
         IUserRepository userRepository) : base(configuration)
     {
@@ -43,7 +41,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _storageClient = storageClient;
-        _rolesProvider = rolesProvider;
         _emailSender = emailSender;
         _userRepository = userRepository;
     }
@@ -482,14 +479,14 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateUserRequest>(httpRequestData);
             if (createUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
-            var allRoles = await _rolesProvider.GetRolesAsync();
+            var allRoles = await _userRepository.GetRolesAsync(new GetRolesCriteria());
         
             var newUser = new User()
             {
                 id = Guid.NewGuid().ToString("N"),
                 emailAddress = createUserRequest.emailAddress,
                 userName = createUserRequest.userName,
-                roles = allRoles.Where(q=>createUserRequest.addToRoles.Contains(q.name)),
+                roles = allRoles.Items.Where(q=>createUserRequest.addToRoles.Contains(q.name)),
                 passwordHash = [],
                 passwordSalt = [],
                 schemaVersionNumber = 5,

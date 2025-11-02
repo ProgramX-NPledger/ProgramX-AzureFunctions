@@ -41,7 +41,6 @@ public class UsersHttpTriggerCtorTests : TestBase
             _mockStorageClient.Object,
             Configuration,
             null!,
-            null!,
             mockedUserRepository.Object
             );
     }
@@ -79,7 +78,6 @@ public class UsersHttpTriggerCtorTests : TestBase
             _mockStorageClient.Object,
             Configuration,
             null!,
-            null!,
             mockedUserRepository.Object));
     }
 
@@ -95,7 +93,6 @@ public class UsersHttpTriggerCtorTests : TestBase
             null!,
             Configuration,
             null!,
-            null!,
             mockedUserRepository.Object));;
     }
 
@@ -109,7 +106,6 @@ public class UsersHttpTriggerCtorTests : TestBase
         Assert.Throws<ArgumentNullException>(() => new UsersHttpTrigger(
             _mockSpecificLogger.Object,
             _mockStorageClient.Object,
-            null!,
             null!,
             null!,
             mockedUserRepository.Object));;
