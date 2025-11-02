@@ -24,7 +24,7 @@ public class MockedCosmosDbClientFactory<T>
     /// </summary>
     /// <typeparam name="T">Type of item to return.</typeparam>
     /// <returns>A filtered list of items.</returns>
-    public Func<IEnumerable<T>,IEnumerable<T>>? FilterItems { get; set; }
+    public Func<IEnumerable<T>,IEnumerable<T?>>? FilterItems { get; set; }
     
     /// <summary>
     /// Mutate the items returned by the mocked CosmosDB. Useful when performing
@@ -167,6 +167,12 @@ public class MockedCosmosDbClientFactory<T>
         mockContainer.Setup(x =>
                 x.GetItemQueryIterator<T>(
                     It.IsAny<QueryDefinition>(),
+                    null,
+                    It.IsAny<QueryRequestOptions>()))
+            .Returns(mockFeedIteratorOfT.Object);
+        mockContainer.Setup(x =>
+                x.GetItemQueryIterator<T>(
+                    It.IsAny<QueryDefinition>(),
                     It.IsAny<string>(),
                     It.IsAny<QueryRequestOptions>()))
             .Returns(mockFeedIteratorOfT.Object);
@@ -180,13 +186,13 @@ public class MockedCosmosDbClientFactory<T>
         if (MutateItems != null)
         {
             // set-up all the methods that mutate the items
-            mockContainer.Setup(x => x.DeleteItemStreamAsync(It.IsAny<string>(), It.IsAny<PartitionKey>(),
+            mockContainer.Setup(x => x.DeleteItemAsync<T>(It.IsAny<string>(), It.IsAny<PartitionKey>(),
                 It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
                 .Callback(() =>
                 {
                     MutateItems.Invoke(_items);
                 })
-                .ReturnsAsync(new ResponseMessage(System.Net.HttpStatusCode.OK));
+                .ReturnsAsync(CreateItemResponse<T>());
             mockContainer.Setup(x => x.UpsertItemAsync(It.IsAny<string>(), It.IsAny<PartitionKey>(),
                     It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
                 .Callback(() =>

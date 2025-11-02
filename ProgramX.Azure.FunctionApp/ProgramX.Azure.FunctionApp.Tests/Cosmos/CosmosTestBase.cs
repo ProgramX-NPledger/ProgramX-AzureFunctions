@@ -4,8 +4,12 @@ namespace ProgramX.Azure.FunctionApp.Tests.Cosmos;
 
 public abstract class CosmosTestBase
 {
+    // protected void SetUp()
+    // {
+    //     
+    // }
     
-    protected IEnumerable<User> CreateTestUsers(int numberOfItems)
+    protected IEnumerable<User> CreateTestUsers(int numberOfItems, int? numberOfRolesPerUser = null, int? numberOfApplicationsPerRole = null)
     {
         List<User> users = new();
         for (int i = 1; i <= numberOfItems; i++)
@@ -22,7 +26,23 @@ public abstract class CosmosTestBase
                 lastLoginAt = DateTime.UtcNow,
                 lastName = $"Last Name {i}",
                 updatedAt = DateTime.UtcNow,
-                
+                roles = Enumerable.Range(1,numberOfRolesPerUser ?? numberOfItems)
+                    .Select(x => new Role()
+                    {
+                        createdAt    = DateTime.UtcNow,
+                        applications = Enumerable.Range(1, numberOfApplicationsPerRole ?? numberOfItems)
+                            .Select(y => new Application
+                            {
+                                createdAt = DateTime.UtcNow,
+                                name = $"app {y}",
+                                updatedAt = DateTime.UtcNow,
+                                ordinal = y,
+                                targetUrl = string.Empty,
+                            }),
+                            name = $"role {x}",
+                            updatedAt = DateTime.UtcNow,
+                            description = ">@role{x}",
+                            })
             });
         }
 

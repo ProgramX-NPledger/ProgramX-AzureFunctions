@@ -4,9 +4,9 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Contract;
-using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
+using ProgramX.Azure.FunctionApp.Model.Exceptions;
 using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Cosmos;
@@ -18,9 +18,6 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <exception cref="ArgumentNullException">Thrown if required parameters are <c>null</c>.</exception>
     public async Task<IResult<Role>> GetRolesAsync(GetRolesCriteria criteria, PagedCriteria? pagedCriteria = null)
     {
-        if (cosmosClient == null) throw new InvalidOperationException("CosmosDB client is not set");
-        if (criteria == null) throw new ArgumentNullException(nameof(criteria));
-        
         QueryDefinition queryDefinition = BuildQueryDefinitionForRoles(criteria);
 
         CosmosReader<Role> cosmosReader;
@@ -53,9 +50,6 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <exception cref="ArgumentNullException">Thrown if required parameters are <c>null</c>.</exception>
     public async Task<IResult<SecureUser>> GetUsersAsync(GetUsersCriteria criteria, PagedCriteria? pagedCriteria = null)
     {
-        if (cosmosClient == null) throw new InvalidOperationException("CosmosDB client is not set");
-        if (criteria == null) throw new ArgumentNullException(nameof(criteria));
-        
         QueryDefinition queryDefinition = BuildQueryDefinitionForUsers(criteria);
 
         CosmosReader<SecureUser> cosmosReader;
@@ -89,9 +83,6 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     public async Task<IResult<Application>> GetApplicationsAsync(GetApplicationsCriteria criteria,
         PagedCriteria? pagedCriteria = null)
     {
-        if (cosmosClient == null) throw new InvalidOperationException("CosmosDB client is not set");
-        if (criteria == null) throw new ArgumentNullException(nameof(criteria));
-
         QueryDefinition queryDefinition = BuildQueryDefinitionForApplications(criteria);
 
         CosmosReader<Application> cosmosReader;
@@ -116,7 +107,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         }
         
         // it isn't possible to order within a collection, so we need to get all the items and the caller must sort the results
-        result.IsRequiredToBeOrderedByClient = true;
+        result.IsRequiredToBeOrderedByClient = false;
         return result;
 
     }
@@ -152,21 +143,22 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <inheritdoc />
     public async Task DeleteUserByIdAsync(string id)
     {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentNullException(nameof(id));
-        if (cosmosClient == null) throw new InvalidOperationException("CosmosDB client is not set");
+        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
 
         var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
-        var response = await  container.DeleteItemAsync<User>(id, new PartitionKey(id));
+        var response = await container.DeleteItemAsync<User>(id, new PartitionKey(id));
 
         if (response.StatusCode != HttpStatusCode.NoContent)
         {
             logger.LogError("Failed to delete user with id {id}",id,response.StatusCode,response);
-            throw new Exception("Failed to delete user");
+            throw new RepositoryException(OperationType.Delete,typeof(User));
         }
     }
 
     public async Task<User?> GetInsecureUserByIdAsync(string id)
     {
+        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
+        
         QueryDefinition queryDefinition = BuildQueryDefinitionForUsers(new GetUsersCriteria()
         {
             Id = id
@@ -186,22 +178,18 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     public async Task UpdateUserAsync(SecureUser user)
     {
-        if (cosmosClient == null) throw new InvalidOperationException("CosmosDB client is not set");
-
         var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
         var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
             logger.LogError("Failed to update user with id {id}",user.id,response.StatusCode,response);
-            throw new Exception($"Failed to update user");
+            throw new RepositoryException(OperationType.Update,typeof(SecureUser));
         }
     }
 
     public async Task CreateUserAsync(User user)
     {
-        if (cosmosClient == null) throw new InvalidOperationException("CosmosDB client is not set");
-
         var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
         var response = await container.CreateItemAsync(user, new PartitionKey(user.userName));
 
