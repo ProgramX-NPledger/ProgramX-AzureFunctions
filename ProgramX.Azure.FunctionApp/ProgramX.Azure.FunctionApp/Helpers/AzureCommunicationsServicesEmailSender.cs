@@ -11,7 +11,15 @@ public class AzureCommunicationsServicesEmailSender : Contract.IEmailSender
     
     public AzureCommunicationsServicesEmailSender(IConfiguration configuration)
     {
+        var connectionString = configuration["AzureCommunicationServicesConnection"];
+        if (string.IsNullOrWhiteSpace(connectionString)) throw new ArgumentException("Azure Communication Services connection string is not set");
+        
         _emailClient = new EmailClient(configuration["AzureCommunicationServicesConnection"]);
+    }
+    
+    public AzureCommunicationsServicesEmailSender(EmailClient emailClient)
+    {
+        _emailClient = emailClient;
     }
 
     public async Task SendEmailAsync(ProgramX.Azure.FunctionApp.Model.EmailMessage emailMessage)
