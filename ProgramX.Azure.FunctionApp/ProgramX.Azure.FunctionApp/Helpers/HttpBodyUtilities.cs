@@ -24,15 +24,13 @@ public static class HttpBodyUtilities
     /// Returns the deserialized form of Type parameter T from the request body.
     /// </summary>
     /// <param name="httpRequestData">The <see cref="HttpRequestData"/> that contains the body.</param>
-    /// <param name="throwIfNull">Set to <c>True</c> is an exception is required if the deserialization fails.</param>
     /// <typeparam name="T">The Type of the item to deserialize.</typeparam>
     /// <returns>The deserialized form of the HTTP body.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the data in the body could not be deserialized.</exception>
-    public static async Task<T?> GetDeserializedJsonFromHttpRequestDataBodyAsync<T>(HttpRequestData httpRequestData, bool throwIfNull = false)
+    public static async Task<T?> GetDeserializedJsonFromHttpRequestDataBodyAsync<T>(HttpRequestData httpRequestData)
     {
         var serialised = await GetStringFromHttpRequestDataBodyAsync(httpRequestData);
         var deserialised = JsonSerializer.Deserialize<T>(serialised); 
-        if (deserialised==null && throwIfNull) throw new InvalidOperationException("Could not deserialize JSON from request body");
         return deserialised;
     }
 }
