@@ -29,6 +29,19 @@ public class HttpBodyUtilitiesTests
         
         Assert.That(result, Is.EqualTo("ABC"));
     }
+    
+    [Test]
+    public async Task GetStringFromHttpResponseDataBodyAsync_WithUnseekableBody_ShouldSucceed()
+    {
+        var testableHttpResponseDataFactory = new TestableHttpResponseDataFactory();
+        var testableHttpResponseData = testableHttpResponseDataFactory.Create()
+            .Returns(HttpStatusCode.OK)
+            .Build();
+        
+        var result = await HttpBodyUtilities.GetStringFromHttpResponseDataBodyAsync(testableHttpResponseData);
+        
+        Assert.That(result, Is.EqualTo("ABC"));
+    }
 
     [Test]
     public async Task GetDeserializedJsonFromHttpRequestDataBodyAsync_WithSerializableObject_ShouldSucceed()

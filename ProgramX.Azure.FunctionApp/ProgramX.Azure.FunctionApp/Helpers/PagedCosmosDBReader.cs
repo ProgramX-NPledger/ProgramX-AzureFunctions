@@ -13,7 +13,7 @@ namespace ProgramX.Azure.FunctionApp.Helpers;
 /// </summary>
 /// <typeparam name="T">Type of model to query.</typeparam>
 [Obsolete("Use CosmosPagedReader instead",false)]
-public class PagedCosmosDbReader<T> : IPagedReader<T>
+public class PagedCosmosDbReader<T> : _IPagedReader<T>
 {
     private readonly CosmosClient _client;
     private readonly string _databaseName;

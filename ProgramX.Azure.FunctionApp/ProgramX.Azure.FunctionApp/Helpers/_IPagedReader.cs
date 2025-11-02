@@ -4,7 +4,7 @@ using ProgramX.Azure.FunctionApp.Model.Constants;
 
 namespace ProgramX.Azure.FunctionApp.Helpers;
 
-public interface IPagedReader<T>
+public interface _IPagedReader<T>
 {
     /// <summary>
     /// Returns a paged, strongly typed result from CosmosDB using Continuation Tokens for forward-only efficiency.

@@ -46,8 +46,6 @@ public class UsersHttpTriggerRemoveUserPhotoTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -107,9 +105,6 @@ public class UsersHttpTriggerRemoveUserPhotoTests : TestBase
         var mockedBlockServiceClient = mockedBlobServiceClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
-            .WithBlobServiceClient(mockedBlockServiceClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -139,7 +134,6 @@ public class UsersHttpTriggerRemoveUserPhotoTests : TestBase
             .Build();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
             .WithConfiguration(Configuration)
             .Build();
         
@@ -167,7 +161,6 @@ public class UsersHttpTriggerRemoveUserPhotoTests : TestBase
             .Build();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
             .WithConfiguration(Configuration)
             .Build();
         

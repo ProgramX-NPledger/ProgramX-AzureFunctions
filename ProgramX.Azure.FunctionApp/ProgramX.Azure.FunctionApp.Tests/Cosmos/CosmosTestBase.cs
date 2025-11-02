@@ -4,10 +4,7 @@ namespace ProgramX.Azure.FunctionApp.Tests.Cosmos;
 
 public abstract class CosmosTestBase
 {
-    // protected void SetUp()
-    // {
-    //     
-    // }
+
     
     protected IEnumerable<User> CreateTestUsers(int numberOfItems, int? numberOfRolesPerUser = null, int? numberOfApplicationsPerRole = null)
     {

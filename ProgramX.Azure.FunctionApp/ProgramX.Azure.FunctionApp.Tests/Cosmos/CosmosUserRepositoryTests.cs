@@ -18,12 +18,6 @@ namespace ProgramX.Azure.FunctionApp.Tests.Cosmos;
 public class CosmosUserRepositoryTests : CosmosTestBase
 {
 
-    // [SetUp]
-    // public void SetUpAttribute()
-    // {
-    //     base.SetUp();
-    // }
-
     [Test]
     public async Task GetRolesAsync_WithoutPagedCriteria_ShouldReturnAllRoles()
     {

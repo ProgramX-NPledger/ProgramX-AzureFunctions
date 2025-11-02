@@ -4,6 +4,7 @@ using ProgramX.Azure.FunctionApp.HttpTriggers;
 using ProgramX.Azure.FunctionApp.Tests.TestData;
 using System.Reflection;
 using System.Web;
+using ProgramX.Azure.FunctionApp.Tests.Mocks;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers;
 
@@ -17,7 +18,6 @@ public class UsersHttpTriggerUrlTests : TestBase
     {
         base.SetUp();
         _usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
             .WithConfiguration(Configuration)
             .Build();
     }

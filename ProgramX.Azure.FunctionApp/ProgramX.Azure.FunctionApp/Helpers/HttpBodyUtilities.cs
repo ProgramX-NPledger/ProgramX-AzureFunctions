@@ -21,6 +21,19 @@ public static class HttpBodyUtilities
     }
 
     /// <summary>
+    /// Returns the body of the request as a string.
+    /// </summary>
+    /// <param name="httpResponseData">The <see cref="HttpResponseData"/> that contains the body.</param>
+    /// <returns>The HTTP body as a string.</returns>
+    public static async Task<string> GetStringFromHttpResponseDataBodyAsync(HttpResponseData httpResponseData)
+    {
+        if (httpResponseData.Body.CanSeek) httpResponseData.Body.Seek(0, SeekOrigin.Begin);
+        using var reader = new StreamReader(httpResponseData.Body);
+        return await reader.ReadToEndAsync();
+    }
+
+    
+    /// <summary>
     /// Returns the deserialized form of Type parameter T from the request body.
     /// </summary>
     /// <param name="httpRequestData">The <see cref="HttpRequestData"/> that contains the body.</param>
@@ -33,4 +46,7 @@ public static class HttpBodyUtilities
         var deserialised = JsonSerializer.Deserialize<T>(serialised); 
         return deserialised;
     }
+    
+   
+
 }

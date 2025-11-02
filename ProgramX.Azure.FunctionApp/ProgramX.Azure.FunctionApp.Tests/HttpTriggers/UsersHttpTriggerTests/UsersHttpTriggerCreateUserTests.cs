@@ -17,15 +17,9 @@ namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 [Category("UsersHttpTrigger")]
 [Category("UpdateUser")]
 [TestFixture]
-public class UsersHttpTriggerCreateUserTests : TestBase
+public class UsersHttpTriggerCreateUserTests 
 {
-    [SetUp]
-    public override void SetUp()
-    {
-        base.SetUp();
-
-    }
-
+   
     
     [Test]
     public async Task CreateUser_WithValidRequest_ShouldReturnOkAndUserShouldBeCreated()
@@ -51,49 +45,7 @@ public class UsersHttpTriggerCreateUserTests : TestBase
             .Returns(HttpStatusCode.NoContent)
             .Build();
 
-        var mockedUserCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User>())
-            {
-                MutateItems = (items) =>
-                {
-                    var itemsList = new List<User>(items);
-                    itemsList.Add(new User
-                    {
-                        id = userId,
-                        userName = userId,
-                        emailAddress = createUserRequest.emailAddress,
-                        passwordHash = new byte[]
-                        {
-                        },
-                        passwordSalt = new byte[]
-                        {
-                        }
-                    });
-                    return itemsList;
-                },
-                ConfigureContainerFunc = (mockContainer) =>
-                {
-                    mockContainer.Setup(c => c.CreateItemAsync(It.IsAny<User>(), It.IsAny<PartitionKey>(),
-                        It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
-                        .ReturnsAsync(CreateMockItemResponse<User>(HttpStatusCode.Created));
-                }
-            };
-        
-        var mockedUserCosmosDbClient = mockedUserCosmosDbClientFactory.Create();
-
-        var mockedRoleCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<Role>(new List<Role>());
-
-        var mockedRoleCosmosDbClient = mockedRoleCosmosDbClientFactory.Create();
-
-        var mockedEmailSenderFactory = new MockedEmailSenderFactory();
-        var mockedEmailSender = mockedEmailSenderFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithEmailSender(mockedEmailSender.Object)
-            .WithCosmosClient(mockedUserCosmosDbClient.MockedCosmosClient)
-            .WithConfiguration(Configuration)
             .Build();
         
         // Act
@@ -104,8 +56,10 @@ public class UsersHttpTriggerCreateUserTests : TestBase
         result.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // Verify the response contains user and applications
-        var responseBody = await GetResponseBodyAsync(result);
+        var responseBody = await HttpBodyUtilities.GetStringFromHttpResponseDataBodyAsync(result);
         
+        Assert.That(responseBody, Is.Not.Null);
+        Assert.IsTrue(createUserRequest.userName == userId);
         
     }
     
@@ -135,15 +89,7 @@ public class UsersHttpTriggerCreateUserTests : TestBase
             .Returns(HttpStatusCode.NoContent)
             .Build();
 
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User>());
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
-            .WithConfiguration(Configuration)
             .Build();
         
         // Act
@@ -179,16 +125,8 @@ public class UsersHttpTriggerCreateUserTests : TestBase
             .WithPayload(createUserRequest)
             .Returns(HttpStatusCode.Unauthorized)
             .Build();
-
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User>());
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
-            .WithConfiguration(Configuration)
             .Build();
         
         // Act
@@ -201,22 +139,5 @@ public class UsersHttpTriggerCreateUserTests : TestBase
     }
     
     
-    private async Task<string> GetResponseBodyAsync(HttpResponseData response)
-    {
-        response.Body.Position = 0;
-        using var reader = new StreamReader(response.Body);
-        return await reader.ReadToEndAsync();
-    }
-  
-    #region Helper Methods
-
-
-    private ItemResponse<T> CreateMockItemResponse<T>(HttpStatusCode statusCode)
-    {
-        var mockResponse = new Mock<ItemResponse<T>>();
-        mockResponse.Setup(x => x.StatusCode).Returns(statusCode);
-        return mockResponse.Object;
-    }
-
-    #endregion
+   
 }

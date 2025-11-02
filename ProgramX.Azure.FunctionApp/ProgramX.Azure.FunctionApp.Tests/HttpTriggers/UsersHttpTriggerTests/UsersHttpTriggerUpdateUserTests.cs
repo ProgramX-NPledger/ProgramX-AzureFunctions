@@ -81,8 +81,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -161,8 +159,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -228,8 +224,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -282,8 +276,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -338,8 +330,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -393,8 +383,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -465,8 +453,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -553,8 +539,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -617,8 +601,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -665,8 +647,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -704,8 +684,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
@@ -745,8 +723,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithDefaultMocks()
-            .WithCosmosClient(mockedCosmosDbClient.MockedCosmosClient)
             .WithConfiguration(Configuration)
             .Build();
         
