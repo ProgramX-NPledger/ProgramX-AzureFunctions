@@ -42,12 +42,6 @@ public class UsersHttpTriggerBuilder
         return this;
     }
     
-    public UsersHttpTriggerBuilder WithUserRepository(Mock<IUserRepository> mockUserRepository)
-    {
-        _mockedUserRepository = mockUserRepository;
-        return this;
-    }
-    
     public UsersHttpTriggerBuilder WithConfiguration(IConfiguration configuration)
     {
         _configuration = configuration;

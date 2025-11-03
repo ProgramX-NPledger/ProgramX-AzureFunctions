@@ -22,31 +22,24 @@ namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 
 public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
 {
-    private readonly ILogger<LoginHttpTrigger> _logger;
-    private readonly CosmosClient _cosmosClient;
+    private readonly ILogger<ApplicationsHttpTrigger> _logger;
     private readonly IUserRepository _userRepository;
-    private readonly Container _container;
 
-    public ApplicationsHttpTrigger(ILogger<LoginHttpTrigger> logger, 
-        CosmosClient cosmosClient, 
+    public ApplicationsHttpTrigger(ILogger<ApplicationsHttpTrigger> logger, 
         IConfiguration configuration,
         IUserRepository userRepository) : base(configuration)
     {
-        if (logger==null) throw new ArgumentNullException(nameof(logger));
-        if (cosmosClient==null) throw new ArgumentNullException(nameof(cosmosClient));
-        if (configuration==null) throw new ArgumentNullException(nameof(configuration));
-        if (userRepository==null) throw new ArgumentNullException(nameof(userRepository));
-        
-        _logger = logger;
-        _cosmosClient = cosmosClient;
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(userRepository);
+
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _userRepository = userRepository;
-        _container = _cosmosClient.GetContainer("core", "users");
     }
 
     [Function(nameof(GetApplication))]
     public async Task<HttpResponseData> GetApplication(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "application/{name?}")] HttpRequestData httpRequestData,
-        string name)
+        string? name)
     {
         return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {

@@ -155,6 +155,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         }
     }
 
+    /// <inheritdoc />
     public async Task<User?> GetInsecureUserByIdAsync(string id)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
@@ -174,6 +175,28 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         result = await cosmosReader.GetItemsAsync(queryDefinition);
         
         return result.Items.SingleOrDefault();
+    }
+
+    /// <inheritdoc />
+    public async Task<Application?> GetApplicationByNameAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException(nameof(name));
+        
+        QueryDefinition queryDefinition = BuildQueryDefinitionForApplications(new GetApplicationsCriteria()
+        {
+            ApplicationName = name
+        });
+
+        CosmosReader<User> cosmosReader;
+        IResult<User> result;
+
+        cosmosReader = new CosmosReader<User>(cosmosClient, 
+            DataConstants.CoreDatabaseName, 
+            DataConstants.UsersContainerName, 
+            DataConstants.UserNamePartitionKeyPath);
+        result = await cosmosReader.GetItemsAsync(queryDefinition);
+        
+        return result.Items.SingleOrDefault()?.roles.SelectMany(q=>q.applications).SingleOrDefault(q=>q.name == name);
     }
 
     public async Task UpdateUserAsync(SecureUser user)

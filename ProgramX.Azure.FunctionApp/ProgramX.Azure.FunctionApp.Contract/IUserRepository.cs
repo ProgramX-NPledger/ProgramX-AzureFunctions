@@ -67,12 +67,19 @@ public interface IUserRepository
     Task DeleteUserByIdAsync(string id);
 
     /// <summary>
-    /// Gets a User by their unique ID. This will return a <see cref="User"/>, not a <see cref="SecureUser"/>, icnluding
+    /// Gets a User by their unique ID. This will return a <see cref="User"/>, not a <see cref="SecureUser"/>, including
     /// security data.
     /// </summary>
     /// <param name="id">The ID of the user.</param>
     /// <returns>The requested <see cref="User"/>, or <c>null</c> if not found.</returns>
     Task<User?> GetInsecureUserByIdAsync(string id);
+    
+    /// <summary>
+    /// Gets an Application by its name. This will return a <see cref="Application"/>.
+    /// </summary>
+    /// <param name="name">The name of the application.</param>
+    /// <returns>The requested <see cref="Application"/>, or <c>null</c> if not found.</returns>
+    Task<Application?> GetApplicationByNameAsync(string name);
     
     /// <summary>
     /// Update the specified user.
