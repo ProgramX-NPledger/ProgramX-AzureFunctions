@@ -5,6 +5,7 @@ using FluentAssertions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker.Http;
 using Moq;
+using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
@@ -189,17 +190,20 @@ public class UsersHttpTriggerUpdateUserPhotoTests : TestBase
             .Returns(HttpStatusCode.NotFound)
             .Build();
 
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-
-        var mockedBlobServiceClientFactory = new MockedBlobServiceClientFactory();
-        
-        var mockedBlockServiceClient = mockedBlobServiceClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
+            .WithStorageClient(mockStorageClient =>
+            {
+                var mockStorageFolder = new Mock<IStorageFolder>();
+                mockStorageFolder.Setup(x => x.DeleteFileAsync(It.IsAny<string>()));
+                mockStorageClient.Setup(x => x.GetStorageFolderAsync(It.IsAny<string>()))
+                    .ReturnsAsync(mockStorageFolder.Object);
+            })
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingUser);
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+            })
             .Build();
         
         // Act
@@ -275,14 +279,20 @@ public class UsersHttpTriggerUpdateUserPhotoTests : TestBase
                 }
             };
         
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-
-        var mockedBlobServiceClientFactory = new MockedBlobServiceClientFactory();
-        
-        var mockedBlockServiceClient = mockedBlobServiceClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
+            .WithStorageClient(mockStorageClient =>
+            {
+                var mockStorageFolder = new Mock<IStorageFolder>();
+                mockStorageFolder.Setup(x => x.DeleteFileAsync(It.IsAny<string>()));
+                mockStorageClient.Setup(x => x.GetStorageFolderAsync(It.IsAny<string>()))
+                    .ReturnsAsync(mockStorageFolder.Object);
+            })
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingUser);
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+            })
             .Build();
         
         // Act

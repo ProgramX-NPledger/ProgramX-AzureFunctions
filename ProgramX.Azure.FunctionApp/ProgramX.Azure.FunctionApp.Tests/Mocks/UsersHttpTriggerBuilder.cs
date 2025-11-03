@@ -29,9 +29,10 @@ public class UsersHttpTriggerBuilder
         return this;
     }
 
-    public UsersHttpTriggerBuilder WithStorageClient(Mock<IStorageClient> mockStorageClient)
+    public UsersHttpTriggerBuilder WithStorageClient(Action<Mock<IStorageClient>> mockStorageClient)
     {
-        _mockedStorageClient = mockStorageClient;
+        _mockedStorageClient = new Mock<IStorageClient>();
+        mockStorageClient(_mockedStorageClient!);
         return this;
     }
 
@@ -59,14 +60,14 @@ public class UsersHttpTriggerBuilder
     {
         CreateDefaultMocksWhereNotSet();
         
-        if (_mockedLogger == null || _mockedEmailSender== null || _mockedUserRepository==null || _mockedStorageClient == null || _configuration == null)
+        if (_mockedLogger == null || _mockedEmailSender== null || _mockedUserRepository==null || _configuration == null)
         {
             throw new InvalidOperationException("All dependencies must be set before building");
         }
 
         return new UsersHttpTrigger(
             _mockedLogger.Object,
-            _mockedStorageClient.Object,
+            _mockedStorageClient?.Object,
             _configuration,
             _mockedEmailSender.Object,
             _mockedUserRepository.Object);
@@ -84,10 +85,7 @@ public class UsersHttpTriggerBuilder
             _mockedEmailSender = new Mock<IEmailSender>();      
         }
         
-        if (_mockedStorageClient == null)
-        {
-            _mockedStorageClient = new Mock<IStorageClient>();       
-        }
+        // Mock for IStorageClient must be explicitly prepared
 
         if (_configuration == null)
         {

@@ -81,20 +81,6 @@ public class UsersHttpTriggerCtorTests : TestBase
             mockedUserRepository.Object));
     }
 
-    [Test]
-    public void Constructor_WithNullBlobServiceClient_ShouldThrowArgumentNullException()
-    {
-        // Arrange, Act & Assert
-        UserRepositoryFactory userRepositoryFactory = new UserRepositoryFactory();
-        var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
-
-        Assert.Throws<ArgumentNullException>(() => new UsersHttpTrigger(
-            _mockSpecificLogger.Object,
-            null!,
-            Configuration,
-            null!,
-            mockedUserRepository.Object));;
-    }
 
     [Test]
     public void Constructor_WithNullConfiguration_ShouldThrowArgumentNullException()

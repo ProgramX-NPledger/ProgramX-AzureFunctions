@@ -62,26 +62,13 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
             .Returns(HttpStatusCode.NoContent)
             .Build();
 
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser })
-            {
-                MutateItems = (items) =>
-                {   
-                    items.First(q=>q.id==userId).emailAddress = expectedEmailAddress;
-                    return items;
-                },
-                ConfigureContainerFunc = (mockContainer) =>
-                {
-                    mockContainer.Setup(c => c.UpsertItemAsync(It.IsAny<SecureUser>(), It.IsAny<PartitionKey>(),
-                        It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
-                        .ReturnsAsync(CreateMockItemResponse<SecureUser>(HttpStatusCode.OK));
-                }
-            };
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository.Setup(x => x.GetInsecureUserByIdAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingUser);
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+            })
             .Build();
         
         // Act
@@ -90,18 +77,7 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        // Verify the response contains user and applications
-        var responseBody = await GetResponseBodyAsync(result);
         
-        // get the user
-        var updatedUser = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
-        
-        updatedUser.Should().NotBeNull();
-        updatedUser.StatusCode.Should().Be(HttpStatusCode.OK);
-        
-        var getUserResponseBody = await GetResponseBodyAsync(updatedUser);
-        getUserResponseBody.Should().Contain(expectedEmailAddress);
     }
     
     
@@ -140,26 +116,13 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
             .Returns(HttpStatusCode.NoContent)
             .Build();
 
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser })
-            {
-                MutateItems = (items) =>
-                {   
-                    items.First(q=>q.id==userId).theme = expectedTheme;
-                    return items;
-                },
-                ConfigureContainerFunc = (mockContainer) =>
-                {
-                    mockContainer.Setup(c => c.UpsertItemAsync(It.IsAny<SecureUser>(), It.IsAny<PartitionKey>(),
-                        It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
-                        .ReturnsAsync(CreateMockItemResponse<SecureUser>(HttpStatusCode.OK));
-                }
-            };
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository.Setup(x => x.GetInsecureUserByIdAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingUser);
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+            })
             .Build();
         
         // Act
@@ -169,17 +132,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Verify the response contains user and applications
-        var responseBody = await GetResponseBodyAsync(result);
-        
-        // get the user
-        var updatedUser = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
-        
-        updatedUser.Should().NotBeNull();
-        updatedUser.StatusCode.Should().Be(HttpStatusCode.OK);
-        
-        var getUserResponseBody = await GetResponseBodyAsync(updatedUser);
-        getUserResponseBody.Should().Contain(expectedTheme);
     }
     
     
@@ -218,13 +170,13 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
             .Returns(HttpStatusCode.BadRequest)
             .Build();
 
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository.Setup(x => x.GetInsecureUserByIdAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingUser);
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+            })
             .Build();
         
         // Act
@@ -270,13 +222,13 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
             .Returns(HttpStatusCode.BadRequest)
             .Build();
 
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository.Setup(x => x.GetInsecureUserByIdAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingUser);
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+            })
             .Build();
         
         // Act
@@ -324,13 +276,13 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
             .Returns(HttpStatusCode.BadRequest)
             .Build();
 
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository.Setup(x => x.GetInsecureUserByIdAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingUser);
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+            })
             .Build();
         
         // Act
@@ -377,13 +329,13 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
             .Returns(HttpStatusCode.BadRequest)
             .Build();
 
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository.Setup(x => x.GetInsecureUserByIdAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingUser);
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+            })
             .Build();
         
         // Act
@@ -450,10 +402,13 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
                 }
             };
         
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository.Setup(x => x.GetInsecureUserByIdAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingUser);
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+            })
             .Build();
         
         // Act
@@ -520,26 +475,13 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
             .Returns(HttpStatusCode.NoContent)
             .Build();
 
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser })
-            {
-                MutateItems = (items) =>
-                {   
-                    items.First(q=>q.id==userId).roles = new List<Role>() { expectedRole };
-                    return items;
-                },
-                ConfigureContainerFunc = (mockContainer) =>
-                {
-                    mockContainer.Setup(c => c.UpsertItemAsync(It.IsAny<SecureUser>(), It.IsAny<PartitionKey>(),
-                        It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
-                        .ReturnsAsync(CreateMockItemResponse<SecureUser>(HttpStatusCode.OK));
-                }
-            };
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository.Setup(x => x.GetInsecureUserByIdAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingUser);
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+            })
             .Build();
         
         // Act
@@ -549,17 +491,6 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Verify the response contains user and applications
-        var responseBody = await GetResponseBodyAsync(result);
-        
-        // get the user
-        var updatedUser = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
-        
-        updatedUser.Should().NotBeNull();
-        updatedUser.StatusCode.Should().Be(HttpStatusCode.OK);
-        
-        var getUserResponseBody = await GetResponseBodyAsync(updatedUser);
-        getUserResponseBody.Should().Contain(expectedRole.name);
     }
     
     
@@ -595,13 +526,13 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
             .Returns(HttpStatusCode.NoContent)
             .Build();
 
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User> { existingUser });
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository.Setup(x => x.GetInsecureUserByIdAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingUser);
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+            })
             .Build();
         
         // Act

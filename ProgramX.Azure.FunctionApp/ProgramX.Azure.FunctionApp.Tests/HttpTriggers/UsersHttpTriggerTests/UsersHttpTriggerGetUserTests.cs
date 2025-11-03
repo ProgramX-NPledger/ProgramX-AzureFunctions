@@ -175,7 +175,8 @@ public class UsersHttpTriggerGetUserTests
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                var mockResult = new Mock<IResult<SecureUser>>();
+                var mockResult = new Mock<IPagedResult<SecureUser>>();
+                mockResult.Setup(x => x.Items).Returns(users);
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
                     .ReturnsAsync(mockResult.Object);
@@ -229,7 +230,8 @@ public class UsersHttpTriggerGetUserTests
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                var mockResult = new Mock<IResult<SecureUser>>();
+                var mockResult = new Mock<IPagedResult<SecureUser>>();
+                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.userName.Contains("john")));;
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
                     .ReturnsAsync(mockResult.Object);
@@ -288,7 +290,8 @@ public class UsersHttpTriggerGetUserTests
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                var mockResult = new Mock<IResult<SecureUser>>();
+                var mockResult = new Mock<IPagedResult<SecureUser>>();
+                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.roles.Any(qq=>qq.name == "Admin")));;
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
                     .ReturnsAsync(mockResult.Object);
@@ -360,7 +363,8 @@ public class UsersHttpTriggerGetUserTests
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                var mockResult = new Mock<IResult<SecureUser>>();
+                var mockResult = new Mock<IPagedResult<SecureUser>>();
+                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.roles.Where((qq=>qq.applications.Any(qqq=>qqq.name == "Another App"))).Any()));;
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
                     .ReturnsAsync(mockResult.Object);

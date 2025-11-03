@@ -26,13 +26,13 @@ namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 {
     private readonly ILogger<UsersHttpTrigger> _logger;
-    private readonly IStorageClient _storageClient;
+    private readonly IStorageClient? _storageClient;
     private readonly IEmailSender _emailSender;
     private readonly IUserRepository _userRepository;
 
  
     public UsersHttpTrigger(ILogger<UsersHttpTrigger> logger,
-        IStorageClient storageClient,
+        IStorageClient? storageClient,
         IConfiguration configuration,
         IEmailSender emailSender,
         IUserRepository userRepository) : base(configuration)
@@ -40,7 +40,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         if (configuration==null) throw new ArgumentNullException(nameof(configuration));
         
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _storageClient = storageClient ?? throw new ArgumentNullException(nameof(storageClient));
+        _storageClient = storageClient;
         _emailSender = emailSender;
         _userRepository = userRepository;
     }
@@ -93,20 +93,17 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
             else
             {
-                var users = await _userRepository.GetUsersAsync(new GetUsersCriteria()
-                {
-                    Id = id
-                });
-                if (!users.Items.Any())
+                var user = await _userRepository.GetUserByIdAsync(id);
+                if (user==null)
                 {
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
                 }
                 
-                List<Application> applications = users.Items.Single().roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
+                List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
                 {
-                    user = users.Items.Single(),
+                    user,
                     applications,
                     profilePhotoBase64 = string.Empty
                 });
@@ -311,7 +308,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             var user = await _userRepository.GetUserByIdAsync(id);
             if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
 
-            var storageFolder = await _storageClient.GetStorageFolderAsync(BlobConstants.AvatarImagesBlobName);
+            var storageFolder = await _storageClient!.GetStorageFolderAsync(BlobConstants.AvatarImagesBlobName);
 
             httpRequestData.Body.Position = 0;
             var multipartReader = new MultipartReader(boundary, httpRequestData.Body);
@@ -374,11 +371,11 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateProfilePhotoResponse()
             {
                 photoUrl = thumbnailImageUri,
-                errorMessage = null,
-                isOk = true,
-                bytesTransferred = 0,
-                httpEventType = HttpEventType.Response,
-                totalBytesToTransfer = 0
+                ErrorMessage = null,
+                IsOk = true,
+                BytesTransferred = 0,
+                HttpEventType = HttpEventType.Response,
+                TotalBytesToTransfer = 0
             });
             
         });
