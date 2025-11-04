@@ -78,18 +78,15 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
             }
             else
             {
-                var applications = await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria()
-                {
-                    ApplicationName = name
-                });
-                if (!applications.Items.Any())
+                var application = await _userRepository.GetApplicationByNameAsync(name);
+                if (application==null)
                 {
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
                 }
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
                 {
-                    application = applications.Items.Single(),
+                    application
                 });
             }
         });

@@ -196,7 +196,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             DataConstants.UserNamePartitionKeyPath);
         result = await cosmosReader.GetItemsAsync(queryDefinition);
         
-        return result.Items.SingleOrDefault()?.roles.SelectMany(q=>q.applications).SingleOrDefault(q=>q.name == name);
+        return result.Items.FirstOrDefault()?.roles.SelectMany(q=>q.applications).FirstOrDefault(q=>q.name == name);
     }
 
     public async Task UpdateUserAsync(SecureUser user)

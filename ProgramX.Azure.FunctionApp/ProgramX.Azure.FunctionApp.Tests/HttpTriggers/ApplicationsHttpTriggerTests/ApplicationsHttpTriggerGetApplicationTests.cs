@@ -3,7 +3,9 @@ using System.Net;
 using FluentAssertions;
 using Microsoft.Azure.Functions.Worker.Http;
 using Moq;
+using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
+using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.ApplicationsHttpTriggerTests;
@@ -136,13 +138,41 @@ public class ApplicationsHttpTriggerGetApplicationTests
             {
                 id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "user1"
+                userName = "user1",
+                roles = new List<Role>
+                {
+                    new Role()
+                    {
+                        applications = new List<Application>()
+                        {
+                            new Application
+                            {
+                                name = "Admin Application",
+                                targetUrl = ""
+                            }
+                        }
+                    }
+                }
             },
             new SecureUser
             {
                 id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2"
+                userName = "user2",
+                roles = new List<Role>
+                {
+                    new Role()
+                    {
+                        applications = new List<Application>()
+                        {
+                            new Application
+                            {
+                                name = "A different Application",
+                                targetUrl = ""
+                            }
+                        }
+                    }
+                }
             }
         };
         
@@ -154,8 +184,17 @@ public class ApplicationsHttpTriggerGetApplicationTests
         var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                mockUserRepository.Setup(x => x.GetApplicationByNameAsync(It.IsAny<string>()))
-                    .ReturnsAsync((Application)null!);
+                var mockResult = new Mock<IPagedResult<Application>>();
+                mockResult.SetupGet(x => x.Items)
+                    .Returns(
+                        users.SelectMany(q =>
+                            q.roles.SelectMany(qq =>
+                                qq.applications
+                            )
+                        ));
+                
+                mockUserRepository.Setup(x => x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(),It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(mockResult.Object);
             })
             .Build();
         
@@ -167,8 +206,8 @@ public class ApplicationsHttpTriggerGetApplicationTests
         result.StatusCode.Should().Be(HttpStatusCode.OK);
     
         var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().Contain("user1");
-        responseBody.Should().Contain("user2");
+        responseBody.Should().Contain("Admin Application");
+        
     }
     
     [Test]
@@ -181,13 +220,43 @@ public class ApplicationsHttpTriggerGetApplicationTests
             {
                 id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "john"
+                userName = "john",
+                roles = new List<Role>()
+                {
+                    new Role()
+                    {
+                        name = "Admin",
+                        applications = new List<Application>()
+                        {
+                            new Application
+                            {
+                                name = "Admin Application",
+                                targetUrl = ""
+                            }
+                        }
+                    }
+                }
             },
             new SecureUser
             {
                 id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2"
+                userName = "user2",
+                roles = new List<Role>()
+                {
+                    new Role()
+                    {
+                        name = "Admin",
+                        applications = new List<Application>()
+                        {
+                            new Application
+                            {
+                                name = "john",
+                                targetUrl = ""
+                            }
+                        }
+                    }
+                }
             }
         };
         
@@ -206,8 +275,19 @@ public class ApplicationsHttpTriggerGetApplicationTests
         var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                mockUserRepository.Setup(x => x.GetApplicationByNameAsync(It.IsAny<string>()))
-                    .ReturnsAsync((Application)null!);
+                var mockResult = new Mock<IPagedResult<Application>>();
+                mockResult.SetupGet(x => x.Items)
+                    .Returns(
+                        users.SelectMany(q =>
+                            q.roles.SelectMany(qq =>
+                                qq.applications.Where(qqq =>
+                                    qqq.name.Contains("john")
+                                )
+                            )
+                        ));
+                
+                mockUserRepository.Setup(x => x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(),It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(mockResult.Object);
             })
             .Build();
 
@@ -219,7 +299,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
         result.StatusCode.Should().Be(HttpStatusCode.OK);
     
         var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().Contain("user1@example.com");
+        responseBody.Should().Contain("john");
         responseBody.Should().NotContain("user2@example.com");
     }
     
@@ -237,14 +317,42 @@ public class ApplicationsHttpTriggerGetApplicationTests
                 id = "user1",
                 emailAddress = "user1@example.com",
                 userName = "john",
-                roles = new List<Role> { adminRole, guestRole }
+                roles = new List<Role>()
+                {
+                    new Role()
+                    {
+                        name = "Role1",
+                        applications = new List<Application>()
+                        {
+                            new Application
+                            {
+                                name = "Admin Application",
+                                targetUrl = ""
+                            }
+                        }
+                    }
+                }
             },
             new SecureUser
             {
                 id = "user2",
                 emailAddress = "user2@example.com",
                 userName = "user2",
-                roles = new List<Role> { guestRole }
+                roles = new List<Role>()
+                {
+                    new Role()
+                    {
+                        name = "Role2",
+                        applications = new List<Application>()
+                        {
+                            new Application
+                            {
+                                name = "john",
+                                targetUrl = ""
+                            }
+                        }
+                    }
+                }
             }
         };
         
@@ -255,7 +363,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
             {
                 {
                     "withRoles",
-                    "Admin"
+                    "Role1"
                 }
             })
             .Build();
@@ -263,8 +371,19 @@ public class ApplicationsHttpTriggerGetApplicationTests
         var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                mockUserRepository.Setup(x => x.GetApplicationByNameAsync(It.IsAny<string>()))
-                    .ReturnsAsync((Application)null!);
+                var mockResult = new Mock<IPagedResult<Application>>();
+                mockResult.SetupGet(x => x.Items)
+                    .Returns(
+                        users.SelectMany(q =>
+                            q.roles.SelectMany(qq =>
+                                qq.applications.Where(qqq =>
+                                    qqq.name.Contains("Admin Application")
+                                )
+                            )
+                        ));
+                
+                mockUserRepository.Setup(x => x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(),It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(mockResult.Object);
             })
             .Build();
 
@@ -276,8 +395,8 @@ public class ApplicationsHttpTriggerGetApplicationTests
         result.StatusCode.Should().Be(HttpStatusCode.OK);
     
         var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().Contain("user1");
-        responseBody.Should().NotContain("user2");
+        responseBody.Should().Contain("Admin Application");
+        responseBody.Should().NotContain("john");
         
     }
     
