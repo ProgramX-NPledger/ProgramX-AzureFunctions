@@ -110,6 +110,39 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         });
     }
 
+    
+    [Function(nameof(CreateRole))]
+    public async Task<HttpResponseData> CreateRole(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "role")] HttpRequestData httpRequestData
+    )
+    {
+        return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
+        {
+            var createRoleRequest =
+                await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateRoleRequest>(httpRequestData);
+            if (createRoleRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
+
+            var allApplications = await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria()
+            {
+                ApplicationNames = createRoleRequest.addToApplications
+            });
+
+            var newRole = new Role()
+            {
+                name = createRoleRequest.name,
+                description = createRoleRequest.description,
+                applications = allApplications.Items,
+                schemaVersionNumber = 2,
+                createdAt = DateTime.UtcNow,
+                updatedAt = DateTime.UtcNow,
+            };
+
+            await _userRepository.CreateRoleAsync(newRole, createRoleRequest.addToUsers);
+
+            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newRole, "role", newRole.name);    
+        });
+     }
+    
 
     
     private IEnumerable<UrlAccessiblePage> CalculatePageUrls(IPagedResult<Role> cosmosPagedResult, 
@@ -176,71 +209,6 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 
         return sb.ToString();
     }
-    
-    
-    
-
-    [Function(nameof(CreateRole))]
-    public async Task<HttpResponseData> CreateRole(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "role")]
-        HttpRequestData httpRequestData
-    )
-    {
-        return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
-        {
-            var createRoleRequest = await httpRequestData.ReadFromJsonAsync<CreateRoleRequest>();
-            if (createRoleRequest==null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
-
-            // get all users that were selected for the role
-            var usersCosmosDbReader =
-                new PagedCosmosDbReader<User>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-            
-            var usersQueryDefinition= new QueryDefinition("SELECT * from u "); // TODO: Limit to addToUsers
-            var users = await usersCosmosDbReader.GetNextItemsAsync(usersQueryDefinition,null,null);
-            
-            var allUsers = users.Items.ToList(); // avoid multiple enumeration
-            
-            // get all applications that were selected for the role
-            var applicationsCosmosDbReader =
-                new PagedCosmosDbReader<Application>(_cosmosClient, DataConstants.CoreDatabaseName, DataConstants.UsersContainerName, DataConstants.UserNamePartitionKeyPath);
-            
-            var applicationsQueryDefinition= new QueryDefinition("SELECT a.name, a.description, a.imageUrl, a.targetUrl, a.isDefaultApplicationOnLogin, a.ordinal, a.type, a.schemeVersionNumber FROM c JOIN a IN c.roles.applications"); // TODO: fix SQL
-            var applications = await applicationsCosmosDbReader.GetNextItemsAsync(applicationsQueryDefinition,null,null);
-            
-            var allApplications = applications.Items.ToList(); // avoid multiple enumeration
-            
-            // create the role
-            var newRole = new Role()
-            {
-                name = createRoleRequest.name,
-                description = createRoleRequest.description,
-                applications = allApplications.Where(q=>createRoleRequest.addToApplications.Contains(q.name)),
-                schemaVersionNumber = 2,
-                createdAt = DateTime.UtcNow,
-                updatedAt = DateTime.UtcNow,
-            };
-
-            List<string> userUpdateErrors = new List<string>();
-            foreach (var user in allUsers)
-            {
-                List<Role> roles = new List<Role>(user.roles);
-                roles.Add(newRole);
-                user.roles = roles;
-                var response = await _container.ReplaceItemAsync(user,user.id);
-                if (response.StatusCode != HttpStatusCode.OK)
-                {
-                    userUpdateErrors.Add($"{user.userName}: {response.StatusCode}");
-                }
-            }
-            
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
-            {
-                userUpdateErrors,
-                role = newRole
-            });
-        });
-     }
-    
     
     
 }

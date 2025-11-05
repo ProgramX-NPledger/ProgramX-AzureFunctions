@@ -92,4 +92,12 @@ public interface IUserRepository
     /// </summary>
     /// <param name="user">User to create.</param>
     Task CreateUserAsync(User user);
+
+    /// <summary>
+    /// Creates the specified role and adds to the specified users.
+    /// </summary>
+    /// <param name="role">Role to create.</param>
+    /// <param name="usersInRoles">List of usernames of users to add to Role.</param>
+    Task CreateRoleAsync(Role role, IEnumerable<string> usersInRoles);
+
 }

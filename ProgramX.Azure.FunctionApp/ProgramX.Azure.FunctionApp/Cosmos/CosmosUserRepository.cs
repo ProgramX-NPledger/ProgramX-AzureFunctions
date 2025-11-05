@@ -199,6 +199,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         return result.Items.FirstOrDefault()?.roles.SelectMany(q=>q.applications).FirstOrDefault(q=>q.name == name);
     }
 
+    /// <inheritdoc />
     public async Task UpdateUserAsync(SecureUser user)
     {
         var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
@@ -211,6 +212,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         }
     }
 
+    /// <inheritdoc />
     public async Task CreateUserAsync(User user)
     {
         var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
@@ -221,6 +223,29 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             logger.LogError("Failed to create user",response.StatusCode,response);
             throw new RepositoryException(OperationType.Create,typeof(User));;
         }
+    }
+    
+    
+    /// <inheritdoc />
+    public async Task CreateRoleAsync(Role role, IEnumerable<string> usersInRoles)
+    {
+        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        
+        // get all users in the role
+        var users = await GetUsersAsync(
+            new GetUsersCriteria()
+            {
+                UserNames = usersInRoles
+            });
+        
+        // add role to each user
+        foreach (var user in users.Items)
+        {
+            ((List<Role>)user.roles).Add(role);
+            var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+            
+        }
+            
     }
 
     private QueryDefinition BuildQueryDefinitionForApplications(GetApplicationsCriteria criteria)
@@ -256,6 +281,20 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             sb.Append($" AND ({string.Join(" OR ", conditions)})");
         }
 
+        if (criteria.ApplicationNames != null && criteria.ApplicationNames.Any())
+        {
+            var conditions = new List<string>();
+            var applicationsList = criteria.ApplicationNames.ToList();
+        
+            for (int i = 0; i < applicationsList.Count; i++)
+            {
+                conditions.Add(@$"EXISTS(SELECT VALUE a FROM a IN c.roles JOIN a IN r.applications WHERE a.name = @appname{i})");
+                parameters.Add(($"@appname{i}", applicationsList[i]));
+            }
+        
+            sb.Append($" AND ({string.Join(" OR ", conditions)})");
+        }
+        
         sb.Append(" GROUP BY a.name, a.description, a.imageUrl, a.targetUrl, a.type, a.schemaVersionNumber, a.isDefaultApplicationOnLogin, a.ordinal, a.createdAt,a.updatedAt");
         
         var queryDefinition = new QueryDefinition(sb.ToString());
@@ -365,6 +404,20 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             {
                 conditions.Add(@$"EXISTS(SELECT VALUE r FROM r IN c.roles JOIN a IN r.applications WHERE a.name = @appname{i})");
                 parameters.Add(($"@appname{i}", applicationsList[i]));
+            }
+        
+            sb.Append($" AND ({string.Join(" OR ", conditions)})");
+        }
+        
+        if (criteria.UserNames != null && criteria.UserNames.Any())
+        {
+            var conditions = new List<string>();
+            var usersList = criteria.UserNames.ToList();
+        
+            for (int i = 0; i < usersList.Count; i++)
+            {
+                conditions.Add(@$"EXISTS(SELECT VALUE u FROM u WHERE a.name = @username{i})");
+                parameters.Add(($"@username{i}", usersList[i]));
             }
         
             sb.Append($" AND ({string.Join(" OR ", conditions)})");

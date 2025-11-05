@@ -19,4 +19,9 @@ public class GetApplicationsCriteria
     /// A list of names of Roles that the Application is used in.
     /// </summary>
     public IEnumerable<string>? WithinRoles { get; set; }
+
+    /// <summary>
+    /// A list of Application Names to retrieve.
+    /// </summary>
+    public IEnumerable<string>? ApplicationNames { get; set; }
 }
