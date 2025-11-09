@@ -17,6 +17,7 @@ using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Constants;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
+using ProgramX.Azure.FunctionApp.Model.Exceptions;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using User = ProgramX.Azure.FunctionApp.Model.User;
@@ -111,6 +112,17 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     }
 
     
+    /// <summary>
+    /// Create a Role.
+    /// </summary>
+    /// <param name="httpRequestData"></param>
+    /// <returns></returns>
+    /// <response code="201">Role created.</response>
+    /// <response code="400">Invalid request body.</response>
+    /// <response code="409">Role already exists.</response>
+    /// <response code="500">Internal server error.</response>
+    /// <response code="401">Unauthorized.</response>
+    /// <response code="403">Forbidden.</response>
     [Function(nameof(CreateRole))]
     public async Task<HttpResponseData> CreateRole(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "role")] HttpRequestData httpRequestData
@@ -137,13 +149,69 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                 updatedAt = DateTime.UtcNow,
             };
 
-            await _userRepository.CreateRoleAsync(newRole, createRoleRequest.addToUsers);
+            try
+            {
+                await _userRepository.CreateRoleAsync(newRole, createRoleRequest.addToUsers);
+            }
+            catch (RepositoryException e)
+            {
+                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, e.Message);           
+            }
 
             return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newRole, "role", newRole.name);    
         });
      }
     
+    
+    
+    [Function(nameof(UpdateRole))]
+    public async Task<HttpResponseData> UpdateRole(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "role/{id}")]
+        HttpRequestData httpRequestData,
+        string id)
+    {
+        return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
+        {
+            var updateRoleRequest =
+                await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateRoleRequest>(httpRequestData);
+            if (updateRoleRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
+            var role = await _userRepository.GetRoleByNameAsync(id);
+            if (role == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
+            
+            role.name=updateRoleRequest.name!;
+            role.description = updateRoleRequest.decription!;
+
+            var applications=await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria());
+            role.applications = applications.Items.Where(q => updateRoleRequest.applications.Contains(q.name)).OrderBy(q => q.name).ToList();
+
+            await _userRepository.UpdateRoleAsync(id,role);
+
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateRoleResponse()
+            {
+                Name = role.name,
+                ErrorMessage = null,
+                IsOk = true
+            });
+        });
+    }
+    
+
+    
+    [Function(nameof(DeleteRole))]
+    public async Task<HttpResponseData> DeleteRole(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "role/{id}")]
+        HttpRequestData httpRequestData,
+        string id)
+    {
+        return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
+        {
+            var role = await _userRepository.GetRoleByNameAsync(id);
+            if (role == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
+            await _userRepository.DeleteRoleByIdAsync(id);
+            return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
+        });
+    }
     
     private IEnumerable<UrlAccessiblePage> CalculatePageUrls(IPagedResult<Role> cosmosPagedResult, 
         string baseUrl, 

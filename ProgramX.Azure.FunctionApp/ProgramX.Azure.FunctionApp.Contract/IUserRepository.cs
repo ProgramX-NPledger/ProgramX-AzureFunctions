@@ -100,4 +100,24 @@ public interface IUserRepository
     /// <param name="usersInRoles">List of usernames of users to add to Role.</param>
     Task CreateRoleAsync(Role role, IEnumerable<string> usersInRoles);
 
+    /// <summary>
+    /// Gets a Role by their unique username.
+    /// </summary>
+    /// <param name="id">The ID of the role.</param>
+    /// <returns>The requested <see cref="Role"/>, or <c>null</c> if not found.</returns>
+    Task<Role?> GetRoleByNameAsync(string name);
+    
+    /// <summary>
+    /// Update the specified role.
+    /// </summary>
+    /// <param name="roleName">The Role Name of the role to update.</param>   
+    /// <param name="role">The <see cref="Role"/> to update.</param>
+    Task UpdateRoleAsync(string roleName, Role role);
+    
+    /// <summary>
+    /// Deletes the Role with the given name.
+    /// </summary>
+    /// <param name="roleName">The name of the role to delete.</param>
+    Task DeleteRoleByIdAsync(string roleName);
+    
 }

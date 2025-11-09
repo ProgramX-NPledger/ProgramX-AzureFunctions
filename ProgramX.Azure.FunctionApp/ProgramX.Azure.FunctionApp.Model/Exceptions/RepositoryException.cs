@@ -26,6 +26,12 @@ public class RepositoryException : ApplicationException
         OperationType = operationType;
         EntityType = entityType;
     }
+    
+    public RepositoryException(OperationType operationType, Type entityType, string message) : base($"Operation {operationType} of {entityType.Name} failed. {message}")
+    {
+        OperationType = operationType;
+        EntityType = entityType;
+    }
 
     public OperationType OperationType { get; }
     public Type? EntityType { get; }

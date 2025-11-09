@@ -1,8 +1,31 @@
 # Roles
 
-###
+### 
 # @name Create Role
-GET
+POST {{host}}/api/v1/role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "new-role",
+  "description": "Description",
+  "addToUsers": [
+    "nathan"
+  ],
+  "addToApplications": [
+  ]
+}
+
+###
+# @name Update Role
+PUT {{host}}/api/v1/role/new-role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "new-role2",
+  "description": "decription"
+}
 
 ###
 # @name Get Roles
@@ -22,6 +45,11 @@ Authorization: Bearer {{token}}
 ###
 # @name Get Role
 GET {{host}}/api/v1/role/admin-readwrite
+Authorization: Bearer {{token}}
+
+###
+# @name Delete Role
+DELETE {{host}}/api/v1/role/new-role2
 Authorization: Bearer {{token}}
 
 > {%

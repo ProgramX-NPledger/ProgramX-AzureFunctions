@@ -237,6 +237,11 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             {
                 UserNames = usersInRoles
             });
+        if (users.TotalCount == 0)
+        {
+            throw new RepositoryException(
+                $"No users found with usernames so cannot add Role: {string.Join(",", usersInRoles)}");
+        }
         
         // add role to each user
         foreach (var user in users.Items)
@@ -246,6 +251,66 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             
         }
             
+    }
+
+    public async Task<Role?> GetRoleByNameAsync(string name)
+    {
+        var roles = await GetRolesAsync(new GetRolesCriteria()
+        { 
+            RoleName = name,
+        });
+        return roles.Items.SingleOrDefault();
+        
+    }
+
+    public async Task UpdateRoleAsync(string roleName, Role role)
+    {
+        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        
+        var allUsersInRole = await GetUsersAsync(new GetUsersCriteria()
+        {
+            WithRoles = new List<string>() { roleName }
+        });
+
+        foreach (var user in allUsersInRole.Items)
+        {
+            Role innerRole = user.roles.SingleOrDefault(q=>q.name == roleName);
+            if (innerRole != null)
+            {
+                innerRole.name = role.name;
+                innerRole.description = role.description;
+                innerRole.applications = role.applications;
+                innerRole.updatedAt = role.updatedAt;
+            }
+            var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                logger.LogError("Failed to update user with id {id}",user.id,response.StatusCode,response);
+                throw new RepositoryException(OperationType.Update,typeof(SecureUser));
+            }
+        }
+    }
+
+    public async Task DeleteRoleByIdAsync(string roleName)
+    {
+        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        
+        var allUsersInRole = await GetUsersAsync(new GetUsersCriteria()
+        {
+            WithRoles = new List<string>() { roleName }
+        });
+
+        foreach (var user in allUsersInRole.Items)
+        {
+            user.roles = user.roles.Where(q => !q.name.Equals(roleName, StringComparison.InvariantCultureIgnoreCase)).ToList();
+            var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                logger.LogError("Failed to update user with id {id}",user.id,response.StatusCode,response);
+                throw new RepositoryException(OperationType.Update,typeof(SecureUser));
+            }
+        }
+
     }
 
     private QueryDefinition BuildQueryDefinitionForApplications(GetApplicationsCriteria criteria)
@@ -309,7 +374,10 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     private QueryDefinition BuildQueryDefinitionForRoles(GetRolesCriteria criteria)
     {
-        var sb = new StringBuilder("SELECT r.name, r.description, r.applications, r.type, r.schemaVersionNumber, r.createdAt,r.updatedAt FROM c JOIN r IN c.roles JOIN a IN r.applications WHERE 1=1");
+        var sb = new StringBuilder(@"SELECT r.name, r.description, r.applications, r.type, r.schemaVersionNumber, r.createdAt,r.updatedAt, ARRAY(SELECT VALUE a FROM a IN r.applications) 
+                                   FROM c 
+                                   JOIN r IN c.roles 
+                                   WHERE 1=1");
         var parameters = new List<(string name, object value)>();
         if (!string.IsNullOrWhiteSpace(criteria.RoleName))
         {
@@ -416,7 +484,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         
             for (int i = 0; i < usersList.Count; i++)
             {
-                conditions.Add(@$"EXISTS(SELECT VALUE u FROM u WHERE a.name = @username{i})");
+                conditions.Add(@$"EXISTS(SELECT VALUE c FROM c WHERE c.userName = @username{i})");
                 parameters.Add(($"@username{i}", usersList[i]));
             }
         
