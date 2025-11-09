@@ -307,6 +307,76 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         Assert.That(result, Is.Null);
     }
     
+    
+    [Test]
+    public async Task GetRoleByNameAsync_WithExistingName_ShouldReturnRole()
+    {
+        var users = base.CreateTestUsers(1).ToList();
+
+        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<SecureUser>(users)
+        {
+            ConfigureContainerFunc = (container =>
+            {
+                var mockFeedResponse = new Mock<FeedResponse<Role>>();
+                mockFeedResponse.SetupGet(x => x.Count).Returns(users.First().roles.Count());
+                mockFeedResponse.Setup(x => x.GetEnumerator()).Returns(users.First().roles.GetEnumerator());
+                
+                var mockFeedIterator = new Mock<FeedIterator<Role>>();
+                mockFeedIterator.Setup(x => x.ReadNextAsync(It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(mockFeedResponse.Object);
+                
+                container.Setup(x => x.GetItemQueryIterator<Role>(It.IsAny<QueryDefinition>(), It.IsAny<string>(),
+                        It.IsAny<QueryRequestOptions>()))
+                    .Returns(mockFeedIterator.Object);
+            }),
+            FilterItems = (items) => items.Where(q=>q.roles.First().name == users.First().roles.First().name)            
+        };
+        var mockCosmosClient = mockCosmosClientFactory.Create();
+
+        var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
+
+        var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
+        var result = await target.GetRoleByNameAsync(users.First().roles.First().name);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.name, Is.EqualTo(users.First().roles.First().name));
+    }
+    
+    
+    [Test]
+    public async Task GetRoleByIdAsync_WithNonExistentId_ShouldReturnNull()
+    {
+        var nonExistentId = "non-existent";
+
+        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<SecureUser>()
+        {
+            ConfigureContainerFunc = (container =>
+            {
+                var mockFeedResponse = new Mock<FeedResponse<Role>>();
+                mockFeedResponse.SetupGet(x => x.Count).Returns(0);
+                mockFeedResponse.Setup(x => x.GetEnumerator()).Returns(Enumerable.Empty<Role>().GetEnumerator());
+                
+                var mockFeedIterator = new Mock<FeedIterator<Role>>();
+                mockFeedIterator.SetupGet(x => x.HasMoreResults).Returns(false);
+                mockFeedIterator.Setup(x => x.ReadNextAsync(It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(mockFeedResponse.Object);
+                
+                container.Setup(x => x.GetItemQueryIterator<Role>(It.IsAny<QueryDefinition>(), It.IsAny<string>(),
+                        It.IsAny<QueryRequestOptions>()))
+                    .Returns(mockFeedIterator.Object);
+            })
+        };
+        var mockCosmosClient = mockCosmosClientFactory.Create();
+
+        var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
+
+        var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
+        var result = await target.GetRoleByNameAsync(nonExistentId);
+
+        Assert.That(result, Is.Null);
+    }
+
+    
     [Test]
     public async Task GetUserByUserNameAsync_WithExistingUserName_ShouldReturnUser()
     {
@@ -410,6 +480,60 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
         await target.DeleteUserByIdAsync(userIdToDelete);
+
+    }
+    
+    
+    [Test]
+    public void DeleteRoleByRoleNameAsync_WithErrorResponse_ShouldThrowException()
+    {
+        var users = base.CreateTestUsers(5).ToList();
+
+        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<SecureUser>(users)
+        {
+            ConfigureContainerFunc = (container) =>
+            {
+                var mockedItemResponse = new Mock<ItemResponse<SecureUser>>();
+                mockedItemResponse.SetupGet(x => x.StatusCode).Returns(System.Net.HttpStatusCode.BadRequest);
+
+                container.Setup(x => x.ReplaceItemAsync<SecureUser>(It.IsAny<SecureUser>(), It.IsAny<string>(),
+                        It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(mockedItemResponse.Object);
+            }
+        };
+        var mockCosmosClient = mockCosmosClientFactory.Create();
+
+        var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
+
+        var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
+        Assert.ThrowsAsync<RepositoryException>(async () => await target.DeleteRoleByIdAsync(users.First().roles.First().name));
+    }
+    
+    [Test]
+    public async Task DeleteRoleByRoleNameAsync_WithExistingId_ShouldSucceed()
+    {
+        var users = base.CreateTestUsers(5).ToList();
+        var roleNameToDelete = users.First().roles.First().name;
+        
+        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>()
+        {
+            MutateItems = (items) => items.Where(q=>q.id != roleNameToDelete),
+            ConfigureContainerFunc = (container) =>
+            {
+                var mockedItemResponse = new Mock<ItemResponse<User>>();
+                mockedItemResponse.SetupGet(x => x.StatusCode).Returns(System.Net.HttpStatusCode.NoContent);
+
+                container.Setup(q => q.DeleteItemAsync<User>(It.IsAny<string>(), It.IsAny<PartitionKey>(),
+                        It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(mockedItemResponse.Object);
+            }
+        };
+        var mockCosmosClient = mockCosmosClientFactory.Create();
+
+        var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
+
+        var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
+        await target.DeleteUserByIdAsync(roleNameToDelete);
 
     }
     
@@ -552,6 +676,111 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
         Assert.ThrowsAsync<RepositoryException>(async () =>
             await target.UpdateUserAsync(users.Single(q => q.id == userIdToUpdate)));
+    }
+    
+    
+    [Test]
+    public async Task UpdateRoleAsync_WithValidRole_ShouldSucceed()
+    {
+        var users = base.CreateTestUsers(1).ToList();
+        var roleNameToUpdate = users.First().roles.First().name;
+        
+        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<SecureUser>(users)
+        {
+            MutateItems = (items) => items.Where(q=>q.roles.Any(qq => qq.name==roleNameToUpdate)),
+            ConfigureContainerFunc = (container) =>
+            {
+                var mockFeedResponse = new Mock<FeedResponse<Role>>();
+                mockFeedResponse.SetupGet(x => x.Count).Returns(users.Count);
+                mockFeedResponse.Setup(x => x.GetEnumerator()).Returns(Enumerable.Empty<Role>().GetEnumerator());
+                
+                var mockFeedIterator = new Mock<FeedIterator<Role>>();
+                mockFeedIterator.SetupGet(x => x.HasMoreResults).Returns(true);
+                mockFeedIterator.Setup(x => x.ReadNextAsync(It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(mockFeedResponse.Object);
+                
+                var mockedItemResponse = new Mock<ItemResponse<SecureUser>>();
+                mockedItemResponse.SetupGet(x => x.StatusCode).Returns(System.Net.HttpStatusCode.OK);
+
+                container.Setup(q => q.ReplaceItemAsync<SecureUser>(It.IsAny<SecureUser>(), It.IsAny<string>(), It.IsAny<PartitionKey>(),
+                        It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(mockedItemResponse.Object);
+                container.Setup(x=>x.GetItemQueryIterator<Role>(It.IsAny<QueryDefinition>(),It.IsAny<string>(),It.IsAny<QueryRequestOptions>()))
+                    .Returns(mockFeedIterator.Object);
+            }
+        };
+        var mockCosmosClient = mockCosmosClientFactory.Create();
+
+        var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
+
+        var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
+        await target.UpdateRoleAsync(users.First().roles.Single().name,users.First().roles.Single(q=>q.name==roleNameToUpdate));
+    }
+    
+    [Test]
+    public async Task UpdateRoleAsync_WithErrorResponse_ShouldThrowException()
+    {
+        var users = base.CreateTestUsers(1).ToList();
+        var roleNameToUpdate = users.First().roles.First().name;
+        
+        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<SecureUser>(users)
+        {
+            MutateItems = (items) => items.Where(q=>q.id == roleNameToUpdate),
+            ConfigureContainerFunc = (container) =>
+            {
+                var mockFeedResponseOfRole = new Mock<FeedResponse<Role>>();
+                mockFeedResponseOfRole.SetupGet(x => x.Count).Returns(users.Count);
+                mockFeedResponseOfRole.Setup(x => x.GetEnumerator()).Returns(users.First().roles.GetEnumerator());
+                    
+                var mockFeedIteratorOfRole = new Mock<FeedIterator<Role>>();
+                mockFeedIteratorOfRole.SetupGet(x => x.HasMoreResults).Returns(false);
+                mockFeedIteratorOfRole.Setup(x => x.ReadNextAsync(It.IsAny<CancellationToken>()))
+                 .ReturnsAsync(mockFeedResponseOfRole.Object);
+                
+                var mockedItemResponse = new Mock<ItemResponse<SecureUser>>();
+                mockedItemResponse.SetupGet(x => x.StatusCode).Returns(System.Net.HttpStatusCode.BadRequest);
+
+                container.Setup(q => q.ReplaceItemAsync<SecureUser>(It.IsAny<SecureUser>(), It.IsAny<string>(), It.IsAny<PartitionKey>(),
+                        It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(mockedItemResponse.Object);
+            }
+        };
+        var mockCosmosClient = mockCosmosClientFactory.Create();
+
+        var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
+
+        var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
+        Assert.ThrowsAsync<RepositoryException>(async () =>
+            await target.UpdateRoleAsync(users.First().roles.Single().name,users.First().roles.Single(q=>q.name==roleNameToUpdate)));
+    }
+    
+    [Test]
+    public async Task UpdateRoleAsync_WithNonExistentRole_ShouldThrowException()
+    {
+        var nonExistentRoleName = "non-existent";
+        
+        var users = base.CreateTestUsers(1).ToList();
+        
+        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<SecureUser>()
+        {
+            // MutateItems = (items) => items.Where(q=>q.roles.Single(q=>q.name) == nonExistentRoleName),
+            // ConfigureContainerFunc = (container) =>
+            // {
+            //     var mockedItemResponse = new Mock<ItemResponse<SecureUser>>();
+            //     mockedItemResponse.SetupGet(x => x.StatusCode).Returns(System.Net.HttpStatusCode.NotFound);
+            //
+            //     container.Setup(q => q.ReplaceItemAsync<SecureUser>(It.IsAny<SecureUser>(), It.IsAny<string>(), It.IsAny<PartitionKey>(),
+            //             It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
+            //         .ReturnsAsync(mockedItemResponse.Object);
+            // }
+        };
+        var mockCosmosClient = mockCosmosClientFactory.Create();
+
+        var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
+
+        var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
+        Assert.ThrowsAsync<RepositoryException>(async () =>
+            await target.UpdateRoleAsync(nonExistentRoleName, users.First().roles.First()));
     }
     
     

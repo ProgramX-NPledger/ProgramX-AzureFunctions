@@ -271,6 +271,8 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         {
             WithRoles = new List<string>() { roleName }
         });
+        
+        if (allUsersInRole.TotalCount == 0) throw new RepositoryException(OperationType.Update,typeof(Role), $"No users found with role {roleName}");
 
         foreach (var user in allUsersInRole.Items)
         {
