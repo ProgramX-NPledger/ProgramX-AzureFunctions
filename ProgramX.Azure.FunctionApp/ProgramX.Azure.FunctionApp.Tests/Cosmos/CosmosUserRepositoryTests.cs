@@ -506,7 +506,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        Assert.ThrowsAsync<RepositoryException>(async () => await target.DeleteRoleByIdAsync(users.First().roles.First().name));
+        Assert.ThrowsAsync<RepositoryException>(async () => await target.DeleteRoleByNameAsync(users.First().roles.First().name));
     }
     
     [Test]

@@ -293,7 +293,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         }
     }
 
-    public async Task DeleteRoleByIdAsync(string roleName)
+    public async Task DeleteRoleByNameAsync(string roleName)
     {
         var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
         

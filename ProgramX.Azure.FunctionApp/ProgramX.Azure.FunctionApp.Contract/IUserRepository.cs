@@ -118,6 +118,6 @@ public interface IUserRepository
     /// Deletes the Role with the given name.
     /// </summary>
     /// <param name="roleName">The name of the role to delete.</param>
-    Task DeleteRoleByIdAsync(string roleName);
+    Task DeleteRoleByNameAsync(string roleName);
     
 }

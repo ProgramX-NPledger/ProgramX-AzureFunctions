@@ -1,18 +1,9 @@
-using System.Net;
 using System.Text;
-using JWT;
-using JWT.Algorithms;
-using JWT.Serializers;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Contract;
-using ProgramX.Azure.FunctionApp.Cosmos;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Constants;
@@ -20,28 +11,21 @@ using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.Exceptions;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
-using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 
 public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 {
     private readonly ILogger<RolesHttpTrigger> _logger;
-    private readonly CosmosClient _cosmosClient;
     private readonly IUserRepository _userRepository;
-    private readonly Container _container;
 
  
     public RolesHttpTrigger(ILogger<RolesHttpTrigger> logger,
-        CosmosClient cosmosClient, 
         IConfiguration configuration,
         IUserRepository userRepository) : base(configuration)
     {
         _logger = logger;
-        _cosmosClient = cosmosClient;
         _userRepository = userRepository;
-
-        _container = _cosmosClient.GetContainer("core", "roles");
     }
  
     
@@ -208,7 +192,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         {
             var role = await _userRepository.GetRoleByNameAsync(id);
             if (role == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
-            await _userRepository.DeleteRoleByIdAsync(id);
+            await _userRepository.DeleteRoleByNameAsync(id);
             return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
         });
     }
