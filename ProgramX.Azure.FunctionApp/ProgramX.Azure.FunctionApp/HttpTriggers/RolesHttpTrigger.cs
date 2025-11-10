@@ -86,7 +86,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
                 {
-                    role = roles.Items.Single(),
+                    role = roles.Items.First(),
                     allUsers = allUsers.Items,
                     usersInRole,
                     allApplications.Items

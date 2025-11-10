@@ -1,7 +1,9 @@
 using System.Net;
 using FluentAssertions;
 using Moq;
+using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
+using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
 
@@ -47,9 +49,15 @@ public class RolesHttpTriggerUpdateRoleTests : TestBase
             .Returns(HttpStatusCode.NoContent)
             .Build();
 
-        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+        var rolesHttpTrigger = new RolesHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
+                var mockApplicationsResult = new Mock<IResult<Application>>();
+                mockApplicationsResult.SetupGet(x => x.Items).Returns(new List<Application>());
+                
+                mockUserRepository.Setup(x =>
+                    x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(), It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(mockApplicationsResult.Object);
                 mockUserRepository.Setup(x => x.GetRoleByNameAsync(It.IsAny<string>()))
                     .ReturnsAsync(existingRole);
                 mockUserRepository.Setup(x => x.UpdateRoleAsync(It.IsAny<string>(),It.IsAny<Role>()));
@@ -57,7 +65,7 @@ public class RolesHttpTriggerUpdateRoleTests : TestBase
             .Build();
         
         // Act
-        var result = await usersHttpTrigger.UpdateUser(testableHttpRequestData, roleName);
+        var result = await rolesHttpTrigger.UpdateRole(testableHttpRequestData, roleName);
 
         // Assert
         result.Should().NotBeNull();

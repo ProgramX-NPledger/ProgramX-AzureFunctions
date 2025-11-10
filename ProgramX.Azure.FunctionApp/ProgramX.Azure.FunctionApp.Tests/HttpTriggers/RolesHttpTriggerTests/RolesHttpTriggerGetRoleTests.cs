@@ -95,6 +95,9 @@ public class RolesHttpTriggerGetRoleTests
                     .ReturnsAsync(mockIResult.Object);
                 mockUserRepository.Setup(x => x.GetRoleByNameAsync(It.IsAny<string>()))
                     .ReturnsAsync(expectedRole);
+                mockUserRepository.Setup(x =>
+                        x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(), It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(new Mock<IPagedResult<Application>>().Object);
             })
             .Build();
         
@@ -112,10 +115,10 @@ public class RolesHttpTriggerGetRoleTests
     }
     
     [Test]
-    public async Task GetUser_WithNonExistentId_ShouldReturnNotFound()
+    public async Task GetRole_WithNonExistentId_ShouldReturnNotFound()
     {
         // Arrange
-        const string roleName = "non-existent-user";
+        const string roleName = "non-existent-role";
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
         var testableHttpRequestData = testableHttpRequestDataFactory.Create()
@@ -126,8 +129,15 @@ public class RolesHttpTriggerGetRoleTests
         var rolesHttpTrigger = new RolesHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
-                    .ReturnsAsync(null as SecureUser);
+                mockUserRepository.Setup(x => x.GetRolesAsync(It.IsAny<GetRolesCriteria>(),It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(new Mock<IPagedResult<Role>>().Object);
+                mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(new Mock<IPagedResult<SecureUser>>().Object);
+                mockUserRepository.Setup(x => x.GetRoleByNameAsync(It.IsAny<string>()))
+                    .ReturnsAsync(null as Role);
+                mockUserRepository.Setup(x => x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(), It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(new Mock<IPagedResult<Application>>().Object);
+                mockUserRepository.Setup(x => x.GetUsersInRole(It.IsAny<string>(), It.IsAny<IEnumerable<SecureUser>>())).Returns(new List<SecureUser>());
             })
             .Build();        
         // Act
@@ -161,7 +171,7 @@ public class RolesHttpTriggerGetRoleTests
     
     
     [Test]
-    public async Task GetUser_WithInvalidAuthentication_ShouldReturnUnauthorized()
+    public async Task GetRole_WithInvalidAuthentication_ShouldReturnUnauthorized()
     {
         // Arrange
         const string roleName = "test-role-123";
