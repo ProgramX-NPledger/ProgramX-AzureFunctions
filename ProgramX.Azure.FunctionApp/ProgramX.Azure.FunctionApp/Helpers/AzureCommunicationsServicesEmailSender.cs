@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Azure;
 using Azure.Communication.Email;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +23,7 @@ public class AzureCommunicationsServicesEmailSender : Contract.IEmailSender
         _emailClient = emailClient;
     }
 
+    [ExcludeFromCodeCoverage]
     public async Task SendEmailAsync(ProgramX.Azure.FunctionApp.Model.EmailMessage emailMessage)
     {
         var emailContent = new EmailContent(emailMessage.Subject)

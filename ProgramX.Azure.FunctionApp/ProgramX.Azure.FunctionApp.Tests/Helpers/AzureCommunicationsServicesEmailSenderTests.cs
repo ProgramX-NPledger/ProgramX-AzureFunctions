@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Azure;
 using Azure.Communication.Email;
 using Microsoft.Extensions.Configuration;
@@ -41,5 +42,6 @@ public class AzureCommunicationsServicesEmailSenderTests
 
     // no tests for SendEmailAsync as it is a wrapper around EmailClient.SendAsync which has a non-settable Status output and
     // cannot be mocked
+
 
 }
