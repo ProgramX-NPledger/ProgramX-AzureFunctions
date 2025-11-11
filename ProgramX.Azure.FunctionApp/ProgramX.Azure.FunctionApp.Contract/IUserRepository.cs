@@ -101,6 +101,13 @@ public interface IUserRepository
     Task CreateRoleAsync(Role role, IEnumerable<string> usersInRoles);
 
     /// <summary>
+    /// Creates the specified Applicaation and adds to the specified Roles.
+    /// </summary>
+    /// <param name="application">Application to create.</param>
+    /// <param name="withinRoles">List of Role names to add Application to.</param>
+    Task CreateApplicationAsync(Application application, IEnumerable<string> withinRoles);
+    
+    /// <summary>
     /// Gets a Role by their unique username.
     /// </summary>
     /// <param name="id">The ID of the role.</param>
@@ -111,13 +118,27 @@ public interface IUserRepository
     /// Update the specified role.
     /// </summary>
     /// <param name="roleName">The Role Name of the role to update.</param>   
-    /// <param name="role">The <see cref="Role"/> to update.</param>
+    /// <param name="role">The updated <see cref="Role"/>.</param>
     Task UpdateRoleAsync(string roleName, Role role);
+    
+    /// <summary>
+    /// Update the specified Application.
+    /// </summary>
+    /// <param name="applicationName">The Application Name of the Application to update.</param>   
+    /// <param name="application">The updated <see cref="Application"/>.</param>
+    Task UpdateApplicationAsync(string applicationName, Application application);
     
     /// <summary>
     /// Deletes the Role with the given name.
     /// </summary>
     /// <param name="roleName">The name of the role to delete.</param>
     Task DeleteRoleByNameAsync(string roleName);
+    
+    
+    /// <summary>
+    /// Deletes the Application with the given name.
+    /// </summary>
+    /// <param name="applicationName">The name of the Application to delete.</param>
+    Task DeleteApplicationByNameAsync(string applicationName);
     
 }

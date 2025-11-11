@@ -19,6 +19,13 @@ public class HttpResponseDataFactory
         return httpResponseData;
     }
     
+    public static async Task<HttpResponseData> CreateForConflict(HttpRequestData httpRequestData, string errorMessage)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Conflict);
+        await httpResponseData.WriteStringAsync(errorMessage);
+        return httpResponseData;
+    }
+
     public static async Task<HttpResponseData> CreateForServerError(HttpRequestData httpRequestData, string errorMessage)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.InternalServerError);

@@ -10,7 +10,7 @@ public class Application
     public required string targetUrl { get; set; }
     public string type { get; } = "application";
 
-    public int schemaVersionNumber { get; } = 1;
+    public int schemaVersionNumber { get; set;  } = 1;
 
     public bool isDefaultApplicationOnLogin { get; set; } = false;
 

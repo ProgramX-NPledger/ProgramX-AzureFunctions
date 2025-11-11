@@ -253,6 +253,40 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             
     }
 
+    public async Task CreateApplicationAsync(Application application, IEnumerable<string> withinRoles)
+    {
+        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        
+        // get all users with roles
+        var users = await GetUsersAsync(new GetUsersCriteria()
+        {
+            WithRoles = withinRoles.ToList()
+        });
+        if (users.TotalCount == 0) throw new RepositoryException($"No users found with roles so cannot add Application: {application.name}");
+        
+        // add application to each role to each user
+        foreach (var user in users.Items)
+        {
+            foreach (var role in user.roles)
+                if (((List<Application>)role.applications).All(q => q.name != application.name))
+                {
+                    // add application to role
+                    ((List<Application>)role.applications).Add(application);
+                }
+                else
+                {
+                    throw new RepositoryException($"Application {application.name} already exists in role {role.name}");
+                }
+
+            var response = await container.ReplaceItemAsync(users, users.Items.First().id,
+                new PartitionKey(users.Items.First().userName));
+            if (response.StatusCode != HttpStatusCode.OK)
+                throw new RepositoryException(OperationType.Create, typeof(Application));
+        }        
+    
+        
+    }
+
     public async Task<Role?> GetRoleByNameAsync(string name)
     {
         var roles = await GetRolesAsync(new GetRolesCriteria()
@@ -293,6 +327,43 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         }
     }
 
+    public async Task UpdateApplicationAsync(string applicationName, Application application)
+    {
+        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        
+        // get all users with roles
+        var users = await GetUsersAsync(new GetUsersCriteria()
+        {
+            HasAccessToApplications = [applicationName]
+        });
+        
+        // update application in each role in each user
+        foreach (var user in users.Items)
+        {
+            foreach (var role in user.roles)
+            {
+                var existingApplication = role.applications.SingleOrDefault(q=>q.name == applicationName);
+                if (existingApplication != null)
+                {
+                    existingApplication.name = application.name;
+                    existingApplication.description = application.description;
+                    existingApplication.imageUrl = application.imageUrl;
+                    existingApplication.targetUrl = application.targetUrl;
+                    existingApplication.schemaVersionNumber = application.schemaVersionNumber;
+                    existingApplication.isDefaultApplicationOnLogin = application.isDefaultApplicationOnLogin;
+                    existingApplication.ordinal = application.ordinal;
+                    existingApplication.updatedAt = DateTime.Now;
+                }
+            }
+            
+            var response = await container.ReplaceItemAsync(users, users.Items.First().id,
+                new PartitionKey(users.Items.First().userName));
+            if (response.StatusCode != HttpStatusCode.OK)
+                throw new RepositoryException(OperationType.Update, typeof(Application));
+        }        
+
+    }
+
     public async Task DeleteRoleByNameAsync(string roleName)
     {
         var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
@@ -313,6 +384,33 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             }
         }
 
+    }
+
+    public async Task DeleteApplicationByNameAsync(string applicationName)
+    {
+        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        
+        // get all users with roles
+        var users = await GetUsersAsync(new GetUsersCriteria()
+        {
+            HasAccessToApplications = [applicationName]
+        });
+        
+        // remove application from each role from each user
+        foreach (var user in users.Items)
+        {
+            foreach (var role in user.roles)
+            {
+                role.applications = role.applications.Where(q => !q.name.Equals(applicationName, StringComparison.InvariantCultureIgnoreCase)).ToList();
+            }
+            
+            var response = await container.ReplaceItemAsync(users, users.Items.First().id,
+                new PartitionKey(users.Items.First().userName));
+            if (response.StatusCode != HttpStatusCode.OK)
+                throw new RepositoryException(OperationType.Delete, typeof(Application));
+        }        
+        
+        
     }
 
     private QueryDefinition BuildQueryDefinitionForApplications(GetApplicationsCriteria criteria)

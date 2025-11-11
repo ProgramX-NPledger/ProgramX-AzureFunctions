@@ -118,6 +118,8 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                 await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateRoleRequest>(httpRequestData);
             if (createRoleRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
+            // TODO: check if role already exists and return 409 if so
+            
             var allApplications = await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria()
             {
                 ApplicationNames = createRoleRequest.addToApplications
