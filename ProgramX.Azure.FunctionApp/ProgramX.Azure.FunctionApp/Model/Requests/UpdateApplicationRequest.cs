@@ -6,7 +6,7 @@ public class UpdateApplicationRequest
 {
     public string? name { get; set; }
     
-    public string? decription { get; set; }
+    public string? description { get; set; }
     
     public string? imageUrl { get; set; }
     public required string targetUrl { get; set; }

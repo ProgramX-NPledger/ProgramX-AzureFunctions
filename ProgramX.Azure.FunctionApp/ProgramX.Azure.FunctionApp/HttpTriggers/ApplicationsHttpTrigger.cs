@@ -21,22 +21,15 @@ using ProgramX.Azure.FunctionApp.Model.Responses;
 
 namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 
-public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
+public class ApplicationsHttpTrigger(
+    ILogger<ApplicationsHttpTrigger> logger,
+    IConfiguration configuration,
+    IUserRepository userRepository)
+    : AuthorisedHttpTriggerBase(configuration)
 {
-    private readonly ILogger<ApplicationsHttpTrigger> _logger;
-    private readonly IUserRepository _userRepository;
+    private readonly ILogger<ApplicationsHttpTrigger> _logger = logger;
 
-    public ApplicationsHttpTrigger(ILogger<ApplicationsHttpTrigger> logger, 
-        IConfiguration configuration,
-        IUserRepository userRepository) : base(configuration)
-    {
-        ArgumentNullException.ThrowIfNull(configuration);
-        ArgumentNullException.ThrowIfNull(userRepository);
-
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _userRepository = userRepository;
-    }
-
+    
     [Function(nameof(GetApplication))]
     public async Task<HttpResponseData> GetApplication(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "application/{name?}")] HttpRequestData httpRequestData,
@@ -53,7 +46,7 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
                 var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
                 var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
                 
-                var applications = await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria()
+                var applications = await userRepository.GetApplicationsAsync(new GetApplicationsCriteria()
                 {
                     WithinRoles = withinRoles,
                     ContainingText = containsText
@@ -79,13 +72,13 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
             }
             else
             {
-                var application = await _userRepository.GetApplicationByNameAsync(name);
+                var application = await userRepository.GetApplicationByNameAsync(name);
                 if (application==null)
                 {
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
                 }
 
-                var withinRoles = _userRepository.GetRolesAsync(new GetRolesCriteria()
+                var withinRoles = userRepository.GetRolesAsync(new GetRolesCriteria()
                 {
                     UsedInApplicationNames = [name]
                 });
@@ -144,7 +137,7 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
                 await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateApplicationRequest>(httpRequestData);
             if (createApplicationRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
-            var existingApplication = await _userRepository.GetApplicationByNameAsync(createApplicationRequest.name);
+            var existingApplication = await userRepository.GetApplicationByNameAsync(createApplicationRequest.name);
             if (existingApplication != null) return await HttpResponseDataFactory.CreateForConflict(httpRequestData, "Application already exists");
             
             var newApplication = new Application()
@@ -162,7 +155,7 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
 
             try
             {
-                await _userRepository.CreateApplicationAsync(newApplication, createApplicationRequest.addToRoles);
+                await userRepository.CreateApplicationAsync(newApplication, createApplicationRequest.addToRoles);
             }
             catch (RepositoryException e)
             {
@@ -187,18 +180,18 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
                 await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateApplicationRequest>(httpRequestData);
             if (updateApplicationRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
-            var application = await _userRepository.GetApplicationByNameAsync(id);
+            var application = await userRepository.GetApplicationByNameAsync(id);
             if (application == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
             
             application.name=updateApplicationRequest.name!;
-            application.description = updateApplicationRequest.decription!;
+            application.description = updateApplicationRequest.description!;
             application.schemaVersionNumber = application.schemaVersionNumber <= 1 ? 1 : application.schemaVersionNumber;
             application.targetUrl = updateApplicationRequest.targetUrl;
             application.imageUrl = updateApplicationRequest.imageUrl;
             application.isDefaultApplicationOnLogin = updateApplicationRequest.isDefaultApplicationOnLogin;
             application.ordinal = updateApplicationRequest.ordinal;
             
-            await _userRepository.UpdateApplicationAsync(id,application);
+            await userRepository.UpdateApplicationAsync(id,application);
 
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateApplicationResponse()
             {
@@ -219,9 +212,9 @@ public class ApplicationsHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var application = await _userRepository.GetApplicationByNameAsync(id);
+            var application = await userRepository.GetApplicationByNameAsync(id);
             if (application == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
-            await _userRepository.DeleteApplicationByNameAsync(id);
+            await userRepository.DeleteApplicationByNameAsync(id);
             return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
         });
     }

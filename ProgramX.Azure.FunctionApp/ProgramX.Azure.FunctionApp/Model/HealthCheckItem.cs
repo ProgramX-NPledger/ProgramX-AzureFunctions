@@ -11,4 +11,7 @@ public class HealthCheckItem
 
     [JsonPropertyName("name")]
     public string Name { get; set; }
+
+    [JsonPropertyName("immediateHealthCheckResponse")]
+    public HealthCheckItemResponse? ImmediateHealthCheckResponse { get; set; }
 }

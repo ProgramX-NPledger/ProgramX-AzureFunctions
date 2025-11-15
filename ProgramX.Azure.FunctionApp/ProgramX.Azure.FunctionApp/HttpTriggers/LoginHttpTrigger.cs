@@ -55,6 +55,7 @@ public class LoginHttpTrigger
             
         var userFromDb = user.First();
         
+        if (userFromDb.passwordHash==null) throw new InvalidOperationException("Password salt is null");
         using var hmac = new HMACSHA512(userFromDb.passwordSalt);
         var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(credentials.Password));
 

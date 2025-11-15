@@ -35,6 +35,13 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
     private async Task<HttpResponseData> PerformSpecificHealthCheck(HttpRequestData httpRequestData, string name)
     {
         // return the health check item for the specified name
+        // TODO: Perform the health check
+        return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new HealthCheckItemResponse()
+        {
+            Name = name,
+            IsHealthy = false, 
+            Message = string.Empty
+        });
         
     }
 

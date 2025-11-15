@@ -180,23 +180,11 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <inheritdoc />
     public async Task<Application?> GetApplicationByNameAsync(string name)
     {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException(nameof(name));
-        
-        QueryDefinition queryDefinition = BuildQueryDefinitionForApplications(new GetApplicationsCriteria()
-        {
+        var applications = await GetApplicationsAsync(new GetApplicationsCriteria()
+        { 
             ApplicationName = name
         });
-
-        CosmosReader<User> cosmosReader;
-        IResult<User> result;
-
-        cosmosReader = new CosmosReader<User>(cosmosClient, 
-            DataConstants.CoreDatabaseName, 
-            DataConstants.UsersContainerName, 
-            DataConstants.UserNamePartitionKeyPath);
-        result = await cosmosReader.GetItemsAsync(queryDefinition);
-        
-        return result.Items.FirstOrDefault()?.roles.SelectMany(q=>q.applications).FirstOrDefault(q=>q.name == name);
+        return applications.Items.SingleOrDefault();
     }
 
     /// <inheritdoc />
@@ -278,8 +266,8 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                     throw new RepositoryException($"Application {application.name} already exists in role {role.name}");
                 }
 
-            var response = await container.ReplaceItemAsync(users, users.Items.First().id,
-                new PartitionKey(users.Items.First().userName));
+            var response = await container.ReplaceItemAsync(user, user.id,
+                new PartitionKey(user.userName));
             if (response.StatusCode != HttpStatusCode.OK)
                 throw new RepositoryException(OperationType.Create, typeof(Application));
         }        
@@ -356,8 +344,8 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                 }
             }
             
-            var response = await container.ReplaceItemAsync(users, users.Items.First().id,
-                new PartitionKey(users.Items.First().userName));
+            var response = await container.ReplaceItemAsync(user, user.id,
+                new PartitionKey(user.userName));
             if (response.StatusCode != HttpStatusCode.OK)
                 throw new RepositoryException(OperationType.Update, typeof(Application));
         }        
@@ -404,8 +392,8 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                 role.applications = role.applications.Where(q => !q.name.Equals(applicationName, StringComparison.InvariantCultureIgnoreCase)).ToList();
             }
             
-            var response = await container.ReplaceItemAsync(users, users.Items.First().id,
-                new PartitionKey(users.Items.First().userName));
+            var response = await container.ReplaceItemAsync(user, user.id,
+                new PartitionKey(user.userName));
             if (response.StatusCode != HttpStatusCode.OK)
                 throw new RepositoryException(OperationType.Delete, typeof(Application));
         }        
@@ -419,7 +407,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         var parameters = new List<(string name, object value)>();
         if (!string.IsNullOrWhiteSpace(criteria.ApplicationName))
         {
-            sb.Append(" AND (r.name=@id)");
+            sb.Append(" AND (a.name=@id)");
             parameters.Add(("@id", criteria.ApplicationName));
         }
 
@@ -498,16 +486,13 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         {
             var applicationsList = criteria.UsedInApplicationNames.ToList();
 
+            sb.Append(" AND (1=0 OR EXISTS(SELECT VALUE a FROM a IN r.applications WHERE (1=0");
             for (int i = 0; i < applicationsList.Count; i++)
             {
+                sb.Append($" OR a.name=@appname{0})");
                 parameters.Add(($"@appname{i}", applicationsList[i]));
             }
-
-            sb.Append($" AND a.name IN ({string.Join(",", 
-                parameters
-                    .Where(q=>q.name.StartsWith("@appname"))
-                    .Select(s => s.name)
-                )})");
+            sb.Append("))");
         }
 
         sb.Append(" GROUP BY r.name, r.description, r.applications, r.type, r.schemaVersionNumber, r.createdAt,r.updatedAt");

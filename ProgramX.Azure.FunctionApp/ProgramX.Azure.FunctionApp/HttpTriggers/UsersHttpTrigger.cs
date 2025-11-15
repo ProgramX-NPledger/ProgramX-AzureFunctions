@@ -37,9 +37,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         IEmailSender emailSender,
         IUserRepository userRepository) : base(configuration)
     {
-        if (configuration==null) throw new ArgumentNullException(nameof(configuration));
-        
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _logger = logger;
         _storageClient = storageClient;
         _emailSender = emailSender;
         _userRepository = userRepository;

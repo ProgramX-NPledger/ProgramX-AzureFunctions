@@ -1,8 +1,23 @@
 # Roles
 
 ###
-# @name Create Role
-GET
+### 
+# @name Create Application
+POST {{host}}/api/v1/application
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "new-application",
+  "description": "Description",
+  "imageUrl": "",
+  "targetUrl": "",
+  "isDefaultApplicationOnLogin": false,
+  "ordinal": 1,
+  "addToRoles": [
+    "new-role"
+  ]
+}
 
 ###
 # @name Get Applications
@@ -12,34 +27,35 @@ Authorization: Bearer {{token}}
 
 ###
 # @name Get Applications by text
-GET {{host}}/api/v1/application?containsText=Home
+GET {{host}}/api/v1/application?containsText=Description
 Authorization: Bearer {{token}}
 
 ###
 # @name Get Applications by text
-GET {{host}}/api/v1/application?withinRoles=dsadas
+GET {{host}}/api/v1/application?withinRoles=new-role2
 Authorization: Bearer {{token}}
 
 ###
 # @name Get Application
-GET {{host}}/api/v1/application/Home
+GET {{host}}/api/v1/application/new-application
 Authorization: Bearer {{token}}
 #
 
+###
+# @name Update Application
+PUT {{host}}/api/v1/application/new-application
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
-####
-## @name Get Role
-#GET {{host}}/api/v1/role/admin-readwrite
-#Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImFueXRoaW5nIiwicm9sZXMiOlsiYWRtaW4iXX0.GIdLW6fmKuxENzwAdLNbQcnaZSNnkTmeh_qDsjSx4zA
-#
-#> {%
-#    const token = client.global.get("token");
-#    if (!token) {
-#        client.log("No token found. Run the Login request first.");
-#    }
-#    const expiry = Number(client.global.get("token_expiry") || 0);
-#    if (expiry && Date.now() > expiry) {
-#        client.log("Token appears expired. Run the Login request again.");
-#    }
-#%}
-#
+{
+  "targetUrl": "",
+  "name": "new-application2",
+  "description": "description2"
+}
+
+
+###
+# @name Delete Application
+DELETE {{host}}/api/v1/application/new-application2
+Authorization: Bearer {{token}}
+

@@ -16,7 +16,7 @@ public abstract class AuthorisedHttpTriggerBase
     /// <summary>
     /// Configuration API.
     /// </summary>
-    public required IConfiguration Configuration
+    public IConfiguration Configuration
     {
         get => _configuration;
         init => _configuration = value;
