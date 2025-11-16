@@ -31,6 +31,24 @@ public class GetHealthCheckResponse
                 Name = "azure-functions",
                 IsHealthy = true
             }
+        },
+        new HealthCheckItem()
+        {
+            Name = "azure-communication-services-email",
+            FriendlyName = "Azure Communication Services (Email)",
+            ImageUrl = "https://img.icons8.com/color/48/000000/azure-web-apps.png" // TODO: Azure Storage
+        },
+        new HealthCheckItem()
+        {
+            Name = "azure-storage",
+            FriendlyName = "Azure Storage",
+            ImageUrl = "https://img.icons8.com/color/48/000000/azure-web-apps.png" // TODO: Azure Storage
+        },
+        new HealthCheckItem()
+        {
+            Name = "azure-cosmos-db",
+            FriendlyName = "Azure Cosmos DB",
+            ImageUrl = "https://img.icons8.com/color/48/000000/azure-web-apps.png" // TODO: Azure Storage
         }
     };
 

@@ -24,7 +24,7 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            return await HttpResponseDataFactory.CreateForSuccess(req, PerformBasicHealthCheck());
+            return await HttpResponseDataFactory.CreateForSuccess(req, new GetHealthCheckResponse());
         }
         else
         {
@@ -45,41 +45,4 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
         
     }
 
-    private GetHealthCheckResponse PerformBasicHealthCheck()
-    {
-        _logger.LogInformation("HealthCheck request received.");
-
-        GetHealthCheckResponse getHealthCheckResponse;
-        if (Authentication == null)
-        {
-            getHealthCheckResponse = new GetHealthCheckResponse();
-        }
-        else
-        {
-            getHealthCheckResponse = new GetAuthenticatedHealthCheckResponse();
-            ((List<HealthCheckItem>)getHealthCheckResponse.HealthCheckItems).AddRange([
-                new HealthCheckItem()
-                {
-                    Name = "azure-communication-services-email",
-                    FriendlyName = "Azure Communication Services (Email)",
-                    ImageUrl = "https://img.icons8.com/color/48/000000/azure-web-apps.png" // TODO: Azure Storage
-                },
-                new HealthCheckItem()
-                {
-                    Name = "azure-storage",
-                    FriendlyName = "Azure Storage",
-                    ImageUrl = "https://img.icons8.com/color/48/000000/azure-web-apps.png" // TODO: Azure Storage
-                },
-                new HealthCheckItem()
-                {
-                    Name = "azure-cosmos-db",
-                    FriendlyName = "Azure Cosmos DB",
-                    ImageUrl = "https://img.icons8.com/color/48/000000/azure-web-apps.png" // TODO: Azure Storage
-                }
-            ]);
-            return getHealthCheckResponse;
-        }
-        
-        return getHealthCheckResponse;
-    }
 }

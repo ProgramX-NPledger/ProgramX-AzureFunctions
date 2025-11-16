@@ -1,0 +1,25 @@
+# Roles
+
+
+###
+# @name Get Health Checks
+GET {{host}}/api/v1/healthcheck
+Authorization: Bearer {{token}}
+
+###
+# @name Get specfic healthcheck
+GET {{host}}/api/v1/healthcheck/something
+Authorization: Bearer {{token}}
+
+
+> {%
+    const token = client.global.get("token");
+    if (!token) {
+        client.log("No token found. Run the Login request first.");
+    }
+    const expiry = Number(client.global.get("token_expiry") || 0);
+    if (expiry && Date.now() > expiry) {
+        client.log("Token appears expired. Run the Login request again.");
+    }
+%}
+
