@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgramX.Azure.FunctionApp.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgramX.Azure.FunctionApp.Contract", "ProgramX.Azure.FunctionApp.Contract\ProgramX.Azure.FunctionApp.Contract.csproj", "{F01CE34E-3891-4707-8A99-36F6D15EEA3C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgramX.Azure.FunctionApp.Cosmos", "ProgramX.Azure.FunctionApp.Cosmos\ProgramX.Azure.FunctionApp.Cosmos.csproj", "{CD71FE9D-857D-4580-9DCC-A405FF5D4F9F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{F01CE34E-3891-4707-8A99-36F6D15EEA3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F01CE34E-3891-4707-8A99-36F6D15EEA3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F01CE34E-3891-4707-8A99-36F6D15EEA3C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD71FE9D-857D-4580-9DCC-A405FF5D4F9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD71FE9D-857D-4580-9DCC-A405FF5D4F9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD71FE9D-857D-4580-9DCC-A405FF5D4F9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD71FE9D-857D-4580-9DCC-A405FF5D4F9F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

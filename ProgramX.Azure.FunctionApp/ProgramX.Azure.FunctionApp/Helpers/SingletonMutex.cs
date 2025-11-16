@@ -26,8 +26,10 @@ public class SingletonMutex : ISingletonMutex
         {
             _mutexes[name] = DateTime.UtcNow;
         }
-
-        _mutexes.Add(name, DateTime.UtcNow);
+        else
+        {
+            _mutexes.Add(name, DateTime.UtcNow);
+        }
         
 
         

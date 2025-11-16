@@ -4,11 +4,11 @@
 ###
 # @name Get Health Checks
 GET {{host}}/api/v1/healthcheck
-Authorization: Bearer {{token}}
+
 
 ###
 # @name Get specfic healthcheck
-GET {{host}}/api/v1/healthcheck/something
+GET {{host}}/api/v1/healthcheck/azure-cosmos-db
 Authorization: Bearer {{token}}
 
 

@@ -4,6 +4,7 @@ using Microsoft.Azure.Cosmos;
 using Moq;
 using NUnit.Framework;
 using ProgramX.Azure.FunctionApp.Constants;
+using ProgramX.Azure.FunctionApp.Cosmos;
 
 namespace ProgramX.Azure.FunctionApp.Tests;
 

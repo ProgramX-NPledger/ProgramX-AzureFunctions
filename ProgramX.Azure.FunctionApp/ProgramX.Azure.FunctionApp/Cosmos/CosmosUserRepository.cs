@@ -25,18 +25,18 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         if (pagedCriteria != null)
         {
             cosmosReader  = new CosmosPagedReader<Role>(cosmosClient, 
-                DataConstants.CoreDatabaseName, 
-                DataConstants.UsersContainerName, 
-                DataConstants.UserNamePartitionKeyPath);
+                DatabaseNames.Core, 
+                ContainerNames.Users, 
+                ContainerNames.UserNamePartitionKey);
             result = await ((CosmosPagedReader<Role>)cosmosReader).GetPagedItemsAsync(queryDefinition, pagedCriteria.Offset,
                 pagedCriteria.ItemsPerPage);
         }
         else
         {
             cosmosReader = new CosmosReader<Role>(cosmosClient, 
-                DataConstants.CoreDatabaseName, 
-                DataConstants.UsersContainerName, 
-                DataConstants.UserNamePartitionKeyPath);
+                DatabaseNames.Core, 
+                ContainerNames.Users, 
+                ContainerNames.UserNamePartitionKey);
             result = await cosmosReader.GetItemsAsync(queryDefinition);
         }
         
@@ -57,18 +57,18 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         if (pagedCriteria != null)
         {
             cosmosReader  = new CosmosPagedReader<SecureUser>(cosmosClient, 
-                DataConstants.CoreDatabaseName, 
-                DataConstants.UsersContainerName, 
-                DataConstants.UserNamePartitionKeyPath);
+                DatabaseNames.Core, 
+                ContainerNames.Users, 
+                ContainerNames.UserNamePartitionKey);
             result = await ((CosmosPagedReader<SecureUser>)cosmosReader).GetPagedItemsAsync(queryDefinition, pagedCriteria.Offset,
                 pagedCriteria.ItemsPerPage);
         }
         else
         {
             cosmosReader = new CosmosReader<SecureUser>(cosmosClient, 
-                DataConstants.CoreDatabaseName, 
-                DataConstants.UsersContainerName, 
-                DataConstants.UserNamePartitionKeyPath);
+                DatabaseNames.Core, 
+                ContainerNames.Users, 
+                ContainerNames.UserNamePartitionKey);
             result = await cosmosReader.GetItemsAsync(queryDefinition);
         }
         
@@ -90,9 +90,9 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         if (pagedCriteria != null)
         {
             cosmosReader = new CosmosPagedReader<Application>(cosmosClient,
-                DataConstants.CoreDatabaseName,
-                DataConstants.UsersContainerName,
-                DataConstants.UserNamePartitionKeyPath);
+                DatabaseNames.Core, 
+                ContainerNames.Users,
+                ContainerNames.UserNamePartitionKey);
             result = await ((CosmosPagedReader<Application>)cosmosReader).GetPagedItemsAsync(queryDefinition,
                 pagedCriteria.Offset,
                 pagedCriteria.ItemsPerPage);
@@ -100,9 +100,9 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         else
         {
             cosmosReader = new CosmosReader<Application>(cosmosClient,
-                DataConstants.CoreDatabaseName,
-                DataConstants.UsersContainerName,
-                DataConstants.UserNamePartitionKeyPath);
+                DatabaseNames.Core, 
+                ContainerNames.Users,
+                ContainerNames.UserNamePartitionKey);
             result = await cosmosReader.GetItemsAsync(queryDefinition);
         }
         
@@ -145,7 +145,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
 
-        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         var response = await container.DeleteItemAsync<User>(id, new PartitionKey(id));
 
         if (response.StatusCode != HttpStatusCode.NoContent)
@@ -169,9 +169,9 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         IResult<User> result;
 
         cosmosReader = new CosmosReader<User>(cosmosClient, 
-                DataConstants.CoreDatabaseName, 
-                DataConstants.UsersContainerName, 
-                DataConstants.UserNamePartitionKeyPath);
+                DatabaseNames.Core, 
+                ContainerNames.Users, 
+                ContainerNames.UserNamePartitionKey);
         result = await cosmosReader.GetItemsAsync(queryDefinition);
         
         return result.Items.SingleOrDefault();
@@ -192,7 +192,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <inheritdoc />
     public async Task UpdateUserAsync(SecureUser user)
     {
-        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
 
         if (response.StatusCode != HttpStatusCode.OK)
@@ -205,7 +205,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <inheritdoc />
     public async Task CreateUserAsync(User user)
     {
-        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         var response = await container.CreateItemAsync(user, new PartitionKey(user.userName));
 
         if (response.StatusCode != HttpStatusCode.OK)
@@ -219,7 +219,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <inheritdoc />
     public async Task CreateRoleAsync(Role role, IEnumerable<string> usersInRoles)
     {
-        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         
         // get all users in the role
         var users = await GetUsersAsync(
@@ -245,7 +245,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     public async Task CreateApplicationAsync(Application application, IEnumerable<string> withinRoles)
     {
-        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         
         // get all users with roles
         var users = await GetUsersAsync(new GetUsersCriteria()
@@ -289,7 +289,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     public async Task UpdateRoleAsync(string roleName, Role role)
     {
-        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         
         var allUsersInRole = await GetUsersAsync(new GetUsersCriteria()
         {
@@ -319,7 +319,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     public async Task UpdateApplicationAsync(string applicationName, Application application)
     {
-        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         
         // get all users with roles
         var users = await GetUsersAsync(new GetUsersCriteria()
@@ -356,7 +356,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     public async Task DeleteRoleByNameAsync(string roleName)
     {
-        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         
         var allUsersInRole = await GetUsersAsync(new GetUsersCriteria()
         {
@@ -378,7 +378,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     public async Task DeleteApplicationByNameAsync(string applicationName)
     {
-        var container = cosmosClient.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName);
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         
         // get all users with roles
         var users = await GetUsersAsync(new GetUsersCriteria()

@@ -16,4 +16,5 @@ public class HealthCheckItemResponse
     [JsonPropertyName("timeStamp")]
     public DateTime TimeStamp { get; set; }
     
+    public IEnumerable<HealthCheckItemResult> SubItems { get; set; } = new List<HealthCheckItemResult>();
 }
