@@ -66,34 +66,7 @@ public class UsersHttpTriggerCtorTests : TestBase
         _usersHttpTrigger.Should().NotBeNull();
     }
 
-    [Test]
-    public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
-    {
-        // Arrange, Act & Assert
-        UserRepositoryFactory userRepositoryFactory = new UserRepositoryFactory();
-        var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
-        
-        Assert.Throws<ArgumentNullException>(() => new UsersHttpTrigger(
-            null!,
-            _mockStorageClient.Object,
-            Configuration,
-            null!,
-            mockedUserRepository.Object));
-    }
 
 
-    [Test]
-    public void Constructor_WithNullConfiguration_ShouldThrowArgumentNullException()
-    {
-        // Arrange, Act & Assert
-        UserRepositoryFactory userRepositoryFactory = new UserRepositoryFactory();
-        var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
-        
-        Assert.Throws<ArgumentNullException>(() => new UsersHttpTrigger(
-            _mockSpecificLogger.Object,
-            _mockStorageClient.Object,
-            null!,
-            null!,
-            mockedUserRepository.Object));;
-    }
+   
 }

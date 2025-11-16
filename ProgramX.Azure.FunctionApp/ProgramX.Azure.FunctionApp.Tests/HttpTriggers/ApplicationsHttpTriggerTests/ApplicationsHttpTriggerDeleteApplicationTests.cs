@@ -1,30 +1,29 @@
 using System.Net;
 using FluentAssertions;
-using Microsoft.Azure.Cosmos;
 using Moq;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
-using User = ProgramX.Azure.FunctionApp.Model.User;
 
-namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
+namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.ApplicationsHttpTriggerTests;
 
 [Category("Unit")]
 [Category("HttpTrigger")]
-[Category("RolesHttpTrigger")]
-[Category("DeleteRole")]
+[Category("ApplicationsHttpTrigger")]
+[Category("DeleteApplication")]
 [TestFixture]
-public class RolesHttpTriggerDeleteRoleTests
+public class ApplicationsHttpTriggerDeleteApplicationTests
 {
     [Test]
-    public async Task DeleteUser_WhenUserExists_ShouldDeleteSuccessfully()
+    public async Task DeleteApplication_WhenApplicationExists_ShouldDeleteSuccessfully()
     {
         // Arrange
-        const string roleName = "test-role-id";
+        const string applicationName = "test-application-id";
 
-        var existingRole = new Role
+        var existingApplication = new Application()
         {
-            name = roleName,
-            description = "test role description"
+            name = applicationName,
+            description = "test application description",
+            targetUrl = "https://test.example.com"
         };
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -33,17 +32,17 @@ public class RolesHttpTriggerDeleteRoleTests
             .Returns(HttpStatusCode.NoContent)
             .Build();
         
-        var rolesHttpTrigger = new RolesHttpTriggerBuilder()
+        var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                mockUserRepository.Setup(x => x.GetRoleByNameAsync(It.IsAny<string>()))
-                    .ReturnsAsync(existingRole);
-                mockUserRepository.Setup(x => x.DeleteRoleByNameAsync(It.IsAny<string>()));
+                mockUserRepository.Setup(x => x.GetApplicationByNameAsync(It.IsAny<string>()))
+                    .ReturnsAsync(existingApplication);
+                mockUserRepository.Setup(x => x.DeleteApplicationByNameAsync(It.IsAny<string>()));
             })
             .Build();
 
         // Act
-        var result = await rolesHttpTrigger.DeleteRole(testableHttpRequestData, roleName);
+        var result = await applicationsHttpTrigger.DeleteApplication(testableHttpRequestData, applicationName);
 
         // Assert
         result.Should().NotBeNull();
@@ -51,7 +50,7 @@ public class RolesHttpTriggerDeleteRoleTests
     }
 
     [Test]
-    public async Task DeleteRole_WhenRoleDoesNotExist_ShouldReturnNotFound()
+    public async Task DeleteApplication_WhenApplicationDoesNotExist_ShouldReturnNotFound()
     {
         // Arrange
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -60,16 +59,16 @@ public class RolesHttpTriggerDeleteRoleTests
             .Returns(HttpStatusCode.NotFound)
             .Build();
         
-        var rolesHttpTrigger = new RolesHttpTriggerBuilder()
+        var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
                 .WithIUserRepository(mockUserRepository =>
                 {
-                    mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
-                        .ReturnsAsync((SecureUser)null!);
+                    mockUserRepository.Setup(x => x.GetApplicationByNameAsync(It.IsAny<string>()))
+                        .ReturnsAsync((Application)null!);
                 })
                 .Build();
 
         // Act
-        var result = await rolesHttpTrigger.DeleteRole(testableHttpRequestData, "does not exist");
+        var result = await applicationsHttpTrigger.DeleteApplication(testableHttpRequestData, "does not exist");
 
         // Assert
         result.Should().NotBeNull();
@@ -77,21 +76,21 @@ public class RolesHttpTriggerDeleteRoleTests
     }
 
     [Test]
-    public async Task DeleteRole_WithoutAuthentication_ShouldReturnUnauthorized()
+    public async Task DeleteApplication_WithoutAuthentication_ShouldReturnUnauthorized()
     {
         // Arrange
-        const string userId = "test-role-id";
+        const string applicationName = "test-application-id";
         
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
         var testableHttpRequestData = testableHttpRequestDataFactory.Create()
             .Returns(HttpStatusCode.Unauthorized)
             .Build();        
         
-        var roleshttpTrigger = new RolesHttpTriggerBuilder()
+        var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
             .Build();
 
         // Act
-        var result = await roleshttpTrigger.DeleteRole(testableHttpRequestData, userId);
+        var result = await applicationsHttpTrigger.DeleteApplication(testableHttpRequestData, applicationName);
 
         // Assert
         result.Should().NotBeNull();
@@ -101,10 +100,10 @@ public class RolesHttpTriggerDeleteRoleTests
     
     
     [Test]
-    public async Task DeleteRole_WithInvalidAuthentication_ShouldReturnUnauthorized()
+    public async Task DeleteApplication_WithInvalidAuthentication_ShouldReturnUnauthorized()
     {
         // Arrange
-        const string roleName = "test-role-id";
+        const string applicationName = "test-application-id";
         
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
         var testableHttpRequestData = testableHttpRequestDataFactory.Create()
@@ -112,11 +111,11 @@ public class RolesHttpTriggerDeleteRoleTests
             .Returns(HttpStatusCode.Unauthorized)
             .Build();        
         
-        var rolesHttpTrigger = new RolesHttpTriggerBuilder()
+        var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
             .Build();
 
         // Act
-        var result = await rolesHttpTrigger.DeleteRole(testableHttpRequestData, roleName);
+        var result = await applicationsHttpTrigger.DeleteApplication(testableHttpRequestData, applicationName);
 
         // Assert
         result.Should().NotBeNull();

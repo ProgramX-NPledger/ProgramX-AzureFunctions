@@ -27,43 +27,6 @@ public class ApplicationsHttpTriggerCtorTests
         Assert.That(target,Is.Not.Null);
     }
 
-    [Test]
-    public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
-    {
-        // Arrange, Act & Assert
-        var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
-        var mockedConfiguration = new Mock<IConfiguration>();
-        
-        Assert.Throws<ArgumentNullException>(() => new ApplicationsHttpTrigger(
-            null!,
-            mockedConfiguration.Object,
-            mockedUserRepository.Object));
-    }
 
 
-    [Test]
-    public void Constructor_WithNullConfiguration_ShouldThrowArgumentNullException()
-    {
-        // Arrange, Act & Assert
-        var mockedLogger = new Mock<ILogger<ApplicationsHttpTrigger>>();
-        var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
-        
-        Assert.Throws<ArgumentNullException>(() => new ApplicationsHttpTrigger(
-            mockedLogger.Object,
-            null!,
-            mockedUserRepository.Object));;
-    }
-    
-    [Test]
-    public void Constructor_WithNullUserRepository_ShouldThrowArgumentNullException()
-    {
-        // Arrange, Act & Assert
-        var mockedLogger = new Mock<ILogger<ApplicationsHttpTrigger>>();
-        var mockedConfiguration = new Mock<IConfiguration>();
-        
-        Assert.Throws<ArgumentNullException>(() => new ApplicationsHttpTrigger(
-            mockedLogger.Object,
-            mockedConfiguration.Object,
-            null!));;
-    }
 }

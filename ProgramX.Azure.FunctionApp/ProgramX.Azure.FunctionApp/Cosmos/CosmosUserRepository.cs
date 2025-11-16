@@ -180,6 +180,8 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <inheritdoc />
     public async Task<Application?> GetApplicationByNameAsync(string name)
     {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException(nameof(name));
+        
         var applications = await GetApplicationsAsync(new GetApplicationsCriteria()
         { 
             ApplicationName = name

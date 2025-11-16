@@ -866,48 +866,70 @@ public class CosmosUserRepositoryTests : CosmosTestBase
     [Test]
     public async Task GetApplicationByName_WithExistingId_ShouldReturnApplication()
     {
-        var users = base.CreateTestUsers(5).ToList();
-        var applicationName = users.First().roles.First().applications.First().name;
-        
-        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
+        var users = base.CreateTestUsers(1).ToList();
+
+        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<SecureUser>(users)
         {
-            FilterItems = (items) => items.Where(q =>
-                        q.roles.Any(qq =>
-                            qq.applications.Any(qqq =>
-                                qqq.name == applicationName)))
+            ConfigureContainerFunc = (container =>
+            {
+                var mockFeedResponse = new Mock<FeedResponse<Application>>();
+                mockFeedResponse.SetupGet(x => x.Count).Returns(users.First().roles.First().applications.Count);
+                mockFeedResponse.Setup(x => x.GetEnumerator()).Returns(users.First().roles.First().applications.GetEnumerator());
+                
+                var mockFeedIterator = new Mock<FeedIterator<Application>>();
+                mockFeedIterator.Setup(x => x.ReadNextAsync(It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(mockFeedResponse.Object);
+                
+                container.Setup(x => x.GetItemQueryIterator<Application>(It.IsAny<QueryDefinition>(), It.IsAny<string>(),
+                        It.IsAny<QueryRequestOptions>()))
+                    .Returns(mockFeedIterator.Object);
+            }),
+            FilterItems = (items) => items.Where(q=>q.roles.First().name == users.First().roles.First().name)            
         };
+       
         var mockCosmosClient = mockCosmosClientFactory.Create();
 
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        var result = await target.GetApplicationByNameAsync(applicationName);
+        var result = await target.GetApplicationByNameAsync(users.First().roles.First().applications.First().name);
 
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.name, Is.EqualTo(applicationName));
+        Assert.That(result.name, Is.EqualTo(users.First().roles.First().applications.First().name));
     }
     
     [Test]
     public async Task GetApplicationByName_WithNonExistentId_ShouldReturnNull()
     {
-        var nonExistentName = "non-existent";
-        
-        var users = base.CreateTestUsers(5).ToList();
+        var users = base.CreateTestUsers(1).ToList();
 
-        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
+        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<SecureUser>(users)
         {
-            FilterItems = (items) => items.Where(q =>
-                q.roles.Any(qq =>
-                    qq.applications.Any(qqq =>
-                        qqq.name == nonExistentName)))   
+            ConfigureContainerFunc = (container =>
+            {
+                var mockFeedResponse = new Mock<FeedResponse<Application>>();
+                mockFeedResponse.SetupGet(x => x.Count).Returns(users.First().roles.First().applications.Count);
+                mockFeedResponse.Setup(x => x.GetEnumerator()).Returns(new List<Application>().GetEnumerator());
+                
+                var mockFeedIterator = new Mock<FeedIterator<Application>>();
+                mockFeedIterator.Setup(x => x.ReadNextAsync(It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(mockFeedResponse.Object);
+                
+                container.Setup(x => x.GetItemQueryIterator<Application>(It.IsAny<QueryDefinition>(), It.IsAny<string>(),
+                        It.IsAny<QueryRequestOptions>()))
+                    .Returns(mockFeedIterator.Object);
+            }),
+            FilterItems = (items) => items.Where(q=>q.roles.First().name == users.First().roles.First().name)            
         };
+       
         var mockCosmosClient = mockCosmosClientFactory.Create();
 
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        var result = await target.GetApplicationByNameAsync(nonExistentName);
+        var result = await target.GetApplicationByNameAsync("non-existent");
 
         Assert.That(result, Is.Null);
+
     }
 }
