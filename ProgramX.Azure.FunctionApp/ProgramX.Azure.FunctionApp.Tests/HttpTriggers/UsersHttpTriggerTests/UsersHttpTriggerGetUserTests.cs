@@ -158,13 +158,15 @@ public class UsersHttpTriggerGetUserTests
             {
                 id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "user1"
+                userName = "user1",
+                roles = new List<Role>()
             },
             new SecureUser
             {
                 id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2"
+                userName = "user2",
+                roles = new List<Role>()
             }
         };
         
@@ -206,13 +208,15 @@ public class UsersHttpTriggerGetUserTests
             {
                 id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "john"
+                userName = "john",
+                roles = new List<Role>()
             },
             new SecureUser
             {
                 id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2"
+                userName = "user2",
+                roles = new List<Role>()
             }
         };
         

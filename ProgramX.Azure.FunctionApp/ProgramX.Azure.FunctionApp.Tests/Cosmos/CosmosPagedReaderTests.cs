@@ -1,5 +1,6 @@
 using Microsoft.Azure.Cosmos;
 using ProgramX.Azure.FunctionApp.Cosmos;
+using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
 using User = ProgramX.Azure.FunctionApp.Model.User;
 
@@ -240,6 +241,7 @@ public class CosmosPagedReaderTests : CosmosTestBase
                 lastLoginAt = DateTime.UtcNow,
                 lastName = $"Last Name {i}",
                 updatedAt = DateTime.UtcNow,
+                roles = new List<Role>()
                 
             });
         }

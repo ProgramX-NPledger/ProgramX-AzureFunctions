@@ -80,7 +80,7 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
         
     }
 
-    [ExcludeFromCodeCoverage(Justification = "Test health checks are not part of the production code")]
+    [ExcludeFromCodeCoverage(Justification = "Test health checks are not part of the production co")]
     private IHealthCheck? GetHealthCheckByName(string name)
     {
         switch (name)

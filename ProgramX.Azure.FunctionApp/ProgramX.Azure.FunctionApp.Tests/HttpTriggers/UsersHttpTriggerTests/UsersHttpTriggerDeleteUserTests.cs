@@ -31,7 +31,8 @@ public class UsersHttpTriggerDeleteUserTests
             },
             passwordSalt = new byte[]
             {
-            }
+            },
+            roles = new List<Role>()
         };
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();

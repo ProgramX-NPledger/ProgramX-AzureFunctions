@@ -9,10 +9,6 @@ public class RepositoryException : ApplicationException
     {
     }
 
-    protected RepositoryException(SerializationInfo info, StreamingContext context) : base(info, context)
-    {
-    }
-
     public RepositoryException(string? message) : base(message)
     {
     }
