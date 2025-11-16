@@ -5,6 +5,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker.Http;
 using Moq;
 using ProgramX.Azure.FunctionApp.Contract;
+using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
@@ -68,7 +69,7 @@ public class UsersHttpTriggerGetUserTests
         result.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Verify the response contains user and applications
-        var responseBody = await GetResponseBodyAsync(result);
+        var responseBody = await TestHelpers.HttpBodyUtilities.GetResponseBodyAsync(result);
         responseBody.Should().Contain("testuser");
         responseBody.Should().Contain("Dashboard");
         responseBody.Should().Contain("Reports");
@@ -190,7 +191,7 @@ public class UsersHttpTriggerGetUserTests
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
     
-        var responseBody = await GetResponseBodyAsync(result);
+        var responseBody = await TestHelpers.HttpBodyUtilities.GetResponseBodyAsync(result);
         responseBody.Should().Contain("user1");
         responseBody.Should().Contain("user2");
     }
@@ -245,7 +246,7 @@ public class UsersHttpTriggerGetUserTests
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
     
-        var responseBody = await GetResponseBodyAsync(result);
+        var responseBody = await TestHelpers.HttpBodyUtilities.GetResponseBodyAsync(result);
         responseBody.Should().Contain("user1@example.com");
         responseBody.Should().NotContain("user2@example.com");
     }
@@ -305,7 +306,7 @@ public class UsersHttpTriggerGetUserTests
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
     
-        var responseBody = await GetResponseBodyAsync(result);
+        var responseBody = await TestHelpers.HttpBodyUtilities.GetResponseBodyAsync(result);
         responseBody.Should().Contain("user1");
         responseBody.Should().NotContain("user2");
         
@@ -378,15 +379,10 @@ public class UsersHttpTriggerGetUserTests
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
     
-        var responseBody = await GetResponseBodyAsync(result);
+        var responseBody = await TestHelpers.HttpBodyUtilities.GetResponseBodyAsync(result);
         responseBody.Should().Contain("Another App");
     }
     
-    private async Task<string> GetResponseBodyAsync(HttpResponseData response)
-    {
-        response.Body.Position = 0;
-        using var reader = new StreamReader(response.Body);
-        return await reader.ReadToEndAsync();
-    }
+
     
 }

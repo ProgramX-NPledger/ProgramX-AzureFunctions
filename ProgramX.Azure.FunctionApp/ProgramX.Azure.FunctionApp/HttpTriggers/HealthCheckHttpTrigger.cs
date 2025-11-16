@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -5,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Cosmos;
+using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 
@@ -78,12 +80,14 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
         
     }
 
+    [ExcludeFromCodeCoverage(Justification = "Test health checks are not part of the production code")]
     private IHealthCheck? GetHealthCheckByName(string name)
     {
         switch (name)
         {
             // TODO: More health checks here, using name in GetHealthCheckResponse
             case "azure-cosmos-db": return new CosmosHealthCheck(_loggerFactory);
+            case "test": return new TestHealthCheck();
             default: return null;
         }
     }

@@ -23,7 +23,7 @@ public abstract class TestBase
         MockContainer = new Mock<Container>();
         
         MockCosmosClient
-            .Setup(x => x.GetContainer(DataConstants.CoreDatabaseName, DataConstants.UsersContainerName))
+            .Setup(x => x.GetContainer(DatabaseNames.Core, ContainerNames.Users))
             .Returns(MockContainer.Object);
 
         var mockDatabaseResponse = new Mock<DatabaseResponse>();
