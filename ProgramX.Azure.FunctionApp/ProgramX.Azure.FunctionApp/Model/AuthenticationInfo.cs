@@ -7,14 +7,30 @@ using ProgramX.Azure.FunctionApp.Constants;
 namespace ProgramX.Azure.FunctionApp.Model;
 
 /// <summary>
-///     Wrapper class for encapsulating claims parsing.
+/// Wrapper class for encapsulating claims parsing.
 /// </summary>
 public class AuthenticationInfo
 {
+    /// <summary>
+    /// Whether the authentication token is valid.
+    /// </summary>
     public bool IsValid { get; }
+    
+    /// <summary>
+    /// The username of the authenticated user.
+    /// </summary>
     public string Username { get; }
+    
+    /// <summary>
+    /// The roles of the authenticated user.
+    /// </summary>
     public IEnumerable<string> Roles { get; }
 
+    /// <summary>
+    /// Constructor that parses the JWT token and extracts the claims.
+    /// </summary>
+    /// <param name="jwtToken">The JWT token.</param>
+    /// <param name="jwtKey">Key used to verify the JWT token.</param>
     public AuthenticationInfo(string jwtToken, string jwtKey)
     {
 
@@ -47,6 +63,7 @@ public class AuthenticationInfo
 
         IsValid = true;
         Username = Convert.ToString(claims["username"])!;
-        Roles = Convert.ToString(claims["roles"]).Split(new char[] { '[',',',']'}).Select(q=>q.Replace("\"","")).Where(q=>!string.IsNullOrWhiteSpace(q));
+        if (!claims.TryGetValue("roles", out var claim)) return;
+        Roles = Convert.ToString(claim)!.Split('[', ',', ']').Select(q=>q.Replace("\"","")).Where(q=>!string.IsNullOrWhiteSpace(q));
     }
 }

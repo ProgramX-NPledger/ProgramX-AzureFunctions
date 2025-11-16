@@ -159,7 +159,6 @@ public class CosmosHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
                     healthCheckItem.IsHealthy = true;
                     healthCheckItem.Message = $"Container exists.";
                     return containerResponse.Container;
-                    break;
                 default:
                     throw new HealthCheckException(healthCheckItem, "Could not get Container.");
             }
@@ -187,7 +186,6 @@ public class CosmosHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
                     healthCheckItem.IsHealthy = true;
                     healthCheckItem.Message = $"Database exists.";
                     return databaseResponse.Database;
-                    break;
                 default:
                     throw new HealthCheckException(healthCheckItem, "Could not get Database.");
             }
@@ -209,13 +207,13 @@ public class CosmosHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
         }
         catch (Exception e)
         {
-            throw new HealthCheckException(healthCheckItem, "Could not connect to Cosmos DB.");
+            throw new HealthCheckException(healthCheckItem, "Could not connect to Cosmos DB.",e);
         }
     }
 
     private string CheckAndGetEnvironmentVariable(HealthCheckItemResult currentHealthCheck)
     {
-        string connectionString = Environment.GetEnvironmentVariable("CosmosDBConnection");
+        string? connectionString = Environment.GetEnvironmentVariable("CosmosDBConnection");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new HealthCheckException(currentHealthCheck, "CosmosDBConnection environment variable is not set");

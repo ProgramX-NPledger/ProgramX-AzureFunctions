@@ -143,6 +143,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                 {
                     new Role()
                     {
+                        name = "Admin",
                         applications = new List<Application>()
                         {
                             new Application
@@ -163,6 +164,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                 {
                     new Role()
                     {
+                        name = "Admin",
                         applications = new List<Application>()
                         {
                             new Application

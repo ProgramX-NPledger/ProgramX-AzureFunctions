@@ -24,12 +24,14 @@ builder.Services
     .AddSingleton<JwtTokenIssuer, JwtTokenIssuer>()
     .AddSingleton<CosmosClient, CosmosClient>(cosmosClient =>
     {
-        string connectionString = Environment.GetEnvironmentVariable("CosmosDBConnection");
+        string? connectionString = Environment.GetEnvironmentVariable("CosmosDBConnection");
+        if (string.IsNullOrWhiteSpace(connectionString)) throw new ArgumentException("CosmosDBConnection environment variable is not set");
         return new CosmosClient(connectionString);
     })
     .AddSingleton<BlobServiceClient, BlobServiceClient>(blobService =>
     {
-        string connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+        string? connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+        if (string.IsNullOrWhiteSpace(connectionString)) throw new ArgumentException("AzureWebJobsStorage environment variable is not set");
         return new BlobServiceClient(connectionString);
     })
     .AddSingleton<IUserRepository, CosmosUserRepository>(serviceProvider =>

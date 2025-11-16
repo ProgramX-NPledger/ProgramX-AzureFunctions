@@ -6,14 +6,14 @@ namespace ProgramX.Azure.FunctionApp.Helpers;
 
 public class TestHealthCheck : IHealthCheck
 {
-    public async Task<HealthCheckResult> CheckHealthAsync()
+    public Task<HealthCheckResult> CheckHealthAsync()
     {
-        return new HealthCheckResult()
+        return Task.FromResult(new HealthCheckResult()
         {
             IsHealthy = true,
             Message = "OK",
             Items = new List<HealthCheckItemResult>(),
             HealthCheckName = "Test"
-        };
+        });
     }
 }

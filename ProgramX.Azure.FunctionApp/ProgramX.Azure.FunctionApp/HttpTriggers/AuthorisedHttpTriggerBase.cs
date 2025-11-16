@@ -52,6 +52,8 @@ public abstract class AuthorisedHttpTriggerBase
                 safeAuthorisationHeader = safeAuthorisationHeader.Substring(7);
 
             var jwtKey = _configuration["JwtKey"];
+            if (string.IsNullOrWhiteSpace(jwtKey)) return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "JwtKey not found in configuration.");
+            
             try
             {
                 Authentication = new AuthenticationInfo(safeAuthorisationHeader, jwtKey);
