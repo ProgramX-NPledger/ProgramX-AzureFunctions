@@ -39,6 +39,7 @@ jobs:
       - name: Test 
         run: |
           pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
+          ls -Ral
           dotnet test --logger console --results-directory "TestResults-${{ matrix.dotnet-version }}"
           popd
       - name: Upload dotnet test results
@@ -63,6 +64,7 @@ jobs:
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/ProgramX.Azure.FunctionApp/output'
 
           
+
 
 
 
