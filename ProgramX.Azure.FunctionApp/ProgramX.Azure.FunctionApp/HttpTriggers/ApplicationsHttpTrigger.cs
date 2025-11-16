@@ -39,10 +39,10 @@ public class ApplicationsHttpTrigger(
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
-                var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]);
-                var withinRoles = httpRequestData.Query["withinRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["withinRoles"]).Split(new [] {','});
-
+                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
+                var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
+                var withinRoles = httpRequestData.Query["withinRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["withinRoles"]!).Split(
+                    [',']);
                 var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
                 var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
                 
@@ -224,7 +224,7 @@ public class ApplicationsHttpTrigger(
     private string BuildPageUrl(string baseUrl, 
         string? containsText, 
         IEnumerable<string>? withinRoles, 
-        string continuationToken, 
+        string? continuationToken, 
         int? offset, 
         int? itemsPerPage)
     {

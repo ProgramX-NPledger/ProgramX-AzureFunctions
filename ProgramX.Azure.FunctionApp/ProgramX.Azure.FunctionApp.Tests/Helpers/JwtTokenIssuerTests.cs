@@ -31,10 +31,14 @@ public class JwtTokenIssuerTests
                     .Select(q => (char)q).Aggregate(string.Empty, (current, c) => current + c));
         
         var target = new JwtTokenIssuer(mockConfiguration.Object);
-        var result = target.IssueTokenForUser(new Credentials(),new string[] { "role1", "role2" });
+        var result = target.IssueTokenForUser(new Credentials
+        {
+            UserName = string.Empty,
+            Password = string.Empty
+        }, ["role1", "role2"]);
         Assert.That(result, Is.Not.Null);
         Assert.That(result,
             Is.EqualTo(
-                "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6bnVsbCwicm9sZXMiOlsicm9sZTEiLCJyb2xlMiJdfQ.pDeVYv5X4HSIMsL64g7JgVBsPZFuJCePNPamboadPsQ"));
+                "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6IiIsInJvbGVzIjpbInJvbGUxIiwicm9sZTIiXX0.MH3ZngiLtEof3FT2qa8gsCO0Ntm1t5JU_NQ6MZlsKX8"));
     }
 }

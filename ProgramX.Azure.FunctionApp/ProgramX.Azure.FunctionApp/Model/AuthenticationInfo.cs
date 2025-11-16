@@ -19,12 +19,12 @@ public class AuthenticationInfo
     /// <summary>
     /// The username of the authenticated user.
     /// </summary>
-    public string Username { get; }
-    
+    public string? Username { get; }
+
     /// <summary>
     /// The roles of the authenticated user.
     /// </summary>
-    public IEnumerable<string> Roles { get; }
+    public IEnumerable<string> Roles { get; } = [];
 
     /// <summary>
     /// Constructor that parses the JWT token and extracts the claims.
@@ -35,7 +35,7 @@ public class AuthenticationInfo
     {
 
         // Check if we can decode the header.
-        IDictionary<string, object> claims = null;
+        IDictionary<string, object> claims;
 
         try
         {
@@ -46,10 +46,9 @@ public class AuthenticationInfo
                 .MustVerifySignature()
                 .Decode<IDictionary<string, object>>(jwtToken);
         }
-        catch(Exception exception)
+        catch(Exception)
         {
             IsValid = false;
-
             return;
         }
 
@@ -57,7 +56,6 @@ public class AuthenticationInfo
         if (!claims.ContainsKey("username"))
         {
             IsValid = false;
-
             return;
         }
 

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -54,12 +55,12 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         {
             if (id == null)
             {
-                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]);
-                var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]);
-                var withRoles = httpRequestData.Query["withRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["withRoles"]).Split(new [] {','});
-                var hasAccessToApplications = httpRequestData.Query["hasAccessToApplications"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["hasAccessToApplications"]).Split(new [] {','});
+                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
+                var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
+                var withRoles = httpRequestData.Query["withRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["withRoles"]!).Split(new [] {','});
+                var hasAccessToApplications = httpRequestData.Query["hasAccessToApplications"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["hasAccessToApplications"]!).Split(new [] {','});
 
-                var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]);
+                var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
                 var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ??
                              0;
                 var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
@@ -138,7 +139,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
     
     
-    private string BuildPageUrl(string baseUrl, string? containsText, IEnumerable<string>? withRoles, IEnumerable<string>? hasAccessToApplications, string continuationToken, int? offset, int? itemsPerPage)
+    private string BuildPageUrl(string baseUrl, string? containsText, IEnumerable<string>? withRoles, IEnumerable<string>? hasAccessToApplications, string? continuationToken, int? offset, int? itemsPerPage)
     {
         var parametersDictionary = new Dictionary<string, string>();
         if (!string.IsNullOrWhiteSpace(containsText))
@@ -315,7 +316,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             {
                 multipartSection = await multipartReader.ReadNextSectionAsync();
             }
-            catch (IOException e)
+            catch (IOException)
             {
                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing multipart section.");
             }
@@ -439,6 +440,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             var user = await _userRepository.GetUserByIdAsync(id);
             if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
 
+            Debug.Assert(_storageClient != null, nameof(_storageClient) + " != null");
             var storageFolder = await _storageClient.GetStorageFolderAsync(BlobConstants.AvatarImagesBlobName);
             
             await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.profilePhotographOriginal}");

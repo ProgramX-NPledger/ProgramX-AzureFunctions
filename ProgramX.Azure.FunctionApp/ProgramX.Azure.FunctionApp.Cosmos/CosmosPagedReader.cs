@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
-using ProgramX.Azure.FunctionApp.Constants;
-using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model.Constants;
 
 namespace ProgramX.Azure.FunctionApp.Cosmos;
@@ -29,7 +27,7 @@ public class CosmosPagedReader<T> : CosmosReader<T>
     /// </summary>
     /// <param name="queryDefinition">The <seealso cref="QueryDefinition"/> representing the query to execute.</param>
     /// <param name="continuationToken">The Continuation Token is used to access the next page. Use <c>null</c> for final or only page.</param>
-    /// <param name="itemsPerPage">Optional. The number of items per page. Use <c>null</c> to request number of items specified by <see cref="DataConstants.ItemsPerPage"/>.</param>
+    /// <param name="itemsPerPage">Optional. The number of items per page. Use <c>null</c> to request number of items specified by <see cref="PagingConstants.ItemsPerPage"/>.</param>
     /// <returns>A <seealso cref="PagedCosmosDbResult{T}"/> containing the strongly typed result and the Continuation Token if further pages are available.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the provided container name is invalid.</exception>
     public async Task<CosmosPagedResult<T>> GetNextItemsAsync(QueryDefinition queryDefinition,
@@ -45,7 +43,7 @@ public class CosmosPagedReader<T> : CosmosReader<T>
     /// </summary>
     /// <param name="queryDefinition">The <seealso cref="QueryDefinition"/> representing the query to execute.</param>
     /// <param name="offset">Optional. The offset to start from. If not set, assumes the top.</param>   
-    /// <param name="itemsPerPage">Optional. The number of items per page. If not set, assumes the number of items defined by <see cref="DataConstants.ItemsPerPage"/>.</param>
+    /// <param name="itemsPerPage">Optional. The number of items per page. If not set, assumes the number of items defined by <see cref="PagingConstants.ItemsPerPage"/>.</param>
     /// <returns>A <seealso cref="CosmosPagedResult{T}"/> containing the strongly typed result.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the provided container name is invalid.</exception>
     public async Task<CosmosPagedResult<T>> GetPagedItemsAsync(QueryDefinition queryDefinition,
@@ -61,7 +59,7 @@ public class CosmosPagedReader<T> : CosmosReader<T>
     /// <param name="queryDefinition">The <seealso cref="QueryDefinition"/> representing the query to execute.</param>
     /// <param name="orderByField">The field to sort the results by. This field must not have the container specified.</param>
     /// <param name="offset">Optional. The offset to start from. If not set, assumes the top.</param>   
-    /// <param name="itemsPerPage">Optional. The number of items per page. If not set, assumes the number of items defined by <see cref="DataConstants.ItemsPerPage"/>.</param>
+    /// <param name="itemsPerPage">Optional. The number of items per page. If not set, assumes the number of items defined by <see cref="PagingConstants.ItemsPerPage"/>.</param>
     /// <returns>A <seealso cref="CosmosPagedResult{T}"/> containing the strongly typed result.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the provided container name is invalid.</exception>
     /// <remarks>It is not possible to sort by a field that is not in the outermost model.</remarks>

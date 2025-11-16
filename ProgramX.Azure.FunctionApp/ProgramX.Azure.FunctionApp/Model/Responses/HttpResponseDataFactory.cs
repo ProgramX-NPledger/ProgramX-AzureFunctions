@@ -3,6 +3,9 @@ using Microsoft.Azure.Functions.Worker.Http;
 
 namespace ProgramX.Azure.FunctionApp.Model.Responses;
 
+/// <summary>
+/// Creates HTTP Response Data objects.
+/// </summary>
 public class HttpResponseDataFactory
 {
     private static readonly JsonSerializerOptions DefaultJsonOptions = new JsonSerializerOptions 
@@ -11,7 +14,12 @@ public class HttpResponseDataFactory
         WriteIndented = false
     };
 
-    
+    /// <summary>
+    /// Creates a BadRequest response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <param name="errorMessage">Error message to send back to the client.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
     public static async Task<HttpResponseData> CreateForBadRequest(HttpRequestData httpRequestData, string errorMessage)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.BadRequest);
@@ -19,6 +27,12 @@ public class HttpResponseDataFactory
         return httpResponseData;
     }
     
+    /// <summary>
+    /// Creates a Conflict response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <param name="errorMessage">Error message to send back to the client.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
     public static async Task<HttpResponseData> CreateForConflict(HttpRequestData httpRequestData, string errorMessage)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Conflict);
@@ -26,20 +40,36 @@ public class HttpResponseDataFactory
         return httpResponseData;
     }
     
-    
-    public static async Task<HttpResponseData> CreateForTooManyRequests(HttpRequestData httpRequestData)
+    /// <summary>
+    /// Creates a TooManyRequests response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
+    public static Task<HttpResponseData> CreateForTooManyRequests(HttpRequestData httpRequestData)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.TooManyRequests);
-        return httpResponseData;
+        return Task.FromResult(httpResponseData);
     }
 
+    /// <summary>
+    /// Creates a ServerError response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <param name="errorMessage">Error message to send back to the client.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
     public static async Task<HttpResponseData> CreateForServerError(HttpRequestData httpRequestData, string errorMessage)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
         await httpResponseData.WriteStringAsync(errorMessage);
         return httpResponseData;
     }
-    
+
+    /// <summary>
+    /// Creates a ServerError response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <param name="exception">The exception that was caused.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
     public static async Task<HttpResponseData> CreateForServerError(HttpRequestData httpRequestData, Exception exception)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
@@ -50,6 +80,12 @@ public class HttpResponseDataFactory
         return httpResponseData;
     }
 
+    /// <summary>
+    /// Creates a NotFound response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <param name="type">Name of the type of the item that was not found.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
     public static async Task<HttpResponseData> CreateForNotFound(HttpRequestData httpRequestData, string type)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.NotFound);
@@ -57,12 +93,23 @@ public class HttpResponseDataFactory
         return httpResponseData;
     }
 
-    public static async Task<HttpResponseData> CreateForSuccess(HttpRequestData httpRequestData)
+    /// <summary>
+    /// Creates a Success response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
+    public static Task<HttpResponseData> CreateForSuccess(HttpRequestData httpRequestData)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
-        return httpResponseData;
+        return Task.FromResult(httpResponseData);
     }
     
+    /// <summary>
+    /// Creates a Success response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <param name="data">A JSON-serializable object to return to the client.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
     public static async Task<HttpResponseData> CreateForSuccess(HttpRequestData httpRequestData, object data)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
@@ -75,7 +122,11 @@ public class HttpResponseDataFactory
     }
     
     
-    
+    /// <summary>
+    /// Creates a NoContent response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
     public static HttpResponseData CreateForSuccessNoContent(HttpRequestData httpRequestData)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.NoContent);;
@@ -83,6 +134,12 @@ public class HttpResponseDataFactory
     }
     
  
+    /// <summary>
+    /// Creates a Success response for a paged result with a continuation token..
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <param name="pagedResponse">The <see cref="PagedResponse{T}"/> to return to the client.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
     public static async Task<HttpResponseData> CreateForSuccess<T>(HttpRequestData httpRequestData,
         PagedResponse<T> pagedResponse)
     {
@@ -95,6 +152,15 @@ public class HttpResponseDataFactory
         await httpResponseData.WriteStringAsync(serializedPagedResponse);
         return httpResponseData;
     }
+
+    /// <summary>
+    /// Creates a Created response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <param name="created">The JSON-serializable object that was created.</param>
+    /// <param name="type">Name of the type of object that was created.</param>
+    /// <param name="uniqueId">Unique identifier of object that was created.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
     public async static Task<HttpResponseData> CreateForCreated(HttpRequestData httpRequestData, object created, string type, string uniqueId)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Created);
@@ -104,6 +170,11 @@ public class HttpResponseDataFactory
         return httpResponseData;
     }
 
+    /// <summary>
+    /// Creates an Unauthorised response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
     public static async Task<HttpResponseData> CreateForUnauthorised(HttpRequestData httpRequestData)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Unauthorized);

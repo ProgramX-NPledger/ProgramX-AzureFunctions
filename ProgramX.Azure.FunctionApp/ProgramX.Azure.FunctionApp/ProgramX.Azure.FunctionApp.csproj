@@ -31,4 +31,7 @@
     <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Cosmos\ProgramX.Azure.FunctionApp.Cosmos.csproj" />
     <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Model\ProgramX.Azure.FunctionApp.Model.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Cosmos\" />
+  </ItemGroup>
 </Project>

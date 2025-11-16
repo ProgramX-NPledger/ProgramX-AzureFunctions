@@ -86,7 +86,7 @@ public class LoginHttpTrigger
 
     }
 
-    private string GetInitials(string firstName, string lastName)
+    private string GetInitials(string? firstName, string? lastName)
     {
         StringBuilder sb = new StringBuilder();
         if (!string.IsNullOrWhiteSpace(firstName))

@@ -2,7 +2,6 @@ using System.Net;
 using System.Text;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
-using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
@@ -150,7 +149,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
         if (response.StatusCode != HttpStatusCode.NoContent)
         {
-            logger.LogError("Failed to delete user with id {id}",id,response.StatusCode,response);
+            logger.LogError("Failed to delete user with id {id} with status code {statusCode} and response {response}",id,response.StatusCode,response);
             throw new RepositoryException(OperationType.Delete,typeof(User));
         }
     }
@@ -197,7 +196,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            logger.LogError("Failed to update user with id {id}",user.id,response.StatusCode,response);
+            logger.LogError("Failed to update user with id {id} with status code {statusCode} and response {response}",user.id,response.StatusCode,response);
             throw new RepositoryException(OperationType.Update,typeof(SecureUser));
         }
     }
@@ -210,7 +209,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            logger.LogError("Failed to create user",response.StatusCode,response);
+            logger.LogError("Failed to create user with id {id} with status code {statusCode} and response {response}",user.id,response.StatusCode,response);
             throw new RepositoryException(OperationType.Create,typeof(User));;
         }
     }
@@ -220,6 +219,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     public async Task CreateRoleAsync(Role role, IEnumerable<string> usersInRoles)
     {
         var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+        usersInRoles = usersInRoles.ToList(); // avoid multiple enumeration
         
         // get all users in the role
         var users = await GetUsersAsync(
@@ -300,7 +300,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
         foreach (var user in allUsersInRole.Items)
         {
-            Role innerRole = user.roles.SingleOrDefault(q=>q.name == roleName);
+            Role? innerRole = user.roles.SingleOrDefault(q=>q.name == roleName);
             if (innerRole != null)
             {
                 innerRole.name = role.name;
@@ -311,7 +311,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                logger.LogError("Failed to update user with id {id}",user.id,response.StatusCode,response);
+                logger.LogError("Failed to update user with id {id} with status code {statusCode} and response {response}",user.id,response.StatusCode,response);
                 throw new RepositoryException(OperationType.Update,typeof(SecureUser));
             }
         }
@@ -369,7 +369,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                logger.LogError("Failed to update user with id {id}",user.id,response.StatusCode,response);
+                logger.LogError("Failed to update user with id {id} with status code {statusCode} and response {response}",user.id,response.StatusCode,response);
                 throw new RepositoryException(OperationType.Update,typeof(SecureUser));
             }
         }

@@ -10,6 +10,7 @@ public class CosmosResult<T> : IResult<T>, IChargeableResult
 {
     protected CosmosResult()
     {
+        Items = [];
     }
 
     /// <summary>
