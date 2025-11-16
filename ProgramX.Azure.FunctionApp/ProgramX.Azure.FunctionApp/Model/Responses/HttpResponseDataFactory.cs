@@ -25,6 +25,13 @@ public class HttpResponseDataFactory
         await httpResponseData.WriteStringAsync(errorMessage);
         return httpResponseData;
     }
+    
+    
+    public static async Task<HttpResponseData> CreateForTooManyRequests(HttpRequestData httpRequestData)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.TooManyRequests);
+        return httpResponseData;
+    }
 
     public static async Task<HttpResponseData> CreateForServerError(HttpRequestData httpRequestData, string errorMessage)
     {
@@ -66,6 +73,7 @@ public class HttpResponseDataFactory
         return httpResponseData;
 
     }
+    
     
     
     public static HttpResponseData CreateForSuccessNoContent(HttpRequestData httpRequestData)

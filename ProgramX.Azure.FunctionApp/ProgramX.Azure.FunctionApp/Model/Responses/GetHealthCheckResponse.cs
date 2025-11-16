@@ -4,8 +4,11 @@ namespace ProgramX.Azure.FunctionApp.Model.Responses;
 
 public class GetHealthCheckResponse
 {
-    [JsonPropertyName("isAuthenticated")]
-    public bool IsAuthenticated => false;
+    [JsonPropertyName("timeStamp")]
+    public DateTime TimeStamp {
+        get;
+        set;
+    }
 
     [JsonPropertyName("healthCheckItems")]
     public IList<HealthCheckItem> HealthCheckItems { get; set; } = new List<HealthCheckItem>()
@@ -18,7 +21,8 @@ public class GetHealthCheckResponse
             ImmediateHealthCheckResponse = new HealthCheckItemResponse()
             {
                 Name = "azure-web-apps",
-                IsHealthy = true
+                IsHealthy = true,
+                TimeStamp = DateTime.UtcNow
             }
         },
         new ()
@@ -29,22 +33,23 @@ public class GetHealthCheckResponse
             ImmediateHealthCheckResponse = new HealthCheckItemResponse()
             {
                 Name = "azure-functions",
-                IsHealthy = true
+                IsHealthy = true,
+                TimeStamp = DateTime.UtcNow
             }
         },
-        new HealthCheckItem()
+        new()
         {
             Name = "azure-communication-services-email",
             FriendlyName = "Azure Communication Services (Email)",
             ImageUrl = "https://img.icons8.com/color/48/000000/azure-web-apps.png" // TODO: Azure Storage
         },
-        new HealthCheckItem()
+        new()
         {
             Name = "azure-storage",
             FriendlyName = "Azure Storage",
             ImageUrl = "https://img.icons8.com/color/48/000000/azure-web-apps.png" // TODO: Azure Storage
         },
-        new HealthCheckItem()
+        new()
         {
             Name = "azure-cosmos-db",
             FriendlyName = "Azure Cosmos DB",

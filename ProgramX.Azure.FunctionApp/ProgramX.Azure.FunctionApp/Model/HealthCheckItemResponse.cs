@@ -12,5 +12,8 @@ public class HealthCheckItemResponse
     
     [JsonPropertyName("message")]
     public string? Message { get; set; }
+
+    [JsonPropertyName("timeStamp")]
+    public DateTime TimeStamp { get; set; }
     
 }
