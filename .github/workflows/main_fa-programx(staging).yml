@@ -39,7 +39,7 @@ jobs:
       - name: Test 
         run: |
           pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-          dotnet test --logger console --verbosity detailed --results-directory "TestResults-${{ matrix.dotnet-version }}"
+          dotnet test --logger console --results-directory "TestResults-${{ matrix.dotnet-version }}"
           popd
       - name: Upload dotnet test results
         uses: actions/upload-artifact@v4
@@ -63,6 +63,7 @@ jobs:
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/ProgramX.Azure.FunctionApp/output'
 
           
+
 
 
 
