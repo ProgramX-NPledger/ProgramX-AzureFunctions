@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ProgramX.Azure.FunctionApp.AzureStorage;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Core;
 using ProgramX.Azure.FunctionApp.Cosmos;
@@ -34,6 +35,7 @@ builder.Services
         if (string.IsNullOrWhiteSpace(connectionString)) throw new ArgumentException("AzureWebJobsStorage environment variable is not set");
         return new BlobServiceClient(connectionString);
     })
+    .AddSingleton<IStorageClient, AzureStorageClient>(serviceProvider => new AzureStorageClient(serviceProvider.GetRequiredService<BlobServiceClient>()))
     .AddSingleton<IUserRepository, CosmosUserRepository>(serviceProvider =>
     {
         var cosmosClient = serviceProvider.GetRequiredService<CosmosClient>();
