@@ -34,5 +34,6 @@ public class HealthCheckItemResponse
     /// <summary>
     /// The sub items of the health check item.
     /// </summary>
+    [JsonPropertyName("subItems")]
     public IEnumerable<HealthCheckItemResult> SubItems { get; set; } = new List<HealthCheckItemResult>();
 }
