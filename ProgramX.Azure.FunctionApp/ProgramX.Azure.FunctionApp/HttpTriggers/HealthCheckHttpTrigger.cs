@@ -37,10 +37,7 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
 
             if (string.IsNullOrWhiteSpace(name))
             {
-                return await HttpResponseDataFactory.CreateForSuccess(req, new GetHealthCheckResponse()
-                {
-                    TimeStamp = DateTime.UtcNow,
-                });
+                return await HttpResponseDataFactory.CreateForSuccess(req, CreateForServiceDiscovery(req));
             }
             else
             {
@@ -51,6 +48,37 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
         {
             return await HttpResponseDataFactory.CreateForTooManyRequests(req);
         }
+    }
+
+    private IEnumerable<HealthCheckService> CreateForServiceDiscovery(HttpRequestData httpRequestData)
+    {
+        var baseUrl =
+            $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
+
+        return
+        [
+            new HealthCheckService()
+            {
+                Name = "azure-cosmos-db",
+                FriendlyName = "Azure Cosmos DB",
+                ImageUrl = "https://img.icons8.com/color/48/000000/azure-cosmos-db.png",
+                Url = $"{baseUrl}/healthcheck/azure-cosmos-db"
+            },
+            new HealthCheckService()
+            {
+                Name = "azure-email-communication-services",
+                FriendlyName = "Azure Email Communication Services",
+                ImageUrl = "https://img.icons8.com/color/48/000000/azure-cosmos-db.png",
+                Url = $"{baseUrl}/healthcheck/azure-email-communication-services"
+            },
+            new HealthCheckService()
+            {
+                Name = "azure-storage",
+                FriendlyName = "Azure Storage",
+                ImageUrl = "https://img.icons8.com/color/48/000000/azure-cosmos-db.png",
+                Url = $"{baseUrl}/healthcheck/azure-storage"
+            }
+        ];
     }
 
     private async Task<HttpResponseData> PerformSpecificHealthCheck(HttpRequestData httpRequestData, string name)
