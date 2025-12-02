@@ -50,35 +50,38 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
         }
     }
 
-    private IEnumerable<HealthCheckService> CreateForServiceDiscovery(HttpRequestData httpRequestData)
+    private GetHealthCheckResponse CreateForServiceDiscovery(HttpRequestData httpRequestData)
     {
         var baseUrl =
             $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
 
-        return
-        [
-            new HealthCheckService()
-            {
-                Name = "azure-cosmos-db",
-                FriendlyName = "Azure Cosmos DB",
-                ImageUrl = "https://img.icons8.com/color/48/000000/azure-cosmos-db.png",
-                Url = $"{baseUrl}/healthcheck/azure-cosmos-db"
-            },
-            new HealthCheckService()
-            {
-                Name = "azure-email-communication-services",
-                FriendlyName = "Azure Email Communication Services",
-                ImageUrl = "https://img.icons8.com/color/48/000000/azure-cosmos-db.png",
-                Url = $"{baseUrl}/healthcheck/azure-email-communication-services"
-            },
-            new HealthCheckService()
-            {
-                Name = "azure-storage",
-                FriendlyName = "Azure Storage",
-                ImageUrl = "https://img.icons8.com/color/48/000000/azure-cosmos-db.png",
-                Url = $"{baseUrl}/healthcheck/azure-storage"
-            }
-        ];
+        return new GetHealthCheckResponse()
+        {
+            Services = [
+                new HealthCheckService()
+                {
+                    Name = "azure-cosmos-db",
+                    FriendlyName = "Azure Cosmos DB",
+                    ImageUrl = "https://img.icons8.com/color/48/000000/azure-cosmos-db.png",
+                    Url = $"{baseUrl}/healthcheck/azure-cosmos-db"
+                },
+                new HealthCheckService()
+                {
+                    Name = "azure-email-communication-services",
+                    FriendlyName = "Azure Email Communication Services",
+                    ImageUrl = "https://img.icons8.com/color/48/000000/azure-cosmos-db.png",
+                    Url = $"{baseUrl}/healthcheck/azure-email-communication-services"
+                },
+                new HealthCheckService()
+                {
+                    Name = "azure-storage",
+                    FriendlyName = "Azure Storage",
+                    ImageUrl = "https://img.icons8.com/color/48/000000/azure-cosmos-db.png",
+                    Url = $"{baseUrl}/healthcheck/azure-storage"
+                }
+            ],
+            TimeStamp = DateTime.UtcNow
+        };
     }
 
     private async Task<HttpResponseData> PerformSpecificHealthCheck(HttpRequestData httpRequestData, string name)
