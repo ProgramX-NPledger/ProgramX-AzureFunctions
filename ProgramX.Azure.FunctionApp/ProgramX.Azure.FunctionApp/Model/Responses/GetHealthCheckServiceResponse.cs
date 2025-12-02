@@ -1,17 +1,15 @@
 using System.Text.Json.Serialization;
 
-namespace ProgramX.Azure.FunctionApp.Model;
+namespace ProgramX.Azure.FunctionApp.Model.Responses;
 
-/// <summary>
-/// Represents a response to a health check request.
-/// </summary>
-public class HealthCheckItemResponse
+public class GetHealthCheckServiceResponse
 {
-    /// <summary>
-    /// The internal name of the health check item.
-    /// </summary>
     [JsonPropertyName("name")]
     public required string Name { get; set; }
+    
+    [JsonPropertyName("timeStamp")]
+    public DateTime TimeStamp { get; set; }
+    
     
     /// <summary>
     /// Whether the health check item is healthy.
@@ -24,16 +22,11 @@ public class HealthCheckItemResponse
     /// </summary>
     [JsonPropertyName("message")]
     public string? Message { get; set; }
-
-    /// <summary>
-    /// The timestamp indicating when the health check item was executed.
-    /// </summary>
-    [JsonPropertyName("timeStamp")]
-    public DateTime TimeStamp { get; set; }
     
     /// <summary>
     /// The sub items of the health check item.
     /// </summary>
     [JsonPropertyName("subItems")]
     public IEnumerable<HealthCheckItemResult> SubItems { get; set; } = new List<HealthCheckItemResult>();
+
 }

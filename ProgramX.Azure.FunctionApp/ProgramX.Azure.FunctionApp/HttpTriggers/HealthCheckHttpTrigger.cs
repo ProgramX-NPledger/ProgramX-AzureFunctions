@@ -93,7 +93,7 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
         {
             var healthCheckResult = await healthCheck.CheckHealthAsync();
             
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new HealthCheckItemResponse()
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetHealthCheckServiceResponse()
             {
                 Name = name,
                 IsHealthy = healthCheckResult.IsHealthy, 
