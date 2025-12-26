@@ -7,7 +7,7 @@ POST {{host}} /api/v1/login
 
 {
     "userName": "nathan",
-    "password": "s1lmarillion"
+    "password": "gillsmate"
 }
 
 > {%

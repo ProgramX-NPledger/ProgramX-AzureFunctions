@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using JWT;
@@ -9,7 +10,9 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
+using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 
@@ -74,7 +77,13 @@ public class LoginHttpTrigger
             userFromDb.userName,
             userFromDb.emailAddress,
             roles = userFromDb.roles.Select(q=>q.name),
-            applications = userFromDb.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList(),
+            applications = userFromDb.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=> 
+                new FullyQualifiedApplication()
+                {
+                    application = q.First(),
+                    applicationMetaData = GetApplicationMetaDataForApplication(q.First())
+                }
+                ).ToList(),
             profilePhotoBase64 = string.Empty,
             userFromDb.firstName,
             userFromDb.lastName,
@@ -84,6 +93,27 @@ public class LoginHttpTrigger
         return httpResponse;
 
 
+    }
+
+    private ApplicationMetaData GetApplicationMetaDataForApplication(Application application)
+    {
+        var assembly = Assembly.Load(application.metaDataDotNetAssembly);
+        if (assembly==null) throw new InvalidOperationException($"Could not load assembly {application.name}");
+
+        var type = assembly.GetType(application.metaDataDotNetType);
+        if (type==null) throw new InvalidOperationException($"Could not find type {application.metaDataDotNetType} in assembly {application.metaDataDotNetAssembly}");
+        
+        var o = Activator.CreateInstance(type);
+        if (o == null) throw new InvalidOperationException($"Could not create instance of type {application.metaDataDotNetType} in assembly {application.metaDataDotNetAssembly}");
+
+        if (o is IApplication)
+        {
+            return ((IApplication)o).GetApplicationMetaData();
+        }
+        else
+        {
+            throw new InvalidOperationException($"Type {application.metaDataDotNetType} in assembly {application.name} does not implement IApplication");
+        }
     }
 
     private string GetInitials(string? firstName, string? lastName)

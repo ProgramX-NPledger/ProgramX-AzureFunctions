@@ -336,10 +336,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                 if (existingApplication != null)
                 {
                     existingApplication.name = application.name;
-                    existingApplication.description = application.description;
-                    existingApplication.imageUrl = application.imageUrl;
-                    existingApplication.targetUrl = application.targetUrl;
-                    existingApplication.schemaVersionNumber = application.schemaVersionNumber;
+                    existingApplication.schemaVersionNumber = (application.schemaVersionNumber <= 2) ? 2 : application.schemaVersionNumber;
                     existingApplication.isDefaultApplicationOnLogin = application.isDefaultApplicationOnLogin;
                     existingApplication.ordinal = application.ordinal;
                     existingApplication.updatedAt = DateTime.Now;

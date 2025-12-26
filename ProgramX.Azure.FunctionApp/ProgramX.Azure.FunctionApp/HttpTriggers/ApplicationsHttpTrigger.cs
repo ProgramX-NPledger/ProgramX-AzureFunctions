@@ -115,56 +115,6 @@ public class ApplicationsHttpTrigger(
     }
     
     
-    /// <summary>
-    /// Create an Application.
-    /// </summary>
-    /// <param name="httpRequestData"></param>
-    /// <returns></returns>
-    /// <response code="201">Application created.</response>
-    /// <response code="400">Invalid request body.</response>
-    /// <response code="409">Application already exists.</response>
-    /// <response code="500">Internal server error.</response>
-    /// <response code="401">Unauthorized.</response>
-    /// <response code="403">Forbidden.</response>
-    [Function(nameof(CreateApplication))]
-    public async Task<HttpResponseData> CreateApplication(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "application")] HttpRequestData httpRequestData
-    )
-    {
-        return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
-        {
-            var createApplicationRequest =
-                await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateApplicationRequest>(httpRequestData);
-            if (createApplicationRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
-
-            var existingApplication = await userRepository.GetApplicationByNameAsync(createApplicationRequest.name);
-            if (existingApplication != null) return await HttpResponseDataFactory.CreateForConflict(httpRequestData, "Application already exists");
-            
-            var newApplication = new Application()
-            {
-                name = createApplicationRequest.name,
-                description = createApplicationRequest.description,
-                schemaVersionNumber = 1,
-                targetUrl = createApplicationRequest.targetUrl,
-                imageUrl = createApplicationRequest.imageUrl,
-                isDefaultApplicationOnLogin = createApplicationRequest.isDefaultApplicationOnLogin,
-                ordinal = createApplicationRequest.ordinal,
-                createdAt = DateTime.UtcNow,
-                updatedAt = DateTime.UtcNow,
-            };
-
-            try
-            {
-                await userRepository.CreateApplicationAsync(newApplication, createApplicationRequest.addToRoles);
-            }
-            catch (RepositoryException e)
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, e.Message);           
-            }
-
-            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newApplication, "application", newApplication.name);    
-        });
-     }
     
     
     
@@ -184,10 +134,7 @@ public class ApplicationsHttpTrigger(
             if (application == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
             
             application.name=updateApplicationRequest.name!;
-            application.description = updateApplicationRequest.description!;
-            application.schemaVersionNumber = application.schemaVersionNumber <= 1 ? 1 : application.schemaVersionNumber;
-            application.targetUrl = updateApplicationRequest.targetUrl;
-            application.imageUrl = updateApplicationRequest.imageUrl;
+            application.schemaVersionNumber = application.schemaVersionNumber <= 2 ? 2 : application.schemaVersionNumber;
             application.isDefaultApplicationOnLogin = updateApplicationRequest.isDefaultApplicationOnLogin;
             application.ordinal = updateApplicationRequest.ordinal;
             
