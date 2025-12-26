@@ -207,7 +207,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         var response = await container.CreateItemAsync(user, new PartitionKey(user.userName));
 
-        if (response.StatusCode != HttpStatusCode.OK)
+        if (response.StatusCode != HttpStatusCode.Created)
         {
             logger.LogError("Failed to create user with id {id} with status code {statusCode} and response {response}",user.id,response.StatusCode,response);
             throw new RepositoryException(OperationType.Create,typeof(User));;
