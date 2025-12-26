@@ -9,6 +9,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ProgramX.Azure.FunctionApp.ApplicationDefinitions;
 using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
@@ -115,9 +116,49 @@ public class ApplicationsHttpTrigger(
     }
     
     
-    
-    
-    
+    [Function(nameof(GetHealthCheck))]
+    public async Task<HttpResponseData> GetHealthCheck(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "application/{name}/health")] HttpRequestData httpRequestData, string name)
+    {
+        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
+        {
+            IHealthCheck? healthCheck = await GetHealthCheckByNameAsync(name);
+            if (healthCheck != null)
+            {
+                var healthCheckResult = await healthCheck.CheckHealthAsync();
+
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                    new GetHealthCheckServiceResponse()
+                    {
+                        Name = name,
+                        IsHealthy = healthCheckResult.IsHealthy,
+                        Message = healthCheckResult.Message,
+                        TimeStamp = DateTime.UtcNow,
+                        SubItems = healthCheckResult.Items ?? new List<HealthCheckItemResult>()
+                    });
+
+            }
+            else
+            {
+                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
+                    $"No health check found for {name}");
+            }
+        });
+
+    }
+
+    private async Task<IHealthCheck?> GetHealthCheckByNameAsync(string name)
+    {
+        // get application by name
+        var application = await userRepository.GetApplicationByNameAsync(name);
+        if (application == null) return null;
+        
+        // get health check
+        var iApplication = ApplicationFactory.GetApplicationForApplicationName(application.metaDataDotNetAssembly,application.metaDataDotNetType);
+        return await iApplication.GetHealthCheckAsync(userRepository);
+    }
+
+
     [Function(nameof(UpdateApplication))]
     public async Task<HttpResponseData> UpdateApplication(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "application/{id}")]

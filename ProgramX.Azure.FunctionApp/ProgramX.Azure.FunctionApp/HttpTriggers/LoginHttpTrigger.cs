@@ -10,6 +10,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using ProgramX.Azure.FunctionApp.ApplicationDefinitions;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
@@ -81,7 +82,9 @@ public class LoginHttpTrigger
                 new FullyQualifiedApplication()
                 {
                     application = q.First(),
-                    applicationMetaData = GetApplicationMetaDataForApplication(q.First())
+                    applicationMetaData = ApplicationFactory.GetApplicationForApplicationName(
+                        q.First().metaDataDotNetAssembly,
+                        q.First().metaDataDotNetType).GetApplicationMetaData()
                 }
                 ).ToList(),
             profilePhotoBase64 = string.Empty,
@@ -95,26 +98,6 @@ public class LoginHttpTrigger
 
     }
 
-    private ApplicationMetaData GetApplicationMetaDataForApplication(Application application)
-    {
-        var assembly = Assembly.Load(application.metaDataDotNetAssembly);
-        if (assembly==null) throw new InvalidOperationException($"Could not load assembly {application.name}");
-
-        var type = assembly.GetType(application.metaDataDotNetType);
-        if (type==null) throw new InvalidOperationException($"Could not find type {application.metaDataDotNetType} in assembly {application.metaDataDotNetAssembly}");
-        
-        var o = Activator.CreateInstance(type);
-        if (o == null) throw new InvalidOperationException($"Could not create instance of type {application.metaDataDotNetType} in assembly {application.metaDataDotNetAssembly}");
-
-        if (o is IApplication)
-        {
-            return ((IApplication)o).GetApplicationMetaData();
-        }
-        else
-        {
-            throw new InvalidOperationException($"Type {application.metaDataDotNetType} in assembly {application.name} does not implement IApplication");
-        }
-    }
 
     private string GetInitials(string? firstName, string? lastName)
     {

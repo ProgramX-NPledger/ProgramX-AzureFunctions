@@ -402,7 +402,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     private QueryDefinition BuildQueryDefinitionForApplications(GetApplicationsCriteria criteria)
     {
-        var sb = new StringBuilder("SELECT a.name, a.description, a.imageUrl, a.targetUrl, a.type, a.schemaVersionNumber, a.isDefaultApplicationOnLogin, a.ordinal, a.createdAt,a.updatedAt FROM c JOIN r IN c.roles JOIN a IN r.applications WHERE 1=1");
+        var sb = new StringBuilder("SELECT a.name, a.metaDataDotNetAssembly, a.metaDataDotNetType, a.type, a.schemaVersionNumber, a.isDefaultApplicationOnLogin, a.ordinal, a.createdAt,a.updatedAt FROM c JOIN r IN c.roles JOIN a IN r.applications WHERE 1=1");
         var parameters = new List<(string name, object value)>();
         if (!string.IsNullOrWhiteSpace(criteria.ApplicationName))
         {
@@ -447,7 +447,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             sb.Append($" AND ({string.Join(" OR ", conditions)})");
         }
         
-        sb.Append(" GROUP BY a.name, a.description, a.imageUrl, a.targetUrl, a.type, a.schemaVersionNumber, a.isDefaultApplicationOnLogin, a.ordinal, a.createdAt,a.updatedAt");
+        sb.Append(" GROUP BY a.name, a.metaDataDotNetAssembly, a.metaDataDotNetType, a.type, a.schemaVersionNumber, a.isDefaultApplicationOnLogin, a.ordinal, a.createdAt,a.updatedAt");
         
         var queryDefinition = new QueryDefinition(sb.ToString());
         foreach (var param in parameters)

@@ -42,6 +42,13 @@ Authorization: Bearer {{token}}
 #
 
 ###
+# @name Get Application Health
+GET {{host}}/api/v1/application/administration/health
+Authorization: Bearer {{token}}
+#
+
+
+###
 # @name Update Application
 PUT {{host}}/api/v1/application/new-application
 Authorization: Bearer {{token}}
