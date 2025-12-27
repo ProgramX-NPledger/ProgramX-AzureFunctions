@@ -166,7 +166,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
             if (role == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
             
             role.name=updateRoleRequest.name!;
-            role.description = updateRoleRequest.decription!;
+            role.description = updateRoleRequest.description!;
 
             var applications=await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria());
             role.applications = applications.Items.Where(q => updateRoleRequest.applications.Contains(q.name)).OrderBy(q => q.name).ToList();
