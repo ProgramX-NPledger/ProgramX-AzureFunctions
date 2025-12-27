@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="fr.socolin.awesomeLogViewer.module.simpleConsole.state">
+    <consoleSettings>
+      <simpleConsoleConsoleSettings>
+        <option name="id" value="dotnetMicrosoftExtensionsLogging" />
+        <option name="DISPLAY_NAME" value="Microsoft.Extensions.Logging" />
+        <option name="SUPPORT_NESTING" value="false" />
+        <option name="STARTING_LOG_PATTERN" value="^(?&lt;severity&gt;dbug|info|warn|fail|crit): (?&lt;category&gt;.+)$" />
+        <option name="SECONDARY_LOG_PATTERN" value="^ {6}(?&lt;message&gt;.*)$" />
+        <option name="filteringProperties">
+          <entry key="category" value="Category" />
+          <entry key="severity" value="Severity Level" />
+        </option>
+        <option name="READ_DEBUG_OUTPUT" value="true" />
+      </simpleConsoleConsoleSettings>
+    </consoleSettings>
+  </component>
+</project>
