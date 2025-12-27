@@ -38,59 +38,88 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
-                var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
-                var usedInApplications = httpRequestData.Query["usedInApplications"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["usedInApplications"]!).Split(new [] {','});
+                using (_logger.BeginScope("Listing Roles"))
+                {
+                    _logger.LogInformation("Request parameters {queryString}",httpRequestData.Query);
+                    var continuationToken = httpRequestData.Query["continuationToken"] == null
+                        ? null
+                        : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
+                    var containsText = httpRequestData.Query["containsText"] == null
+                        ? null
+                        : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
+                    var usedInApplications = httpRequestData.Query["usedInApplications"] == null
+                        ? null
+                        : Uri.UnescapeDataString(httpRequestData.Query["usedInApplications"]!).Split(new[] { ',' });
 
-                var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
-                var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
-                
-                var roles = await _userRepository.GetRolesAsync(new GetRolesCriteria()
-                {
-                    UsedInApplicationNames = usedInApplications,
-                    ContainingText = containsText
-                }, new PagedCriteria()
-                {
-                    ItemsPerPage = itemsPerPage,
-                    Offset = offset
-                });
-                
-                var baseUrl =
-                    $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
-                
-                var pageUrls = CalculatePageUrls((IPagedResult<Role>)roles,
-                    baseUrl,
-                    containsText,
-                    usedInApplications,
-                    continuationToken, 
-                    offset,
-                    itemsPerPage);
-                
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>((IPagedResult<Role>)roles,pageUrls));
-                
+                    var offset =
+                        UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
+                    var itemsPerPage =
+                        UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ??
+                        PagingConstants.ItemsPerPage;
+
+                    var criteria = new GetRolesCriteria()
+                    {
+                        UsedInApplicationNames = usedInApplications,
+                        ContainingText = containsText
+                    };
+                    var pagedCriteria = new PagedCriteria()
+                    {
+                        ItemsPerPage = itemsPerPage,
+                        Offset = offset
+                    };
+
+                    _logger.LogInformation("Retrieving roles with criteria {criteria} paged by {pagedCriteria}", criteria, pagedCriteria);
+                    var roles = await _userRepository.GetRolesAsync(criteria, pagedCriteria);
+
+                    _logger.LogInformation("Retrieved roles {result}", roles);
+                    
+                    var baseUrl =
+                        $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
+                    
+                    var pageUrls = CalculatePageUrls((IPagedResult<Role>)roles,
+                        baseUrl,
+                        containsText,
+                        usedInApplications,
+                        continuationToken,
+                        offset,
+                        itemsPerPage);
+                    _logger.LogInformation("Calculated page urls {pageUrls}", pageUrls);
+
+                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>((IPagedResult<Role>)roles,pageUrls));
+                }
             }
             else
             {
-                var roles = await _userRepository.GetRolesAsync(new GetRolesCriteria()
+                using (_logger.BeginScope("Retrieving Role {name}", name))
                 {
-                    RoleName = name
-                });
-                if (!roles.Items.Any())
-                {
-                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
+                    var roles = await _userRepository.GetRolesAsync(new GetRolesCriteria()
+                    {
+                        RoleName = name
+                    });
+                    if (!roles.Items.Any())
+                    {
+                        _logger.LogWarning("Role {name} not found", name);
+                        return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
+                    }
+
+                    _logger.LogInformation("Retrieved role {role}", roles.Items.First());
+
+                    var allUsers = await _userRepository.GetUsersAsync(new GetUsersCriteria());
+                    var usersInRole = _userRepository.GetUsersInRole(name, allUsers.Items);
+                    var allApplications = await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria());
+                    
+                    _logger.LogInformation("Retrieved users in role {usersInRole}", usersInRole);
+                    _logger.LogInformation("Retrieved all applications {allApplications}", allApplications);
+                    
+                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
+                    {
+                        role = roles.Items.First(),
+                        allUsers = allUsers.Items,
+                        usersInRole,
+                        allApplications.Items
+                    });
                 }
 
-                var allUsers = await _userRepository.GetUsersAsync(new GetUsersCriteria());
-                var usersInRole = _userRepository.GetUsersInRole(name, allUsers.Items);
-                var allApplications = await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria());
-                
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
-                {
-                    role = roles.Items.First(),
-                    allUsers = allUsers.Items,
-                    usersInRole,
-                    allApplications.Items
-                });
             }
         });
     }
@@ -114,37 +143,53 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
         {
-            var createRoleRequest =
-                await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateRoleRequest>(httpRequestData);
-            if (createRoleRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
+            using (_logger.BeginScope("Creating Role"))
+            {
+                var createRoleRequest =
+                    await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateRoleRequest>(httpRequestData);
+                if (createRoleRequest == null)
+                {
+                    _logger.LogError("Invalid request body");
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
+                }
 
-            // TODO: check if role already exists and return 409 if so
+                var existingRole = await _userRepository.GetRoleByNameAsync(createRoleRequest.name);
+                if (existingRole != null)
+                {
+                    _logger.LogWarning("Role {name} already exists", createRoleRequest.name);
+                    return await HttpResponseDataFactory.CreateForConflict(httpRequestData, "Role already exists");
+                }
             
-            var allApplications = await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria()
-            {
-                ApplicationNames = createRoleRequest.addToApplications
-            });
+                var allApplications = await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria()
+                {
+                    ApplicationNames = createRoleRequest.addToApplications
+                });
+                _logger.LogInformation("Adding applications {allApplications} to created Role", allApplications);
+                
+                var newRole = new Role()
+                {
+                    name = createRoleRequest.name,
+                    description = createRoleRequest.description,
+                    applications = allApplications.Items,
+                    schemaVersionNumber = 2,
+                    createdAt = DateTime.UtcNow,
+                    updatedAt = DateTime.UtcNow,
+                };
 
-            var newRole = new Role()
-            {
-                name = createRoleRequest.name,
-                description = createRoleRequest.description,
-                applications = allApplications.Items,
-                schemaVersionNumber = 2,
-                createdAt = DateTime.UtcNow,
-                updatedAt = DateTime.UtcNow,
-            };
+                try
+                {
+                    await _userRepository.CreateRoleAsync(newRole, createRoleRequest.addToUsers);
+                }
+                catch (RepositoryException e)
+                {
+                    _logger.LogError(e, "Failed to create role {role}", newRole);
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, e.Message);           
+                }
 
-            try
-            {
-                await _userRepository.CreateRoleAsync(newRole, createRoleRequest.addToUsers);
+                _logger.LogInformation("Created role {role}", newRole);
+                return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newRole, "role", newRole.name);    
             }
-            catch (RepositoryException e)
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, e.Message);           
-            }
 
-            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newRole, "role", newRole.name);    
         });
      }
     
@@ -156,29 +201,75 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         HttpRequestData httpRequestData,
         string id)
     {
-        return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
+        return await RequiresAuthentication(httpRequestData, null, async (usernameMakingTheChange, _) =>
         {
-            var updateRoleRequest =
-                await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateRoleRequest>(httpRequestData);
-            if (updateRoleRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
-
-            var role = await _userRepository.GetRoleByNameAsync(id);
-            if (role == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
-            
-            role.name=updateRoleRequest.name!;
-            role.description = updateRoleRequest.description!;
-
-            var applications=await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria());
-            role.applications = applications.Items.Where(q => updateRoleRequest.applications.Contains(q.name)).OrderBy(q => q.name).ToList();
-
-            await _userRepository.UpdateRoleAsync(id,role);
-
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateRoleResponse()
+            using (_logger.BeginScope("Updating Role {id}", id))
             {
-                Name = role.name,
-                ErrorMessage = null,
-                IsOk = true
-            });
+                var updateRoleRequest =
+                    await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateRoleRequest>(
+                        httpRequestData);
+
+                if (updateRoleRequest == null)
+                {
+                    _logger.LogError("Invalid request body");
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
+                }
+
+                var role = await _userRepository.GetRoleByNameAsync(id);
+                if (role == null)
+                {
+                    _logger.LogWarning("Role {id} not found", id);
+                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
+                }
+
+                role.name = updateRoleRequest.name!;
+                role.description = updateRoleRequest.description!;
+
+                var applications = await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria());
+                role.applications = applications.Items.Where(q => updateRoleRequest.applications.Contains(q.name))
+                    .OrderBy(q => q.name).ToList();
+
+                _logger.LogInformation("Updating role {role}", role);
+                await _userRepository.UpdateRoleAsync(id, role);
+
+                if (updateRoleRequest.usersInRole != null)
+                {
+                    // need to update users in role
+                    foreach (var userName in updateRoleRequest.usersInRole)
+                    {
+                        var user = await _userRepository.GetUserByUserNameAsync(userName);
+                        if (user == null) continue;
+
+                        
+                        var userIsAdded = user.roles.All(q => q.name != role.name);
+                        if (userIsAdded)
+                        {
+                            _logger.LogInformation("Adding user {userName} to role {roleName}", userName, role.name);
+                            await _userRepository.AddRoleToUser(role, userName);
+                        }
+                        
+                    }
+                }
+                
+                // get all users for role (therefore all Users with that Role), removed will be difference between before and after
+                var allUsers = await _userRepository.GetUsersAsync(new GetUsersCriteria()
+                {
+                    WithRoles = [role.name]
+                });
+                foreach (var user in allUsers.Items)
+                {
+                    if (updateRoleRequest.usersInRole?.Contains(user.userName) ?? false) continue;
+                    _logger.LogInformation("Removing user {userName} from role {roleName}", user.userName, role.name);
+                    await _userRepository.RemoveRoleFromUser(role.name, user.userName);
+                }
+
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateRoleResponse()
+                {
+                    Name = role.name,
+                    ErrorMessage = null,
+                    IsOk = true
+                });
+            }
         });
     }
     
@@ -192,10 +283,17 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var role = await _userRepository.GetRoleByNameAsync(id);
-            if (role == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
-            await _userRepository.DeleteRoleByNameAsync(id);
-            return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
+            using (_logger.BeginScope("Deleting Role {id}", id))
+            {
+                var role = await _userRepository.GetRoleByNameAsync(id);
+                if (role == null)
+                {
+                    _logger.LogWarning("Role {id} not found", id);
+                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
+                }
+                await _userRepository.DeleteRoleByNameAsync(id);
+                return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
+            }
         });
     }
     

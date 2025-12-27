@@ -19,4 +19,6 @@ public class GetRolesCriteria
     /// A list of names of applications that the Role is used in.
     /// </summary>
     public IEnumerable<string>? UsedInApplicationNames { get; set; }
+
+    
 }

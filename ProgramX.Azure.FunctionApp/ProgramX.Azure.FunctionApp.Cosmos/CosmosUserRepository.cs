@@ -17,31 +17,38 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <exception cref="ArgumentNullException">Thrown if required parameters are <c>null</c>.</exception>
     public async Task<IResult<Role>> GetRolesAsync(GetRolesCriteria criteria, PagedCriteria? pagedCriteria = null)
     {
-        QueryDefinition queryDefinition = BuildQueryDefinitionForRoles(criteria);
+        using (logger.BeginScope("GetRolesAsync {criteria}, {pagedCriteria}", criteria, pagedCriteria?.ToString() ?? "null"))
+        {
+            QueryDefinition queryDefinition = BuildQueryDefinitionForRoles(criteria);
+            logger.LogDebug("QueryDefinition: {queryDefinition}", queryDefinition);
+            
+            CosmosReader<Role> cosmosReader;
+            IResult<Role> result;
+            if (pagedCriteria != null)
+            {
+                cosmosReader = new CosmosPagedReader<Role>(cosmosClient,
+                    DatabaseNames.Core,
+                    ContainerNames.Users,
+                    ContainerNames.UserNamePartitionKey);
+                result = await ((CosmosPagedReader<Role>)cosmosReader).GetPagedItemsAsync(queryDefinition,
+                    pagedCriteria.Offset,
+                    pagedCriteria.ItemsPerPage);
+            }
+            else
+            {
+                cosmosReader = new CosmosReader<Role>(cosmosClient,
+                    DatabaseNames.Core,
+                    ContainerNames.Users,
+                    ContainerNames.UserNamePartitionKey);
+                result = await cosmosReader.GetItemsAsync(queryDefinition);
+            }
 
-        CosmosReader<Role> cosmosReader;
-        IResult<Role> result;
-        if (pagedCriteria != null)
-        {
-            cosmosReader  = new CosmosPagedReader<Role>(cosmosClient, 
-                DatabaseNames.Core, 
-                ContainerNames.Users, 
-                ContainerNames.UserNamePartitionKey);
-            result = await ((CosmosPagedReader<Role>)cosmosReader).GetPagedItemsAsync(queryDefinition, pagedCriteria.Offset,
-                pagedCriteria.ItemsPerPage);
+            logger.LogDebug("Result: {result}", result);
+            
+            // it isn't possible to order within a collection, so we need to get all the items and the caller must sort the results
+            result.IsRequiredToBeOrderedByClient = true;
+            return result;
         }
-        else
-        {
-            cosmosReader = new CosmosReader<Role>(cosmosClient, 
-                DatabaseNames.Core, 
-                ContainerNames.Users, 
-                ContainerNames.UserNamePartitionKey);
-            result = await cosmosReader.GetItemsAsync(queryDefinition);
-        }
-        
-        // it isn't possible to order within a collection, so we need to get all the items and the caller must sort the results
-        result.IsRequiredToBeOrderedByClient = true;
-        return result;
     }
 
     /// <inheritdoc />
@@ -49,31 +56,36 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <exception cref="ArgumentNullException">Thrown if required parameters are <c>null</c>.</exception>
     public async Task<IResult<SecureUser>> GetUsersAsync(GetUsersCriteria criteria, PagedCriteria? pagedCriteria = null)
     {
-        QueryDefinition queryDefinition = BuildQueryDefinitionForUsers(criteria);
+        using (logger.BeginScope("GetUsersAsync {criteria}, {pagedCriteria}", criteria, pagedCriteria?.ToString() ?? "null"))
+        {
+            QueryDefinition queryDefinition = BuildQueryDefinitionForUsers(criteria);
+            logger.LogDebug("QueryDefinition: {queryDefinition}", queryDefinition);
+            
+            CosmosReader<SecureUser> cosmosReader;
+            IResult<SecureUser> result;
+            if (pagedCriteria != null)
+            {
+                cosmosReader = new CosmosPagedReader<SecureUser>(cosmosClient,
+                    DatabaseNames.Core,
+                    ContainerNames.Users,
+                    ContainerNames.UserNamePartitionKey);
+                result = await ((CosmosPagedReader<SecureUser>)cosmosReader).GetPagedItemsAsync(queryDefinition,
+                    pagedCriteria.Offset,
+                    pagedCriteria.ItemsPerPage);
+            }
+            else
+            {
+                cosmosReader = new CosmosReader<SecureUser>(cosmosClient,
+                    DatabaseNames.Core,
+                    ContainerNames.Users,
+                    ContainerNames.UserNamePartitionKey);
+                result = await cosmosReader.GetItemsAsync(queryDefinition);
+            }
 
-        CosmosReader<SecureUser> cosmosReader;
-        IResult<SecureUser> result;
-        if (pagedCriteria != null)
-        {
-            cosmosReader  = new CosmosPagedReader<SecureUser>(cosmosClient, 
-                DatabaseNames.Core, 
-                ContainerNames.Users, 
-                ContainerNames.UserNamePartitionKey);
-            result = await ((CosmosPagedReader<SecureUser>)cosmosReader).GetPagedItemsAsync(queryDefinition, pagedCriteria.Offset,
-                pagedCriteria.ItemsPerPage);
+            logger.LogDebug("Result: {result}", result);
+            result.IsRequiredToBeOrderedByClient = false;
+            return result;
         }
-        else
-        {
-            cosmosReader = new CosmosReader<SecureUser>(cosmosClient, 
-                DatabaseNames.Core, 
-                ContainerNames.Users, 
-                ContainerNames.UserNamePartitionKey);
-            result = await cosmosReader.GetItemsAsync(queryDefinition);
-        }
-        
-        result.IsRequiredToBeOrderedByClient = false;
-        return result;
-        
     }
 
     /// <inheritdoc />
@@ -82,32 +94,37 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     public async Task<IResult<Application>> GetApplicationsAsync(GetApplicationsCriteria criteria,
         PagedCriteria? pagedCriteria = null)
     {
-        QueryDefinition queryDefinition = BuildQueryDefinitionForApplications(criteria);
-
-        CosmosReader<Application> cosmosReader;
-        IResult<Application> result;
-        if (pagedCriteria != null)
+        using (logger.BeginScope("GetApplicationsAsync {criteria}, {pagedCriteria}", criteria, pagedCriteria?.ToString() ?? "null"))
         {
-            cosmosReader = new CosmosPagedReader<Application>(cosmosClient,
-                DatabaseNames.Core, 
-                ContainerNames.Users,
-                ContainerNames.UserNamePartitionKey);
-            result = await ((CosmosPagedReader<Application>)cosmosReader).GetPagedItemsAsync(queryDefinition,
-                pagedCriteria.Offset,
-                pagedCriteria.ItemsPerPage);
+            QueryDefinition queryDefinition = BuildQueryDefinitionForApplications(criteria);
+            logger.LogDebug("QueryDefinition: {queryDefinition}", queryDefinition);
+            
+            CosmosReader<Application> cosmosReader;
+            IResult<Application> result;
+            if (pagedCriteria != null)
+            {
+                cosmosReader = new CosmosPagedReader<Application>(cosmosClient,
+                    DatabaseNames.Core,
+                    ContainerNames.Users,
+                    ContainerNames.UserNamePartitionKey);
+                result = await ((CosmosPagedReader<Application>)cosmosReader).GetPagedItemsAsync(queryDefinition,
+                    pagedCriteria.Offset,
+                    pagedCriteria.ItemsPerPage);
+            }
+            else
+            {
+                cosmosReader = new CosmosReader<Application>(cosmosClient,
+                    DatabaseNames.Core,
+                    ContainerNames.Users,
+                    ContainerNames.UserNamePartitionKey);
+                result = await cosmosReader.GetItemsAsync(queryDefinition);
+            }
+            logger.LogDebug("Result: {result}", result);
+            
+            // it isn't possible to order within a collection, so we need to get all the items and the caller must sort the results
+            result.IsRequiredToBeOrderedByClient = false;
+            return result;
         }
-        else
-        {
-            cosmosReader = new CosmosReader<Application>(cosmosClient,
-                DatabaseNames.Core, 
-                ContainerNames.Users,
-                ContainerNames.UserNamePartitionKey);
-            result = await cosmosReader.GetItemsAsync(queryDefinition);
-        }
-        
-        // it isn't possible to order within a collection, so we need to get all the items and the caller must sort the results
-        result.IsRequiredToBeOrderedByClient = false;
-        return result;
 
     }
 
@@ -140,40 +157,51 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     }
 
     /// <inheritdoc />
+    /// <exception cref="RepositoryException">Thrown if the deletion failed.</exception>
     public async Task DeleteUserByIdAsync(string id)
     {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
-
-        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-        var response = await container.DeleteItemAsync<User>(id, new PartitionKey(id));
-
-        if (response.StatusCode != HttpStatusCode.NoContent)
+        using (logger.BeginScope("DeleteUserByIdAsync {id}", id))
         {
-            logger.LogError("Failed to delete user with id {id} with status code {statusCode} and response {response}",id,response.StatusCode,response);
-            throw new RepositoryException(OperationType.Delete,typeof(User));
+            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
+
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+            var response = await container.DeleteItemAsync<User>(id, new PartitionKey(id));
+
+            if (response.StatusCode != HttpStatusCode.NoContent)
+            {
+                logger.LogError(
+                    "Failed to delete user with id {id} with status code {statusCode} and response {response}", id,
+                    response.StatusCode, response);
+                throw new RepositoryException(OperationType.Delete, typeof(User));
+            }
         }
     }
 
     /// <inheritdoc />
     public async Task<User?> GetInsecureUserByIdAsync(string id)
     {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
-        
-        QueryDefinition queryDefinition = BuildQueryDefinitionForUsers(new GetUsersCriteria()
+        using (logger.BeginScope("GetInsecureUserByIdAsync {id}", id))
         {
-            Id = id
-        });
+            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
 
-        CosmosReader<User> cosmosReader;
-        IResult<User> result;
+            QueryDefinition queryDefinition = BuildQueryDefinitionForUsers(new GetUsersCriteria()
+            {
+                Id = id
+            });
+            logger.LogDebug("QueryDefinition: {queryDefinition}", queryDefinition);
 
-        cosmosReader = new CosmosReader<User>(cosmosClient, 
-                DatabaseNames.Core, 
-                ContainerNames.Users, 
+            CosmosReader<User> cosmosReader;
+            IResult<User> result;
+
+            cosmosReader = new CosmosReader<User>(cosmosClient,
+                DatabaseNames.Core,
+                ContainerNames.Users,
                 ContainerNames.UserNamePartitionKey);
-        result = await cosmosReader.GetItemsAsync(queryDefinition);
-        
-        return result.Items.SingleOrDefault();
+            result = await cosmosReader.GetItemsAsync(queryDefinition);
+            logger.LogDebug("Success but logging inhibited because of sensitive data");
+
+            return result.Items.SingleOrDefault();
+        }
     }
 
     /// <inheritdoc />
@@ -189,94 +217,134 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     }
 
     /// <inheritdoc />
+    /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
     public async Task UpdateUserAsync(SecureUser user)
     {
-        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-        var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
-
-        if (response.StatusCode != HttpStatusCode.OK)
+        using (logger.BeginScope("UpdateUserAsync {user}", user))
         {
-            logger.LogError("Failed to update user with id {id} with status code {statusCode} and response {response}",user.id,response.StatusCode,response);
-            throw new RepositoryException(OperationType.Update,typeof(SecureUser));
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+            var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                logger.LogError(
+                    "Failed to update user with id {id} with status code {statusCode} and response {response}", user.id,
+                    response.StatusCode, response);
+                throw new RepositoryException(OperationType.Update, typeof(SecureUser));
+            }
+            logger.LogDebug("Success");
         }
     }
 
     /// <inheritdoc />
+    /// <exception cref="RepositoryException">Thrown if the creation failed.</exception>
     public async Task CreateUserAsync(User user)
     {
-        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-        var response = await container.CreateItemAsync(user, new PartitionKey(user.userName));
-
-        if (response.StatusCode != HttpStatusCode.Created)
+        using (logger.BeginScope("CreateUserAsync {user}", user))
         {
-            logger.LogError("Failed to create user with id {id} with status code {statusCode} and response {response}",user.id,response.StatusCode,response);
-            throw new RepositoryException(OperationType.Create,typeof(User));;
-        }
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+            var response = await container.CreateItemAsync(user, new PartitionKey(user.userName));
+
+            if (response.StatusCode != HttpStatusCode.Created)
+            {
+                logger.LogError(
+                    "Failed to create user with id {id} with status code {statusCode} and response {response}", user.id,
+                    response.StatusCode, response);
+                throw new RepositoryException(OperationType.Create, typeof(User));
+            }
+            logger.LogDebug("Success");
+        }    
     }
     
     
     /// <inheritdoc />
+    /// <exception cref="RepositoryException">Thrown if the creation failed.</exception>
     public async Task CreateRoleAsync(Role role, IEnumerable<string> usersInRoles)
     {
-        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-        usersInRoles = usersInRoles.ToList(); // avoid multiple enumeration
-        
-        // get all users in the role
-        var users = await GetUsersAsync(
-            new GetUsersCriteria()
+        using (logger.BeginScope("CreateRoleAsync {role}, {usersInRoles}", role, usersInRoles))
+        {
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+            usersInRoles = usersInRoles.ToList(); // avoid multiple enumeration
+
+            // get all users in the role
+            var users = await GetUsersAsync(
+                new GetUsersCriteria()
+                {
+                    UserNames = usersInRoles
+                });
+            if (users.TotalCount == 0)
             {
-                UserNames = usersInRoles
-            });
-        if (users.TotalCount == 0)
-        {
-            throw new RepositoryException(
-                $"No users found with usernames so cannot add Role: {string.Join(",", usersInRoles)}");
-        }
-        
-        // add role to each user
-        foreach (var user in users.Items)
-        {
-            ((List<Role>)user.roles).Add(role);
-            var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
-            
+                logger.LogError("No users found with usernames {usersInRoles} so cannot add Role. At least one User must exist for Role to be created.",string.Join(",", usersInRoles));
+                throw new RepositoryException(
+                    $"No users found with usernames so cannot add Role: {string.Join(",", usersInRoles)}");
+            }
+
+            // add role to each user
+            foreach (var user in users.Items)
+            {
+                ((List<Role>)user.roles).Add(role);
+                await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+                logger.LogDebug("Added Role to User: {userName}", user.userName);           
+            }
         }
             
     }
 
+    /// <inheritdoc />
+    /// <exception cref="RepositoryException">Thrown if the creation failed.</exception>
     public async Task CreateApplicationAsync(Application application, IEnumerable<string> withinRoles)
     {
-        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-        
-        // get all users with roles
-        var users = await GetUsersAsync(new GetUsersCriteria()
+        using (logger.BeginScope("CreateApplicationAsync {application}, {withinRoles}", application, withinRoles))
         {
-            WithRoles = withinRoles.ToList()
-        });
-        if (users.TotalCount == 0) throw new RepositoryException($"No users found with roles so cannot add Application: {application.name}");
-        
-        // add application to each role to each user
-        foreach (var user in users.Items)
-        {
-            foreach (var role in user.roles)
-                if (((List<Application>)role.applications).All(q => q.name != application.name))
-                {
-                    // add application to role
-                    ((List<Application>)role.applications).Add(application);
-                }
-                else
-                {
-                    throw new RepositoryException($"Application {application.name} already exists in role {role.name}");
-                }
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
 
-            var response = await container.ReplaceItemAsync(user, user.id,
-                new PartitionKey(user.userName));
-            if (response.StatusCode != HttpStatusCode.OK)
-                throw new RepositoryException(OperationType.Create, typeof(Application));
-        }        
+            withinRoles = withinRoles.ToList(); // avoid multiple enumerations
+            
+            // get all users with roles
+            var users = await GetUsersAsync(new GetUsersCriteria()
+            {
+                WithRoles = withinRoles.ToList()
+            });
+            if (users.TotalCount == 0)
+            {
+                logger.LogError("No users found with roles {withinRoles} so cannot add Application. At least one User must exist with one of the Roles for the Application to be created.",string.Join(",", withinRoles));
+                throw new RepositoryException(
+                    $"No users found with roles so cannot add Application: {application.name}");
+            }
+
+            // add application to each role to each user
+            foreach (var user in users.Items)
+            {
+                foreach (var role in user.roles)
+                    if (((List<Application>)role.applications).All(q => q.name != application.name))
+                    {
+                        // add application to role
+                        logger.LogDebug("Adding Application {applicationName} to Role {roleName}", application.name, role.name);
+                        ((List<Application>)role.applications).Add(application);
+                    }
+                    else
+                    {
+                        logger.LogError("Application {applicationName} already exists in role {roleName}", application.name, role.name);
+                        throw new RepositoryException(
+                            $"Application {application.name} already exists in role {role.name}");
+                    }
+
+                var response = await container.ReplaceItemAsync(user, user.id,
+                    new PartitionKey(user.userName));
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    logger.LogError("Failed to update user with id {id} with status code {statusCode} and response {response}",user.id,response.StatusCode,response);
+                    throw new RepositoryException(OperationType.Create, typeof(Application));
+                }
+                logger.LogDebug("Added Application to User: {userName}", user.userName);           
+            }
+            logger.LogDebug("Success");
+        }  
     
         
     }
 
+    /// <inheritdoc />
     public async Task<Role?> GetRoleByNameAsync(string name)
     {
         var roles = await GetRolesAsync(new GetRolesCriteria()
@@ -287,36 +355,53 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         
     }
 
+    /// <inheritdoc />
+    /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
     public async Task UpdateRoleAsync(string roleName, Role role)
     {
-        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-        
-        var allUsersInRole = await GetUsersAsync(new GetUsersCriteria()
+        using (logger.BeginScope("UpdateRoleAsync {roleName}, {role}", roleName, role))
         {
-            WithRoles = new List<string>() { roleName }
-        });
-        
-        if (allUsersInRole.TotalCount == 0) throw new RepositoryException(OperationType.Update,typeof(Role), $"No users found with role {roleName}");
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
 
-        foreach (var user in allUsersInRole.Items)
-        {
-            Role? innerRole = user.roles.SingleOrDefault(q=>q.name == roleName);
-            if (innerRole != null)
+            var allUsersInRole = await GetUsersAsync(new GetUsersCriteria()
             {
-                innerRole.name = role.name;
-                innerRole.description = role.description;
-                innerRole.applications = role.applications;
-                innerRole.updatedAt = role.updatedAt;
-            }
-            var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
-            if (response.StatusCode != HttpStatusCode.OK)
+                WithRoles = new List<string>() { roleName }
+            });
+
+            if (allUsersInRole.TotalCount == 0)
             {
-                logger.LogError("Failed to update user with id {id} with status code {statusCode} and response {response}",user.id,response.StatusCode,response);
-                throw new RepositoryException(OperationType.Update,typeof(SecureUser));
+                logger.LogError("No users found with role {roleName}. At least one User must have the Role defined.", roleName);
+                throw new RepositoryException(OperationType.Update, typeof(Role),
+                    $"No users found with role {roleName}");
             }
+
+            foreach (var user in allUsersInRole.Items)
+            {
+                logger.LogDebug("Updating Role {roleName} for User {userName}", roleName, user.userName);
+                Role? innerRole = user.roles.SingleOrDefault(q => q.name == roleName);
+                if (innerRole != null)
+                {
+                    innerRole.name = role.name;
+                    innerRole.description = role.description;
+                    innerRole.applications = role.applications;
+                    innerRole.updatedAt = role.updatedAt;
+                }
+
+                var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    logger.LogError(
+                        "Failed to update user with id {id} with status code {statusCode} and response {response}",
+                        user.id, response.StatusCode, response);
+                    throw new RepositoryException(OperationType.Update, typeof(SecureUser));
+                }
+                logger.LogDebug("Success");
+            }
+            logger.LogDebug("Success");
         }
     }
 
+    /// <inheritdoc />
     public async Task UpdateApplicationAsync(string applicationName, Application application)
     {
         var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
@@ -351,53 +436,138 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     }
 
+    /// <inheritdoc />
+    /// <exception cref="RepositoryException">Thrown if the deletion failed.</exception>
     public async Task DeleteRoleByNameAsync(string roleName)
     {
-        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-        
-        var allUsersInRole = await GetUsersAsync(new GetUsersCriteria()
+        using (logger.BeginScope("DeleteRoleByNameAsync {roleName}", roleName))
         {
-            WithRoles = new List<string>() { roleName }
-        });
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
 
-        foreach (var user in allUsersInRole.Items)
-        {
-            user.roles = user.roles.Where(q => !q.name.Equals(roleName, StringComparison.InvariantCultureIgnoreCase)).ToList();
-            var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
-            if (response.StatusCode != HttpStatusCode.OK)
+            var allUsersInRole = await GetUsersAsync(new GetUsersCriteria()
             {
-                logger.LogError("Failed to update user with id {id} with status code {statusCode} and response {response}",user.id,response.StatusCode,response);
-                throw new RepositoryException(OperationType.Update,typeof(SecureUser));
+                WithRoles = new List<string>() { roleName }
+            });
+            logger.LogDebug("Users with Role: {allUsersInRole}", allUsersInRole);
+            
+            foreach (var user in allUsersInRole.Items)
+            {
+                user.roles = user.roles
+                    .Where(q => !q.name.Equals(roleName, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    logger.LogError(
+                        "Failed to update user with id {id} with status code {statusCode} and response {response}",
+                        user.id, response.StatusCode, response);
+                    throw new RepositoryException(OperationType.Update, typeof(SecureUser));
+                }
+                logger.LogDebug("Removed Role from user {userName}", user.userName);                      
             }
         }
 
     }
 
+    /// <inheritdoc />
+    /// <exception cref="RepositoryException">Thrown if the deletion failed.</exception>
     public async Task DeleteApplicationByNameAsync(string applicationName)
     {
-        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-        
-        // get all users with roles
-        var users = await GetUsersAsync(new GetUsersCriteria()
+        using (logger.BeginScope("DeleteApplicationByNameAsync {applicationName}", applicationName))
         {
-            HasAccessToApplications = [applicationName]
-        });
-        
-        // remove application from each role from each user
-        foreach (var user in users.Items)
-        {
-            foreach (var role in user.roles)
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+
+            // get all users with roles
+            var users = await GetUsersAsync(new GetUsersCriteria()
             {
-                role.applications = role.applications.Where(q => !q.name.Equals(applicationName, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                HasAccessToApplications = [applicationName]
+            });
+            logger.LogDebug("Users with Application: {users}", users);
+
+            // remove Application from each role from each user
+            foreach (var user in users.Items)
+            {
+                foreach (var role in user.roles)
+                {
+                    role.applications = role.applications.Where(q =>
+                        !q.name.Equals(applicationName, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                }
+
+                var response = await container.ReplaceItemAsync(user, user.id,
+                    new PartitionKey(user.userName));
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    throw new RepositoryException(OperationType.Delete, typeof(Application));
+                }
+                logger.LogDebug("Removed Application from user {userName}", user.userName);           
+            }
+        }
+        
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
+    public async Task AddRoleToUser(Role role, string userName)
+    {
+        using (logger.BeginScope("AddRoleToUser {role}, {userName}", role, userName))
+        {
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+
+            var user = await GetUserByUserNameAsync(userName);
+            if (user == null)
+            {
+                logger.LogError("User {userName} not found", userName);
+                throw new RepositoryException(OperationType.Update, typeof(SecureUser), $"User {userName} not found");
+            }
+
+            user.roles = user.roles.Union([role]).ToList();
+            var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                logger.LogError(
+                    "Failed to update user with id {id} with status code {statusCode} and response {response}",
+                    user.id, response.StatusCode, response);
+                throw new RepositoryException(OperationType.Update, typeof(SecureUser));
+            }
+            logger.LogDebug("Added Role to user {userName}", user.userName);                      
+        }
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
+    public async Task RemoveRoleFromUser(string roleName, string userName)
+    {
+        using (logger.BeginScope("RemoveRoleFromUser {roleName}, {userName}", roleName, userName))
+        {
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+
+            var user = await GetUserByUserNameAsync(userName);
+            if (user == null)
+            {
+                logger.LogError("User {userName} not found", userName);
+                throw new RepositoryException(OperationType.Update, typeof(SecureUser), $"User {userName} not found");
+            }
+
+            if (user.roles.Any(q => q.name.Equals(roleName, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                user.roles = user.roles.Where(q => !q.name.Equals(roleName, StringComparison.InvariantCultureIgnoreCase)).ToList();  
+                
+                var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    logger.LogError(
+                        "Failed to update user with id {id} with status code {statusCode} and response {response}",
+                        user.id, response.StatusCode, response);
+                    throw new RepositoryException(OperationType.Update, typeof(SecureUser));
+                }
+                logger.LogDebug("Removed Role from user {userName}", user.userName);  
+            }
+            else
+            {
+                logger.LogWarning("User {userName} does not have Role {roleName}. No action taken.", userName, roleName);
             }
             
-            var response = await container.ReplaceItemAsync(user, user.id,
-                new PartitionKey(user.userName));
-            if (response.StatusCode != HttpStatusCode.OK)
-                throw new RepositoryException(OperationType.Delete, typeof(Application));
-        }        
-        
-        
+                              
+        }
     }
 
     private QueryDefinition BuildQueryDefinitionForApplications(GetApplicationsCriteria criteria)

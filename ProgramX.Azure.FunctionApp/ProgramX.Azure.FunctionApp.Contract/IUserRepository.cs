@@ -115,10 +115,17 @@ public interface IUserRepository
     Task<Role?> GetRoleByNameAsync(string name);
     
     /// <summary>
-    /// Update the specified role.
+    /// Update the specified role. 
     /// </summary>
     /// <param name="roleName">The Role Name of the role to update.</param>   
     /// <param name="role">The updated <see cref="Role"/>.</param>
+    /// <remarks>
+    /// This will not:
+    /// <list type="bullet">
+    /// <item>Add additional Users to the Role. Instead, use <see cref="AddRoleToUser(Role, string)"/>.</item>
+    /// <item>Remove Users from the Role. Instead, use <see cref="RemoveRoleFromUser(string, string)"/>.</item>
+    /// </list>
+    /// </remarks>
     Task UpdateRoleAsync(string roleName, Role role);
     
     /// <summary>
@@ -140,5 +147,21 @@ public interface IUserRepository
     /// </summary>
     /// <param name="applicationName">The name of the Application to delete.</param>
     Task DeleteApplicationByNameAsync(string applicationName);
+    
+    /// <summary>
+    /// Adds the specified Role to the specified User.
+    /// </summary>
+    /// <param name="role">The Role to add to the User.</param>
+    /// <param name="userName">The username of the User to add the Role to.</param>
+    Task AddRoleToUser(Role role, string userName);
+    
+    /// <summary>
+    /// Removes the specified Role from the specified User.
+    /// </summary>
+    /// <param name="roleName">The name of the Role to remove from the User.</param>
+    /// <param name="userName">The username of the User to remove the Role from.</param>
+    Task RemoveRoleFromUser(string roleName, string userName);
+    
+    
     
 }
