@@ -23,6 +23,7 @@ public class HealthCheck : ApplicationHealthCheckBase, IHealthCheck
             HealthCheckName = _applicationMetaData.FriendlyName,
             Items = new List<HealthCheckItemResult>()
             {
+                await GetHealthCheckForApplicationDefinedInRepository(),
                 await GetHealthCheckForAllRolesAcrossAllUsersAsync()
             }
         };

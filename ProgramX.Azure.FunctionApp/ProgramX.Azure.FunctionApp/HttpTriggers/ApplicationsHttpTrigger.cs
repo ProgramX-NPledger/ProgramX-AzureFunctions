@@ -24,13 +24,11 @@ namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 
 public class ApplicationsHttpTrigger(
     ILogger<ApplicationsHttpTrigger> logger,
+    ILoggerFactory loggerFactory,
     IConfiguration configuration,
     IUserRepository userRepository)
     : AuthorisedHttpTriggerBase(configuration)
 {
-    private readonly ILogger<ApplicationsHttpTrigger> _logger = logger;
-
-    
     [Function(nameof(GetApplication))]
     public async Task<HttpResponseData> GetApplication(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "application/{name?}")] HttpRequestData httpRequestData,
@@ -40,54 +38,82 @@ public class ApplicationsHttpTrigger(
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
-                var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
-                var withinRoles = httpRequestData.Query["withinRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["withinRoles"]!).Split(
-                    [',']);
-                var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
-                var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
-                
-                var applications = await userRepository.GetApplicationsAsync(new GetApplicationsCriteria()
+                using (logger.BeginScope("Listing Applications"))
                 {
-                    WithinRoles = withinRoles,
-                    ContainingText = containsText
-                }, new PagedCriteria()
-                {
-                    ItemsPerPage = itemsPerPage,
-                    Offset = offset
-                });
-                
-                var baseUrl =
-                    $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
-                
-                var pageUrls = CalculatePageUrls((IPagedResult<Application>)applications,
-                    baseUrl,
-                    containsText,
-                    withinRoles,
-                    continuationToken, 
-                    offset,
-                    itemsPerPage);
-                
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Application>((IPagedResult<Application>)applications,pageUrls));
-                
+                    logger.LogInformation("Request parameters {queryString}",httpRequestData.Query);
+                    var continuationToken = httpRequestData.Query["continuationToken"] == null
+                        ? null
+                        : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
+                    var containsText = httpRequestData.Query["containsText"] == null
+                        ? null
+                        : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
+                    var withinRoles = httpRequestData.Query["withinRoles"] == null
+                        ? null
+                        : Uri.UnescapeDataString(httpRequestData.Query["withinRoles"]!).Split(
+                            [',']);
+                    var offset =
+                        UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
+                    var itemsPerPage =
+                        UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ??
+                        PagingConstants.ItemsPerPage;
+
+                    var criteria = new GetApplicationsCriteria()
+                    {
+                        WithinRoles = withinRoles,
+                        ContainingText = containsText
+                    };
+                    var pagedCriteria = new PagedCriteria()
+                    {
+                        ItemsPerPage = itemsPerPage,
+                        Offset = offset
+                    };
+
+                    logger.LogInformation("Retrieving Applications with criteria {criteria} paged by {pagedCriteria}", criteria, pagedCriteria);
+                    var applications = await userRepository.GetApplicationsAsync(criteria, pagedCriteria);
+
+                    logger.LogInformation("Retrieved Applications {result}", applications);
+                    
+                    var baseUrl =
+                        $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
+
+                    var pageUrls = CalculatePageUrls((IPagedResult<Application>)applications,
+                        baseUrl,
+                        containsText,
+                        withinRoles,
+                        continuationToken,
+                        offset,
+                        itemsPerPage);
+                    logger.LogInformation("Calculated page urls {pageUrls}", pageUrls);
+                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                        new PagedResponse<Application>((IPagedResult<Application>)applications, pageUrls));
+                }
             }
             else
             {
-                var application = await userRepository.GetApplicationByNameAsync(name);
-                if (application==null)
+                using (logger.BeginScope("Retrieving Application {name}", name))
                 {
-                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
-                }
+                    var application = await userRepository.GetApplicationByNameAsync(name);
+                    if (application == null)
+                    {
+                        logger.LogWarning("Application {name} not found", name);
+                        return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
+                    }
 
-                var withinRoles = userRepository.GetRolesAsync(new GetRolesCriteria()
-                {
-                    UsedInApplicationNames = [name]
-                });
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
-                {
-                    application,
-                    usedInRoles = withinRoles.Result.Items
-                });
+                    logger.LogInformation("Retrieved Application {name}", name);
+                    
+                    var withinRoles = userRepository.GetRolesAsync(new GetRolesCriteria()
+                    {
+                        UsedInApplicationNames = [name]
+                    });
+                    
+                    logger.LogInformation("Retrieved roles used in application {withinRoles}", withinRoles);
+                    
+                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
+                    {
+                        application,
+                        usedInRoles = withinRoles.Result.Items
+                    });
+                }            
             }
         });
     }
@@ -122,30 +148,80 @@ public class ApplicationsHttpTrigger(
     {
         return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
-            IHealthCheck? healthCheck = await GetHealthCheckByNameAsync(name);
-            if (healthCheck != null)
+            using (logger.BeginScope("Retrieving health check for application {name}", name))
             {
-                var healthCheckResult = await healthCheck.CheckHealthAsync();
+                IHealthCheck? healthCheck = await GetHealthCheckByNameAsync(name);
+                if (healthCheck != null)
+                {
+                    logger.LogInformation("Retrieved health check {healthCheck}", healthCheck);
+                    
+                    var healthCheckResult = await healthCheck.CheckHealthAsync();
 
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
-                    new GetHealthCheckServiceResponse()
-                    {
-                        Name = name,
-                        IsHealthy = healthCheckResult.IsHealthy,
-                        Message = healthCheckResult.Message,
-                        TimeStamp = DateTime.UtcNow,
-                        SubItems = healthCheckResult.Items ?? new List<HealthCheckItemResult>()
-                    });
-
-            }
-            else
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
-                    $"No health check found for {name}");
+                    logger.LogInformation("Health check result {healthCheckResult}", healthCheckResult);
+                    
+                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                        new GetHealthCheckServiceResponse()
+                        {
+                            Name = name,
+                            IsHealthy = healthCheckResult.IsHealthy,
+                            Message = healthCheckResult.Message,
+                            TimeStamp = DateTime.UtcNow,
+                            SubItems = healthCheckResult.Items ?? new List<HealthCheckItemResult>()
+                        });
+                }
+                else
+                {
+                    logger.LogWarning("No health check found for application {name}", name);
+                    
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
+                        $"No health check found for {name}");
+                }
             }
         });
 
     }
+    
+    
+    [Function(nameof(GetAllApplicationsHealthCheck))]
+    public async Task<HttpResponseData> GetAllApplicationsHealthCheck(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "application/health")] HttpRequestData httpRequestData)
+    {
+        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
+        {
+            using (logger.BeginScope("Retrieving health check for all applications"))
+            {
+                // get all applications
+                var iApplications = ApplicationFactory.GetAllApplications(loggerFactory);
+                logger.LogInformation("Instantiated all IApplications {iApplications}", iApplications);
+
+                var healthCheckResults = new List<HealthCheckResult>();
+                // foreach application, get health check
+                foreach (var iApplication in iApplications)
+                {
+                    // healthcheck should include CosmosDB configuration
+                    var iHealthCheck = await iApplication.GetHealthCheckAsync(userRepository);
+                    logger.LogInformation("Retrieved health check {iHealthCheck}", iHealthCheck);
+
+                    var healthCheckResult = await iHealthCheck.CheckHealthAsync();
+                    logger.LogInformation("Health check result {healthCheckResult}", healthCheckResult);
+
+                    healthCheckResults.Add(healthCheckResult);
+                }
+
+                var healthCheckResponse = new GetAllApplicationsHealthCheckResponse()
+                {
+                    IsHealthy = healthCheckResults.All(q => q.IsHealthy),
+                    ApplicationHealthChecks = healthCheckResults,
+                    TimeStamp = DateTime.UtcNow,
+                };
+                logger.LogInformation("Health check response {healthCheckResponse}", healthCheckResponse);
+
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, healthCheckResponse);
+            }
+        });
+
+    }
+    
 
     private async Task<IHealthCheck?> GetHealthCheckByNameAsync(string name)
     {
@@ -167,26 +243,41 @@ public class ApplicationsHttpTrigger(
     {
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var updateApplicationRequest =
-                await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateApplicationRequest>(httpRequestData);
-            if (updateApplicationRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
-
-            var application = await userRepository.GetApplicationByNameAsync(id);
-            if (application == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
-            
-            application.name=updateApplicationRequest.name!;
-            application.schemaVersionNumber = application.schemaVersionNumber <= 2 ? 2 : application.schemaVersionNumber;
-            application.isDefaultApplicationOnLogin = updateApplicationRequest.isDefaultApplicationOnLogin;
-            application.ordinal = updateApplicationRequest.ordinal;
-            
-            await userRepository.UpdateApplicationAsync(id,application);
-
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateApplicationResponse()
+            using (logger.BeginScope("Updating Application {id}", id))
             {
-                Name = application.name,
-                ErrorMessage = null,
-                IsOk = true
-            });
+                var updateApplicationRequest =
+                    await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateApplicationRequest>(
+                        httpRequestData);
+                
+                if (updateApplicationRequest == null)
+                {
+                    logger.LogError("Invalid request body");
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
+                }
+
+                var application = await userRepository.GetApplicationByNameAsync(id);
+                if (application == null)
+                {
+                    logger.LogWarning("Application {id} not found", id);
+                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
+                }
+
+                application.name = updateApplicationRequest.name!;
+                application.schemaVersionNumber =
+                    application.schemaVersionNumber <= 2 ? 2 : application.schemaVersionNumber;
+                application.isDefaultApplicationOnLogin = updateApplicationRequest.isDefaultApplicationOnLogin;
+                application.ordinal = updateApplicationRequest.ordinal;
+
+                logger.LogInformation("Updating Application {application}", application);
+                await userRepository.UpdateApplicationAsync(id, application);
+
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateApplicationResponse()
+                {
+                    Name = application.name,
+                    ErrorMessage = null,
+                    IsOk = true
+                });
+            }
         });
     }
     
@@ -200,10 +291,17 @@ public class ApplicationsHttpTrigger(
     {
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var application = await userRepository.GetApplicationByNameAsync(id);
-            if (application == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
-            await userRepository.DeleteApplicationByNameAsync(id);
-            return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
+            using (logger.BeginScope("Deleting Application {id}", id))
+            {
+                var application = await userRepository.GetApplicationByNameAsync(id);
+                if (application == null)
+                {
+                    logger.LogWarning("Application {id} not found", id);
+                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
+                }
+                await userRepository.DeleteApplicationByNameAsync(id);
+                return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
+            }        
         });
     }
     

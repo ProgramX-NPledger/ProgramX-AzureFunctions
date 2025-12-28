@@ -15,6 +15,32 @@ public abstract class ApplicationHealthCheckBase
         _userRepository = userRepository;
     }
     
+    protected async Task<HealthCheckItemResult> GetHealthCheckForApplicationDefinedInRepository()
+    {
+        var result = new HealthCheckItemResult()
+        {
+            FriendlyName = "Application is known in repository",
+            Name = "ApplicationDefinedInRepository",
+        };
+
+        var allUsersWithApplication = await _userRepository.GetUsersAsync(new GetUsersCriteria()
+        {
+            HasAccessToApplications = [_applicationMetaData.name],
+        });
+
+        if (allUsersWithApplication.Items.Any())
+        {
+            result.IsHealthy = true;
+            result.Message = "Application found";
+        }
+        else
+        {
+            result.IsHealthy = false;
+            result.Message = "Application not found";
+        }
+        return result;
+    }
+
     protected async Task<HealthCheckItemResult> GetHealthCheckForAllRolesAcrossAllUsersAsync()
     {
         var result = new HealthCheckItemResult()

@@ -1,11 +1,53 @@
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
 
 namespace ProgramX.Azure.FunctionApp.ApplicationDefinitions;
 
-public static class ApplicationFactory
+public class ApplicationFactory
 {
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="loggerFactory"></param>
+    /// <returns></returns>
+    public static IEnumerable<IApplication> GetAllApplications(ILoggerFactory loggerFactory)
+    {
+        var logger = loggerFactory.CreateLogger<ApplicationFactory>();
+        
+        using (logger.BeginScope("Getting all Applications"))
+        {
+            // get all referenced assemblies
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            logger.LogDebug("Assemblies: {assemblies}", assemblies);
+            
+            var iApplicationInstances = new List<IApplication>();
+            foreach (var assembly in assemblies)
+            {
+                // get all types that implement IApplication
+                var types = assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(IApplication)));
+                foreach (var type in types)
+                {
+                    if (Activator.CreateInstance(type) is not IApplication iApplication)
+                    {
+                        logger.LogError("Could not create instance of type {typeName} in assembly {assemblyName}",
+                            type.FullName, assembly.FullName);
+                    }
+                    else
+                    {
+                        logger.LogDebug("Created instance of type {typeName} in assembly {assemblyName}", type.FullName, assembly.FullName);
+                        iApplicationInstances.Add(iApplication);
+                    }
+
+                }
+
+            }
+            return iApplicationInstances;
+        }    
+    }
+    
     /// <summary>
     /// Returns the <see cref="IApplication"/> for the given Application.
     /// </summary>
