@@ -119,10 +119,9 @@ public class CosmosPagedReader<T> : CosmosReader<T>
 
     private QueryDefinition BuildTotalItemsCountQueryDefinition(QueryDefinition queryDefinition)
     {
+        var indexOfFrom = CalculateIndexOfFirstFromoutsideOfParenthesis(queryDefinition.QueryText);
         var countQueryDefinition = new QueryDefinition("SELECT VALUE COUNT(1) " +
-                                                       queryDefinition.QueryText.Substring(
-                                                           queryDefinition.QueryText.IndexOf("FROM",
-                                                               StringComparison.InvariantCultureIgnoreCase)));
+                                                       queryDefinition.QueryText.Substring(indexOfFrom));
         foreach (var parameter in queryDefinition.GetQueryParameters())
         {
             countQueryDefinition.WithParameter(parameter.Name,parameter.Value);
@@ -130,6 +129,31 @@ public class CosmosPagedReader<T> : CosmosReader<T>
         return countQueryDefinition;
     }
 
+    private int CalculateIndexOfFirstFromoutsideOfParenthesis(string queryDefinitionQueryText)
+    {
+        if (!queryDefinitionQueryText.Contains("FROM ", StringComparison.InvariantCultureIgnoreCase)) throw new InvalidOperationException("Query definition does not contain 'FROM'");
+        var bracketsStackCount = 0;
+        for (int i=0; i<queryDefinitionQueryText.Length; i++)
+        {
+            var c=queryDefinitionQueryText[i];
+            switch (c)
+            {
+                case '(': bracketsStackCount++; break;
+                case ')': bracketsStackCount--; break;
+            }
+            
+            if (bracketsStackCount==0 && 
+                i<queryDefinitionQueryText.Length-4 && 
+                queryDefinitionQueryText[i] == 'F' && queryDefinitionQueryText[i+1] == 'R' && queryDefinitionQueryText[i+2] == 'O' && queryDefinitionQueryText[i+3] == 'M')
+            {
+                return i;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Unable to find 'FROM' outside of brackets in query definition: {queryDefinitionQueryText}"
+        );
+    }
 
 
     private QueryDefinition BuildPagedQueryDefinition(QueryDefinition queryDefinition, 
