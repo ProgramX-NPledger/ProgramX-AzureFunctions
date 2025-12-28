@@ -27,8 +27,8 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
         _singletonMutex = singletonMutex;
     }
     
-    [Function(nameof(GetHealthCheck))]
-    public async Task<HttpResponseData> GetHealthCheck(
+    [Function(nameof(GetServiceHealthCheck))]
+    public async Task<HttpResponseData> GetServiceHealthCheck(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "healthcheck/{name?}")] HttpRequestData req, string? name)
     {
         if (!_singletonMutex.IsRequestWithinSecondsOfMostRecentRequestOfSameType(name)) // throttle health checks to once every minute

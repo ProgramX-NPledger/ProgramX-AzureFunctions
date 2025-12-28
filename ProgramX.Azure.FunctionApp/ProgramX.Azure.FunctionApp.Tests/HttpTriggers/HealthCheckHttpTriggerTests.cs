@@ -25,7 +25,7 @@ public class HealthCheckHttpTriggerTests
             .Build();
         
         // Act
-        var result = await healthCheckHttpTrigger.GetHealthCheck(testableHttpRequestData, null);
+        var result = await healthCheckHttpTrigger.GetServiceHealthCheck(testableHttpRequestData, null);
 
         // Assert
         result.Should().NotBeNull();
@@ -54,8 +54,8 @@ public class HealthCheckHttpTriggerTests
             .Build();
         
         // Act
-        var result = await healthCheckHttpTrigger.GetHealthCheck(testableHttpRequestData, null);
-        result = await healthCheckHttpTrigger.GetHealthCheck(testableHttpRequestData, null);
+        var result = await healthCheckHttpTrigger.GetServiceHealthCheck(testableHttpRequestData, null);
+        result = await healthCheckHttpTrigger.GetServiceHealthCheck(testableHttpRequestData, null);
 
         // Assert
         result.Should().NotBeNull();
@@ -80,9 +80,9 @@ public class HealthCheckHttpTriggerTests
             .Build();
         
         // Act
-        var result = await healthCheckHttpTrigger.GetHealthCheck(testableHttpRequestData, null);
+        var result = await healthCheckHttpTrigger.GetServiceHealthCheck(testableHttpRequestData, null);
         Thread.Sleep(3000);
-        result = await healthCheckHttpTrigger.GetHealthCheck(testableHttpRequestData, null);
+        result = await healthCheckHttpTrigger.GetServiceHealthCheck(testableHttpRequestData, null);
 
         // Assert
         result.Should().NotBeNull();
@@ -104,7 +104,7 @@ public class HealthCheckHttpTriggerTests
         
         var knownType = "test";
         // Act
-        var result = await healthCheckHttpTrigger.GetHealthCheck(testableHttpRequestData, knownType);
+        var result = await healthCheckHttpTrigger.GetServiceHealthCheck(testableHttpRequestData, knownType);
         
         // Assert
         result.Should().NotBeNull();
@@ -128,7 +128,7 @@ public class HealthCheckHttpTriggerTests
             .Build();
         
         // Act
-        var result = await healthCheckHttpTrigger.GetHealthCheck(testableHttpRequestData, "type");
+        var result = await healthCheckHttpTrigger.GetServiceHealthCheck(testableHttpRequestData, "type");
         
         // Assert
         result.Should().NotBeNull();
