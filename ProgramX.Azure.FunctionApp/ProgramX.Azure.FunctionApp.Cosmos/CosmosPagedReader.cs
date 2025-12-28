@@ -121,7 +121,7 @@ public class CosmosPagedReader<T> : CosmosReader<T>
     {
         var countQueryDefinition = new QueryDefinition("SELECT VALUE COUNT(1) " +
                                                        queryDefinition.QueryText.Substring(
-                                                           queryDefinition.QueryText.LastIndexOf("FROM",
+                                                           queryDefinition.QueryText.IndexOf("FROM",
                                                                StringComparison.InvariantCultureIgnoreCase)));
         foreach (var parameter in queryDefinition.GetQueryParameters())
         {
