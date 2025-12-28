@@ -222,6 +222,50 @@ public class ApplicationsHttpTrigger(
 
     }
     
+    
+    [Function(nameof(FixApplicationsHealthCheck))]
+    public async Task<HttpResponseData> FixApplicationsHealthCheck(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "application/{name}/health/fix")] HttpRequestData httpRequestData, string name)
+    {
+        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
+        {
+            using (logger.BeginScope("Retrieving health check for all applications for fixing of application {name}", name))
+            {
+                var response = new FixApplicationHealthCheckResponse()
+                {
+                    Name = name,
+                    TimeStamp = DateTime.UtcNow,
+                };
+                var healthCheckResults = new List<FixedApplicationHealthCheckResponse>();
+                
+                // get all applications
+                var iApplications = ApplicationFactory.GetAllApplications(loggerFactory);
+                logger.LogInformation("Instantiated all IApplications {iApplications}", iApplications);
+
+                var application = iApplications.FirstOrDefault(q => q.GetApplicationMetaData().name == name);
+                if (application == null)
+                {
+                    logger.LogError("Cannot find application {name} in all applications {iApplications}", name, iApplications);
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, $"Cannot find application {name} in all applications");
+                }
+                
+                var healthCheck = await application.GetHealthCheckAsync(userRepository);
+                logger.LogInformation("Retrieved health check {healthCheck}. Attempting to fix.", healthCheck);
+                healthCheckResults.Add(new FixedApplicationHealthCheckResponse()
+                {
+                    HealthCheckName = healthCheck.GetType().Name,
+                    Messages = await healthCheck.Fix()
+                });
+                
+                response.FixedApplicationHealthCheckResponses = healthCheckResults;
+                
+                logger.LogDebug("Health check response {response}", response);
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, response);
+            }
+        });
+
+    }
+    
 
     private async Task<IHealthCheck?> GetHealthCheckByNameAsync(string name)
     {

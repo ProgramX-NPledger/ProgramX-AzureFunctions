@@ -48,6 +48,12 @@ Authorization: Bearer {{token}}
 #
 
 ###
+# @name Fix Application Health
+POST {{host}}/api/v1/application/scouting/health/fix
+Authorization: Bearer {{token}}
+#
+
+###
 # @name Get all Application Health
 GET {{host}}/api/v1/application/health
 Authorization: Bearer {{token}}

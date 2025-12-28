@@ -101,6 +101,11 @@ public class CosmosHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
 
     }
 
+    public async Task<IEnumerable<string>> Fix()
+    {
+        throw new NotSupportedException("Cosmos health check cannot be fixed automatically");
+    }
+
     private async Task CheckReadAsync(HealthCheckItemResult healthCheckItem, Container container, HealthCheckItemTest healthCheckItemTest)
     {
         var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id = @id");

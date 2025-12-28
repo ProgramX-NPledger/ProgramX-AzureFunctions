@@ -16,4 +16,9 @@ public class TestHealthCheck : IHealthCheck
             HealthCheckName = "Test"
         });
     }
+
+    public async Task<IEnumerable<string>> Fix()
+    {
+        throw new NotSupportedException("Test health check cannot be fixed automatically");
+    }
 }

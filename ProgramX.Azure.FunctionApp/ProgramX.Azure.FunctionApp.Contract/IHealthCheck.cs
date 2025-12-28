@@ -12,4 +12,10 @@ public interface IHealthCheck
     /// </summary>
     /// <returns>A result indicating the health status.</returns>
     Task<HealthCheckResult> CheckHealthAsync();
+    
+    /// <summary>
+    /// Attempts to fix any issues found.
+    /// </summary>
+    /// <returns>A collection of messages indicating the actions taken to fix issues.</returns>
+    Task<IEnumerable<string>> Fix();
 }

@@ -23,20 +23,51 @@ public class HealthCheck : ApplicationHealthCheckBase, IHealthCheck
     /// <inheritdoc/>
     public async Task<HealthCheckResult> CheckHealthAsync()
     {
-        var result = new HealthCheckResult()
+        using (_logger.BeginScope("Health Check {HealthCheckName}", nameof(HealthCheck)))
         {
-            HealthCheckName = _applicationMetaData.FriendlyName,
-            Items = new List<HealthCheckItemResult>()
+            var result = new HealthCheckResult()
             {
-                await GetHealthCheckForApplicationDefinedInRepository(),
-                await GetHealthCheckForAllRolesAcrossAllUsersAsync()
+                HealthCheckName = _applicationMetaData.FriendlyName,
+                Items = new List<HealthCheckItemResult>()
+                {
+                    await GetHealthCheckForApplicationDefinedInRepositoryAsync(),
+                    await GetHealthCheckForAllRolesAcrossAllUsersAsync()
+                }
+            };
+            result.IsHealthy = result.Items.All(q => q.IsHealthy ?? false);
+            result.Message = result.IsHealthy ? "OK" : "Problem(s) found";
+
+            _logger.LogInformation("Health check result {HealthCheckResult}", result);
+            
+            return result;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<IEnumerable<string>> Fix()
+    {
+        using (_logger.BeginScope("Fix {HealthCheckName}", nameof(HealthCheck)))
+        {
+            var messages = new List<string>();
+
+            var applicationDefinedInRepositoryHealthCheck =
+                await GetHealthCheckForApplicationDefinedInRepositoryAsync();
+            if (!applicationDefinedInRepositoryHealthCheck.IsHealthy ?? false)
+            {
+                messages.AddRange(
+                    await FixApplicationDefinedInRepositoryWithAllRolesAsync(typeof(ScoutingApplication)));
             }
-        };
-        result.IsHealthy = result.Items.All(q=>q.IsHealthy ?? false);
-        result.Message = result.IsHealthy ? "OK" : "Problem(s) found";
 
-        return result;
+            // recheck to see if above has fixed anything
+            var allRolesAcrossAllUsersHealthCheck = await GetHealthCheckForAllRolesAcrossAllUsersAsync();
+            if (!allRolesAcrossAllUsersHealthCheck.IsHealthy ?? false)
+            {
+                messages.AddRange(await FixAllRolesAcrossAllUsersAsync(typeof(ScoutingApplication)));
+            }
 
+            _logger.LogInformation("Fix result {HealthCheckResult}", messages);
+            return messages;
+        }    
     }
 
   
