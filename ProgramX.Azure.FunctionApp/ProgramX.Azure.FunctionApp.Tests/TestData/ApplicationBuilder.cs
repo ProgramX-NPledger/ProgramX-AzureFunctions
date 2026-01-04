@@ -11,7 +11,8 @@ public class ApplicationBuilder
         _application = new Application
         {
             name = "DefaultApp",
-            targetUrl = "https://default.com"
+            metaDataDotNetAssembly = string.Empty,
+            metaDataDotNetType = string.Empty
         };
     }
 
@@ -20,24 +21,7 @@ public class ApplicationBuilder
         _application.name = name;
         return this;
     }
-
-    public ApplicationBuilder WithDescription(string description)
-    {
-        _application.description = description;
-        return this;
-    }
-
-    public ApplicationBuilder WithTargetUrl(string targetUrl)
-    {
-        _application.targetUrl = targetUrl;
-        return this;
-    }
-
-    public ApplicationBuilder WithImageUrl(string imageUrl)
-    {
-        _application.imageUrl = imageUrl;
-        return this;
-    }
+    
 
     public ApplicationBuilder IsDefaultApplication(bool isDefault = true)
     {

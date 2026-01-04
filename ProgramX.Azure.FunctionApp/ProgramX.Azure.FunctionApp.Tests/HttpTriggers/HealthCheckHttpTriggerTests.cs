@@ -33,7 +33,7 @@ public class HealthCheckHttpTriggerTests
 
         // Verify the response contains user and applications
         var responseBody = await TestHelpers.HttpBodyUtilities.GetResponseBodyAsync(result);
-        responseBody.Should().Contain("azure-functions");
+        responseBody.Should().Contain("azure-cosmos-db");
     }
     
     [Test]

@@ -800,7 +800,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
             ConfigureContainerFunc = (container) =>
             {
                 var mockedItemResponse = new Mock<ItemResponse<User>>();
-                mockedItemResponse.SetupGet(x => x.StatusCode).Returns(System.Net.HttpStatusCode.OK);
+                mockedItemResponse.SetupGet(x => x.StatusCode).Returns(System.Net.HttpStatusCode.Created);
 
                 container.Setup(q => q.CreateItemAsync<User>(It.IsAny<User>(), It.IsAny<PartitionKey>(),
                         It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))

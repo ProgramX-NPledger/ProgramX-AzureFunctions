@@ -24,7 +24,8 @@ public class ApplicationsHttpTriggerGetApplicationTests
         var expectedApplication = new Application
         {
             name = "application",
-            targetUrl = ""
+            metaDataDotNetAssembly = string.Empty,
+            metaDataDotNetType = string.Empty
         };
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -149,7 +150,8 @@ public class ApplicationsHttpTriggerGetApplicationTests
                             new Application
                             {
                                 name = "Admin Application",
-                                targetUrl = ""
+                                metaDataDotNetAssembly = string.Empty,
+                                metaDataDotNetType = string.Empty
                             }
                         }
                     }
@@ -170,7 +172,8 @@ public class ApplicationsHttpTriggerGetApplicationTests
                             new Application
                             {
                                 name = "A different Application",
-                                targetUrl = ""
+                                metaDataDotNetAssembly = string.Empty,
+                                metaDataDotNetType = string.Empty
                             }
                         }
                     }
@@ -233,7 +236,8 @@ public class ApplicationsHttpTriggerGetApplicationTests
                             new Application
                             {
                                 name = "Admin Application",
-                                targetUrl = ""
+                                metaDataDotNetAssembly = string.Empty,
+                                metaDataDotNetType = string.Empty
                             }
                         }
                     }
@@ -254,7 +258,8 @@ public class ApplicationsHttpTriggerGetApplicationTests
                             new Application
                             {
                                 name = "john",
-                                targetUrl = ""
+                                metaDataDotNetAssembly = string.Empty,
+                                metaDataDotNetType = string.Empty
                             }
                         }
                     }
@@ -329,7 +334,8 @@ public class ApplicationsHttpTriggerGetApplicationTests
                             new Application
                             {
                                 name = "Admin Application",
-                                targetUrl = ""
+                                metaDataDotNetAssembly = string.Empty,
+                                metaDataDotNetType = string.Empty
                             }
                         }
                     }
@@ -350,7 +356,8 @@ public class ApplicationsHttpTriggerGetApplicationTests
                             new Application
                             {
                                 name = "john",
-                                targetUrl = ""
+                                metaDataDotNetAssembly = string.Empty,
+                                metaDataDotNetType = string.Empty
                             }
                         }
                     }

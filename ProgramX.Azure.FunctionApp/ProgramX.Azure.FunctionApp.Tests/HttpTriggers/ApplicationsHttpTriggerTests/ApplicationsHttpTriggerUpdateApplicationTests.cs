@@ -34,8 +34,8 @@ public class ApplicationsHttpTriggerUpdateApplicationTests : TestBase
         var existingApplication = new Application
         {
             name = "existingApplication",
-            description = "existing description",
-            targetUrl = "https://existing.example.com"
+            metaDataDotNetAssembly = string.Empty,
+            metaDataDotNetType = string.Empty
         };
         var updateApplicationRequest = new UpdateApplicationRequest()
         {

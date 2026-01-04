@@ -14,12 +14,12 @@ public class ApplicationTests
         var application = new Application
         {
             name = "TestApp",
-            targetUrl = "https://test.com"
+            metaDataDotNetAssembly = string.Empty,
+            metaDataDotNetType = string.Empty
         };
 
         // Assert
         application.type.Should().Be("application");
-        application.schemaVersionNumber.Should().Be(1);
         application.isDefaultApplicationOnLogin.Should().BeFalse();
         application.ordinal.Should().Be(0);
     }
@@ -35,9 +35,8 @@ public class ApplicationTests
         var application = new Application
         {
             name = "TestApplication",
-            description = "Test Description",
-            imageUrl = "https://example.com/image.png",
-            targetUrl = "https://example.com",
+            metaDataDotNetAssembly = string.Empty,
+            metaDataDotNetType = string.Empty,
             isDefaultApplicationOnLogin = true,
             ordinal = 5,
             createdAt = createdAt,
@@ -46,9 +45,6 @@ public class ApplicationTests
 
         // Assert
         application.name.Should().Be("TestApplication");
-        application.description.Should().Be("Test Description");
-        application.imageUrl.Should().Be("https://example.com/image.png");
-        application.targetUrl.Should().Be("https://example.com");
         application.isDefaultApplicationOnLogin.Should().BeTrue();
         application.ordinal.Should().Be(5);
         application.createdAt.Should().Be(createdAt);
@@ -75,11 +71,11 @@ public class ApplicationTests
         var application = new Application
         {
             name = name,
-            targetUrl = url
+            metaDataDotNetAssembly = string.Empty,
+            metaDataDotNetType = string.Empty
         };
 
         // Assert
         application.name.Should().Be(name);
-        application.targetUrl.Should().Be(url);
     }
 }

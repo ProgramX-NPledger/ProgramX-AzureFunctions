@@ -62,7 +62,8 @@ public class RolesHttpTriggerGetRoleTests
                                         new Application
                                         {
                                             name = "AnApp",
-                                            targetUrl = ""
+                                            metaDataDotNetAssembly = string.Empty,
+                                            metaDataDotNetType = string.Empty
                                         }
                                     }
                                 }
@@ -83,7 +84,8 @@ public class RolesHttpTriggerGetRoleTests
                                         new Application
                                         {
                                             name = "AnotherApp",
-                                            targetUrl = ""
+                                            metaDataDotNetAssembly = string.Empty,
+                                            metaDataDotNetType = string.Empty
                                         }
                                     }
                                 }
@@ -364,8 +366,12 @@ public class RolesHttpTriggerGetRoleTests
                 name = "role1",
                 applications = new List<Application>
                 {
-                    new Application { name = "UsedInThisApp", targetUrl = "https://dashboard.example.com" },
-                    new Application { name = "Another App", targetUrl = "https://dashboard.example.com" }
+                    new Application { name = "UsedInThisApp",            metaDataDotNetAssembly = string.Empty,
+                        metaDataDotNetType = string.Empty
+                    },
+                    new Application { name = "Another App",             metaDataDotNetAssembly = string.Empty,
+                        metaDataDotNetType = string.Empty
+                    }
                 }
             },
             new Role()
@@ -373,8 +379,12 @@ public class RolesHttpTriggerGetRoleTests
                 name = "role2",
                 applications = new List<Application>
                 {
-                    new Application { name = "Dashboard", targetUrl = "https://dashboard.example.com" },
-                    new Application { name = "Not this App", targetUrl = "https://dashboard.example.com" }
+                    new Application { name = "Dashboard",             metaDataDotNetAssembly = string.Empty,
+                        metaDataDotNetType = string.Empty
+                    },
+                    new Application { name = "Not this App",             metaDataDotNetAssembly = string.Empty,
+                        metaDataDotNetType = string.Empty
+                    }
                 }
             }
         };

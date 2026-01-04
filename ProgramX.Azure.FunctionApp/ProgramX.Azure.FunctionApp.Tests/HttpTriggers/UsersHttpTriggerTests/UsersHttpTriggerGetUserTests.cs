@@ -30,8 +30,12 @@ public class UsersHttpTriggerGetUserTests
             name = "Admin",
             applications = new List<Application>
             {
-                new Application { name = "Dashboard", targetUrl = "https://dashboard.example.com" },
-                new Application { name = "Reports", targetUrl = "https://reports.example.com" }
+                new Application { name = "Dashboard",            metaDataDotNetAssembly = string.Empty,
+                    metaDataDotNetType = string.Empty
+                },
+                new Application { name = "Reports",             metaDataDotNetAssembly = string.Empty,
+                    metaDataDotNetType = string.Empty
+                }
             }
         };
 
@@ -320,9 +324,15 @@ public class UsersHttpTriggerGetUserTests
     public async Task GetUser_WithApplicationFilter_ShouldReturnUsersWithAccessToSpecificApplications()
     {
          // Arrange
-         var application1 = new Application { name = "Dashboard", targetUrl = "https://dashboard.example.com" };
-         var application2 = new Application { name = "Another App", targetUrl = "https://dashboard.example.com" };
-         var application3 = new Application { name = "Not this App", targetUrl = "https://dashboard.example.com" };
+         var application1 = new Application { name = "Dashboard",             metaDataDotNetAssembly = string.Empty,
+             metaDataDotNetType = string.Empty
+         };
+         var application2 = new Application { name = "Another App",             metaDataDotNetAssembly = string.Empty,
+             metaDataDotNetType = string.Empty
+         };
+         var application3 = new Application { name = "Not this App",             metaDataDotNetAssembly = string.Empty,
+             metaDataDotNetType = string.Empty
+         };
          
         var adminRole = new Role
         {
