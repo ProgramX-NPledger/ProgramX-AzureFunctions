@@ -43,7 +43,7 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9B99F2F4C48C4990BBBA16E1419B4DE6 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_A7F0747C32CF4301979B23E995724383 }}
 
-      - name: 'Run Azure Functions Action'
+      - name: 'Deploy Azure Functions App to Staging'
         uses: Azure/functions-action@v1
         id: fa
         with:
@@ -51,8 +51,19 @@ jobs:
           slot-name: 'staging'
           publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/ProgramX.Azure.FunctionApp/output'
+    
+      - name: 'Deploy Azure Functions App to Production'
+        uses: Azure/functions-action@v1
+        id: faenv
+        with:
+          app-name: 'fa-programx'
+          slot-name: 'production'
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+          package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/ProgramX.Azure.FunctionApp/output'
 
+  
           
+
 
 
 
