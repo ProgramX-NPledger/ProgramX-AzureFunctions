@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace ProgramX.Azure.FunctionApp.Model;
 
 /// <summary>
-/// Represents a role of one or more <see cref="User"/>s.
+/// Represents a role of one or more <see cref="UserPassword"/>s.
 /// </summary>
 public class Role
 {

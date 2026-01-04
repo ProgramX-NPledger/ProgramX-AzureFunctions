@@ -111,7 +111,7 @@ public class UsersHttpTriggerUpdateUserPhotoTests : TestBase
             .Build();
 
         var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User>());
+            new MockedCosmosDbClientFactory<UserPassword>(new List<UserPassword>());
         
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithConfiguration(Configuration)
@@ -144,7 +144,7 @@ public class UsersHttpTriggerUpdateUserPhotoTests : TestBase
             .Build();
 
         var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User>());
+            new MockedCosmosDbClientFactory<UserPassword>(new List<UserPassword>());
         
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
@@ -172,12 +172,6 @@ public class UsersHttpTriggerUpdateUserPhotoTests : TestBase
             userName = userId,
             emailAddress = "old@emailAddress.com",
             roles = new List<Role>(),
-            passwordHash = new byte[]
-            {
-            },
-            passwordSalt = new byte[]
-            {
-            }
         };
         
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -202,7 +196,7 @@ public class UsersHttpTriggerUpdateUserPhotoTests : TestBase
             {
                 mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
                     .ReturnsAsync(existingUser);
-                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<User>()));
             })
             .Build();
         
@@ -227,12 +221,6 @@ public class UsersHttpTriggerUpdateUserPhotoTests : TestBase
             userName = userId,
             emailAddress = "old@emailAddress.com",
             roles = new List<Role>(),
-            passwordHash = new byte[]
-            {
-            },
-            passwordSalt = new byte[]
-            {
-            }
         };
 
         var smallPhoto = new byte[] { 71, 73, 70, 56, 55, 97,       
@@ -272,10 +260,10 @@ public class UsersHttpTriggerUpdateUserPhotoTests : TestBase
             {
                 ConfigureContainerFunc = (mockContainer) =>
                 {
-                    mockContainer.Setup(c => c.ReplaceItemAsync(It.IsAny<User>(), It.IsAny<string>(),
+                    mockContainer.Setup(c => c.ReplaceItemAsync(It.IsAny<UserPassword>(), It.IsAny<string>(),
                             It.IsAny<PartitionKey>(),
                             It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()))
-                        .ReturnsAsync(CreateMockItemResponse<User>(HttpStatusCode.OK));
+                        .ReturnsAsync(CreateMockItemResponse<UserPassword>(HttpStatusCode.OK));
                 }
             };
         
@@ -291,7 +279,7 @@ public class UsersHttpTriggerUpdateUserPhotoTests : TestBase
             {
                 mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
                     .ReturnsAsync(existingUser);
-                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<User>()));
             })
             .Build();
         

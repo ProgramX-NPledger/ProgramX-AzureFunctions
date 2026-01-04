@@ -44,8 +44,6 @@ public class UserRepositoryFactory
                 userName = $"user{i}",
                 emailAddress = $"",
                 createdAt = DateTime.UtcNow,
-                passwordHash = new byte[] { },
-                passwordSalt = new byte[] { },
                 firstName = $"First Name {i}",
                 lastLoginAt = DateTime.UtcNow,
                 lastName = $"Last Name {i}",

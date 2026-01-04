@@ -6,8 +6,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.HttpTriggers;
+using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
-using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 
@@ -49,9 +49,9 @@ public class UsersHttpTriggerCtorTests : TestBase
     private void SetupCosmosDbReaderMocks()
     {
         var mockContainer = new Mock<Container>();
-        var mockResponse = new Mock<ItemResponse<User>>();
+        var mockResponse = new Mock<ItemResponse<UserPassword>>();
 
-        mockContainer.Setup(x => x.ReadItemAsync<User>(It.IsAny<string>(), It.IsAny<PartitionKey>(), null, default))
+        mockContainer.Setup(x => x.ReadItemAsync<UserPassword>(It.IsAny<string>(), It.IsAny<PartitionKey>(), null, default))
             .ReturnsAsync(mockResponse.Object);
 
         MockCosmosClient.Setup(x => x.GetContainer(It.IsAny<string>(), It.IsAny<string>()))

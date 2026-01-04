@@ -20,7 +20,6 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using EmailMessage = ProgramX.Azure.FunctionApp.Model.EmailMessage;
-using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 
@@ -79,7 +78,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 var baseUrl =
                     $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
                 
-                var pageUrls = CalculatePageUrls((IPagedResult<SecureUser>)users,
+                var pageUrls = CalculatePageUrls((IPagedResult<User>)users,
                     baseUrl,
                     containsText,
                     withRoles,
@@ -88,7 +87,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     offset,
                     itemsPerPage);
                 
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<SecureUser>((IPagedResult<SecureUser>)users,pageUrls));
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<User>((IPagedResult<User>)users,pageUrls));
             }
             else
             {
@@ -113,7 +112,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
     
     
-    private IEnumerable<UrlAccessiblePage> CalculatePageUrls(IPagedResult<SecureUser> pagedResults, 
+    private IEnumerable<UrlAccessiblePage> CalculatePageUrls(IPagedResult<User> pagedResults, 
         string baseUrl, 
         string? containsText, 
         IEnumerable<string>? withRoles, 
@@ -220,7 +219,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var user = await _userRepository.GetInsecureUserByIdAsync(id);
+            var user = await _userRepository.GetUserByIdAsync(id);
             if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
             
             if (updateUserRequest.updateProfileScope)
@@ -238,22 +237,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 user.theme = updateUserRequest.theme;
                 user.schemaVersionNumber = user.schemaVersionNumber >= 3 ? user.schemaVersionNumber : 3; 
             }
-
-            if (updateUserRequest.updatePasswordScope)
-            {
-                if (string.IsNullOrWhiteSpace(updateUserRequest.newPassword)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password cannot be empty");
-                if (user.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect username");
-                if (!string.IsNullOrEmpty(user.passwordConfirmationNonce) && user.passwordConfirmationNonce!=updateUserRequest.passwordConfirmationNonce) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect password confirmation nonce");
-                if (user.passwordLinkExpiresAt.HasValue && user.passwordLinkExpiresAt.Value < DateTime.UtcNow) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password confirmation link has expired");
-                // TODO: verify password
-                
-                using var hmac = new HMACSHA512(user.passwordSalt);
-                var passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(updateUserRequest.newPassword));
-                user.passwordHash = passwordHash;
-                user.passwordSalt = hmac.Key;
-                user.passwordConfirmationNonce = null;
-                user.passwordLinkExpiresAt = null;
-            }
             
             if (updateUserRequest.updateRolesScope)
             {
@@ -266,7 +249,28 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect endpoint, use /user/{id}/photo instead");
             }
 
+            // store the nonce/etc. currently on the user before we reset it
+            var passwordNonce = updateUserRequest.updatePasswordScope ? user.passwordConfirmationNonce : null;
+            var passwordLinkExpiresAt = updateUserRequest.updatePasswordScope ? user.passwordLinkExpiresAt : null;
+            
+            if (updateUserRequest.updatePasswordScope)
+            {
+                // user is changing their password so reset these
+                user.passwordConfirmationNonce = null;
+                user.passwordLinkExpiresAt = null;
+            }
+            
             await _userRepository.UpdateUserAsync(user);
+            
+            if (updateUserRequest.updatePasswordScope)
+            {
+                if (string.IsNullOrWhiteSpace(updateUserRequest.newPassword)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password cannot be empty");
+                if (user.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect username");
+                if (!string.IsNullOrEmpty(passwordNonce) && passwordNonce!=updateUserRequest.passwordConfirmationNonce) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect password confirmation nonce");
+                if (passwordLinkExpiresAt.HasValue && passwordLinkExpiresAt.Value < DateTime.UtcNow) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password confirmation link has expired");
+                
+                await _userRepository.UpdateUserPasswordAsync(user.userName, updateUserRequest.newPassword);
+            }
 
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserResponse()
             {
@@ -484,9 +488,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 emailAddress = createUserRequest.emailAddress,
                 userName = createUserRequest.userName,
                 roles = allRoles.Items.Where(q=>createUserRequest.addToRoles.Contains(q.name)),
-                passwordHash = [],
-                passwordSalt = [],
-                schemaVersionNumber = 5,
+                schemaVersionNumber = 6,
                 createdAt = DateTime.UtcNow,
                 updatedAt = DateTime.UtcNow,
                 theme = "light",
@@ -502,19 +504,16 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 newUser.passwordLinkExpiresAt = createUserRequest.passwordConfirmationLinkExpiryDate.Value;    
             }
             
-            if (!string.IsNullOrWhiteSpace(createUserRequest.password))
-            {
-                using var hmac = new HMACSHA512();
-                newUser.passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(createUserRequest.password));
-                newUser.passwordSalt = hmac.Key;
-            }
-
             await _userRepository.CreateUserAsync(newUser);
 
-            // redact the password
-            newUser.passwordHash = new byte[0];
-            newUser.passwordSalt = new byte[0];
+            if (!string.IsNullOrWhiteSpace(createUserRequest.password))
+            {
+                await _userRepository.UpdateUserPasswordAsync(
+                    newUser.userName,
+                    createUserRequest.password);
+            }
 
+            
             var emailMessage = new EmailMessage()
             {
                 To =

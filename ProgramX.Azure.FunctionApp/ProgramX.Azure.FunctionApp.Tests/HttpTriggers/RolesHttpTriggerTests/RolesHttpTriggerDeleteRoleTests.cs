@@ -64,7 +64,7 @@ public class RolesHttpTriggerDeleteRoleTests
                 .WithIUserRepository(mockUserRepository =>
                 {
                     mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
-                        .ReturnsAsync((SecureUser)null!);
+                        .ReturnsAsync((User)null!);
                 })
                 .Build();
 

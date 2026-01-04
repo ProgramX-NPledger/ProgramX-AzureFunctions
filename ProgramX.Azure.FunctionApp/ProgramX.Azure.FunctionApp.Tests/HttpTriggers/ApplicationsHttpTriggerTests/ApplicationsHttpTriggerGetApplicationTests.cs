@@ -133,9 +133,9 @@ public class ApplicationsHttpTriggerGetApplicationTests
     public async Task GetApplication_WithoutId_ShouldReturnPagedApplications()
     {
         // Arrange
-        var users = new List<SecureUser>
+        var users = new List<User>
         {
-            new SecureUser
+            new User
             {
                 id = "user1",
                 emailAddress = "user1@example.com",
@@ -157,7 +157,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                     }
                 }
             },
-            new SecureUser
+            new User
             {
                 id = "user2",
                 emailAddress = "user2@example.com",
@@ -219,9 +219,9 @@ public class ApplicationsHttpTriggerGetApplicationTests
     public async Task GetApplication_WithContainsTextFilter_ShouldReturnFilteredApplications()
     {
         // Arrange
-        var users = new List<SecureUser>
+        var users = new List<User>
         {
-            new SecureUser
+            new User
             {
                 id = "user1",
                 emailAddress = "user1@example.com",
@@ -243,7 +243,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                     }
                 }
             },
-            new SecureUser
+            new User
             {
                 id = "user2",
                 emailAddress = "user2@example.com",
@@ -317,9 +317,9 @@ public class ApplicationsHttpTriggerGetApplicationTests
         var adminRole = new Role { name = "Admin" };
         var guestRole = new Role { name = "Guest" };
         
-        var users = new List<SecureUser>
+        var users = new List<User>
         {
-            new SecureUser
+            new User
             {
                 id = "user1",
                 emailAddress = "user1@example.com",
@@ -341,7 +341,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                     }
                 }
             },
-            new SecureUser
+            new User
             {
                 id = "user2",
                 emailAddress = "user2@example.com",

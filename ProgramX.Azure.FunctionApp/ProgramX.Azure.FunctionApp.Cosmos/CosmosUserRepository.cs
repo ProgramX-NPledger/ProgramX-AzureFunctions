@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
@@ -54,28 +55,28 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">Thrown if required initialisation properties are <c>null</c>.</exception>
     /// <exception cref="ArgumentNullException">Thrown if required parameters are <c>null</c>.</exception>
-    public async Task<IResult<SecureUser>> GetUsersAsync(GetUsersCriteria criteria, PagedCriteria? pagedCriteria = null)
+    public async Task<IResult<User>> GetUsersAsync(GetUsersCriteria criteria, PagedCriteria? pagedCriteria = null)
     {
         using (logger.BeginScope("GetUsersAsync {criteria}, {pagedCriteria}", criteria, pagedCriteria?.ToString() ?? "null"))
         {
             QueryDefinition queryDefinition = BuildQueryDefinitionForUsers(criteria);
             logger.LogDebug("QueryDefinition: {queryDefinition}", queryDefinition);
             
-            CosmosReader<SecureUser> cosmosReader;
-            IResult<SecureUser> result;
+            CosmosReader<User> cosmosReader;
+            IResult<User> result;
             if (pagedCriteria != null)
             {
-                cosmosReader = new CosmosPagedReader<SecureUser>(cosmosClient,
+                cosmosReader = new CosmosPagedReader<User>(cosmosClient,
                     DatabaseNames.Core,
                     ContainerNames.Users,
                     ContainerNames.UserNamePartitionKey);
-                result = await ((CosmosPagedReader<SecureUser>)cosmosReader).GetPagedItemsAsync(queryDefinition,
+                result = await ((CosmosPagedReader<User>)cosmosReader).GetPagedItemsAsync(queryDefinition,
                     pagedCriteria.Offset,
                     pagedCriteria.ItemsPerPage);
             }
             else
             {
-                cosmosReader = new CosmosReader<SecureUser>(cosmosClient,
+                cosmosReader = new CosmosReader<User>(cosmosClient,
                     DatabaseNames.Core,
                     ContainerNames.Users,
                     ContainerNames.UserNamePartitionKey);
@@ -129,7 +130,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     }
 
     /// <inheritdoc />
-    public IEnumerable<SecureUser> GetUsersInRole(string roleName, IEnumerable<SecureUser> users)
+    public IEnumerable<User> GetUsersInRole(string roleName, IEnumerable<User> users)
     {
         return users.GroupBy(q=>q.id)
             .Where(q=>q.First().roles.Select(q=>q.name).Contains(roleName))
@@ -137,8 +138,9 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     }
 
     /// <inheritdoc />
-    public async Task<SecureUser?> GetUserByIdAsync(string id)
+    public async Task<User?> GetUserByIdAsync(string id)
     {
+        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
         var users = await GetUsersAsync(new GetUsersCriteria()
         {
             Id = id,
@@ -147,7 +149,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     }
 
     /// <inheritdoc />
-    public async Task<SecureUser?> GetUserByUserNameAsync(string userName)
+    public async Task<User?> GetUserByUserNameAsync(string userName)
     {
         var users = await GetUsersAsync(new GetUsersCriteria()
         {
@@ -165,44 +167,44 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
 
             var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-            var response = await container.DeleteItemAsync<User>(id, new PartitionKey(id));
+            var response = await container.DeleteItemAsync<UserPassword>(id, new PartitionKey(id));
 
             if (response.StatusCode != HttpStatusCode.NoContent)
             {
                 logger.LogError(
                     "Failed to delete user with id {id} with status code {statusCode} and response {response}", id,
                     response.StatusCode, response);
-                throw new RepositoryException(OperationType.Delete, typeof(User));
+                throw new RepositoryException(OperationType.Delete, typeof(UserPassword));
             }
         }
     }
 
-    /// <inheritdoc />
-    public async Task<User?> GetInsecureUserByIdAsync(string id)
-    {
-        using (logger.BeginScope("GetInsecureUserByIdAsync {id}", id))
-        {
-            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
-
-            QueryDefinition queryDefinition = BuildQueryDefinitionForUsers(new GetUsersCriteria()
-            {
-                Id = id
-            });
-            logger.LogDebug("QueryDefinition: {queryDefinition}", queryDefinition);
-
-            CosmosReader<User> cosmosReader;
-            IResult<User> result;
-
-            cosmosReader = new CosmosReader<User>(cosmosClient,
-                DatabaseNames.Core,
-                ContainerNames.Users,
-                ContainerNames.UserNamePartitionKey);
-            result = await cosmosReader.GetItemsAsync(queryDefinition);
-            logger.LogDebug("Success but logging inhibited because of sensitive data");
-
-            return result.Items.SingleOrDefault();
-        }
-    }
+    // /// <inheritdoc />
+    // public async Task<UserPassword?> GetInsecureUserByIdAsync(string id)
+    // {
+    //     using (logger.BeginScope("GetInsecureUserByIdAsync {id}", id))
+    //     {
+    //         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
+    //
+    //         QueryDefinition queryDefinition = BuildQueryDefinitionForUsers(new GetUsersCriteria()
+    //         {
+    //             Id = id
+    //         });
+    //         logger.LogDebug("QueryDefinition: {queryDefinition}", queryDefinition);
+    //
+    //         CosmosReader<UserPassword> cosmosReader;
+    //         IResult<UserPassword> result;
+    //
+    //         cosmosReader = new CosmosReader<UserPassword>(cosmosClient,
+    //             DatabaseNames.Core,
+    //             ContainerNames.Users,
+    //             ContainerNames.UserNamePartitionKey);
+    //         result = await cosmosReader.GetItemsAsync(queryDefinition);
+    //         logger.LogDebug("Success but logging inhibited because of sensitive data");
+    //
+    //         return result.Items.SingleOrDefault();
+    //     }
+    // }
 
     /// <inheritdoc />
     public async Task<Application?> GetApplicationByNameAsync(string name)
@@ -218,7 +220,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     /// <inheritdoc />
     /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
-    public async Task UpdateUserAsync(SecureUser user)
+    public async Task UpdateUserAsync(User user)
     {
         using (logger.BeginScope("UpdateUserAsync {user}", user))
         {
@@ -230,7 +232,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                 logger.LogError(
                     "Failed to update user with id {id} with status code {statusCode} and response {response}", user.id,
                     response.StatusCode, response);
-                throw new RepositoryException(OperationType.Update, typeof(SecureUser));
+                throw new RepositoryException(OperationType.Update, typeof(User));
             }
             logger.LogDebug("Success");
         }
@@ -238,6 +240,9 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     /// <inheritdoc />
     /// <exception cref="RepositoryException">Thrown if the creation failed.</exception>
+    /// <remarks>
+    /// This will not set the user's password. Instead, this is performed when the user sets their password as a separate operation.
+    /// </remarks>
     public async Task CreateUserAsync(User user)
     {
         using (logger.BeginScope("CreateUserAsync {user}", user))
@@ -250,7 +255,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                 logger.LogError(
                     "Failed to create user with id {id} with status code {statusCode} and response {response}", user.id,
                     response.StatusCode, response);
-                throw new RepositoryException(OperationType.Create, typeof(User));
+                throw new RepositoryException(OperationType.Create, typeof(UserPassword));
             }
             logger.LogDebug("Success");
         }    
@@ -393,7 +398,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                     logger.LogError(
                         "Failed to update user with id {id} with status code {statusCode} and response {response}",
                         user.id, response.StatusCode, response);
-                    throw new RepositoryException(OperationType.Update, typeof(SecureUser));
+                    throw new RepositoryException(OperationType.Update, typeof(User));
                 }
                 logger.LogDebug("Success");
             }
@@ -460,7 +465,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                     logger.LogError(
                         "Failed to update user with id {id} with status code {statusCode} and response {response}",
                         user.id, response.StatusCode, response);
-                    throw new RepositoryException(OperationType.Update, typeof(SecureUser));
+                    throw new RepositoryException(OperationType.Update, typeof(User));
                 }
                 logger.LogDebug("Removed Role from user {userName}", user.userName);                      
             }
@@ -506,7 +511,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     /// <inheritdoc />
     /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
-    public async Task AddRoleToUser(Role role, string userName)
+    public async Task AddRoleToUserAsync(Role role, string userName)
     {
         using (logger.BeginScope("AddRoleToUser {role}, {userName}", role, userName))
         {
@@ -516,7 +521,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             if (user == null)
             {
                 logger.LogError("User {userName} not found", userName);
-                throw new RepositoryException(OperationType.Update, typeof(SecureUser), $"User {userName} not found");
+                throw new RepositoryException(OperationType.Update, typeof(User), $"User {userName} not found");
             }
 
             user.roles = user.roles.Union([role]).ToList();
@@ -526,7 +531,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                 logger.LogError(
                     "Failed to update user with id {id} with status code {statusCode} and response {response}",
                     user.id, response.StatusCode, response);
-                throw new RepositoryException(OperationType.Update, typeof(SecureUser));
+                throw new RepositoryException(OperationType.Update, typeof(User));
             }
             logger.LogDebug("Added Role to user {userName}", user.userName);                      
         }
@@ -534,7 +539,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
     /// <inheritdoc />
     /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
-    public async Task RemoveRoleFromUser(string roleName, string userName)
+    public async Task RemoveRoleFromUserAsync(string roleName, string userName)
     {
         using (logger.BeginScope("RemoveRoleFromUser {roleName}, {userName}", roleName, userName))
         {
@@ -544,7 +549,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             if (user == null)
             {
                 logger.LogError("User {userName} not found", userName);
-                throw new RepositoryException(OperationType.Update, typeof(SecureUser), $"User {userName} not found");
+                throw new RepositoryException(OperationType.Update, typeof(User), $"User {userName} not found");
             }
 
             if (user.roles.Any(q => q.name.Equals(roleName, StringComparison.InvariantCultureIgnoreCase)))
@@ -557,7 +562,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                     logger.LogError(
                         "Failed to update user with id {id} with status code {statusCode} and response {response}",
                         user.id, response.StatusCode, response);
-                    throw new RepositoryException(OperationType.Update, typeof(SecureUser));
+                    throw new RepositoryException(OperationType.Update, typeof(User));
                 }
                 logger.LogDebug("Removed Role from user {userName}", user.userName);  
             }
@@ -567,6 +572,82 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             }
             
                               
+        }
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="RepositoryException">Thrown if the update fails.</exception>
+    public async Task UpdateUserPasswordAsync(string userName, string newPassword)
+    {
+        using (logger.BeginScope("UpdateUserPasswordAsync {userName}", userName))
+        {
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.UserPasswordsPartitionKey);
+
+            var userPassword = await GetUserPasswordByUserNameAsync(userName);
+            ItemResponse<UserPassword> response;
+            if (userPassword == null)
+            {
+                // password is new
+                
+                using var hmac = new HMACSHA512();
+                var passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(newPassword));
+                var passwordSalt = hmac.Key;                
+                userPassword = new UserPassword()
+                {
+                    userName = userName,
+                    id = Guid.NewGuid().ToString(),
+                    passwordHash = passwordHash,
+                    passwordSalt = passwordSalt,
+                };
+                response = await container.CreateItemAsync(userPassword, new PartitionKey(userName));
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    logger.LogError(
+                        "Failed to update UserPassword with id {id} with status code {statusCode} and response {response}", userPassword.id,
+                        response.StatusCode, response);
+                    throw new RepositoryException(OperationType.Update, typeof(User));
+                }
+            }
+            else
+            {
+                response = await container.ReplaceItemAsync(userPassword, userPassword.id, new PartitionKey(userPassword.userName));
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    logger.LogError(
+                        "Failed to update UserPassword with id {id} with status code {statusCode} and response {response}", userPassword.id,
+                        response.StatusCode, response);
+                    throw new RepositoryException(OperationType.Update, typeof(User));
+                }
+            }
+
+            if (response.StatusCode == HttpStatusCode.Created) logger.LogDebug("Created");
+            else if (response.StatusCode == HttpStatusCode.OK) logger.LogDebug("Success");
+        }
+        
+    }
+
+    /// <inheritdoc />
+    public async Task<UserPassword?> GetUserPasswordByUserNameAsync(string userName)
+    {
+        using (logger.BeginScope("GetUserPasswordByUserNameAsync {username}", userName))
+        {
+            QueryDefinition queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.userName=@userName");
+            queryDefinition.WithParameter("@userName", userName);
+            
+            logger.LogDebug("QueryDefinition: {queryDefinition}", queryDefinition);
+            
+            CosmosReader<UserPassword> cosmosReader = new CosmosReader<UserPassword>(cosmosClient,
+                DatabaseNames.Core,
+                ContainerNames.UserPasswords,
+                ContainerNames.UserPasswordsPartitionKey);
+            
+            IResult<UserPassword> result = await cosmosReader.GetItemsAsync(queryDefinition);
+
+            logger.LogDebug("Result: {result}", result);
+            if (!result.Items.Any()) return null;            
+            
+            result.IsRequiredToBeOrderedByClient = false;
+            return result.Items.SingleOrDefault();
         }
     }
 

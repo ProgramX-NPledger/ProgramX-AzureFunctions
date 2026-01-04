@@ -245,7 +245,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                         if (userIsAdded)
                         {
                             _logger.LogInformation("Adding user {userName} to role {roleName}", userName, role.name);
-                            await _userRepository.AddRoleToUser(role, userName);
+                            await _userRepository.AddRoleToUserAsync(role, userName);
                         }
                         
                     }
@@ -260,7 +260,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                 {
                     if (updateRoleRequest.usersInRole?.Contains(user.userName) ?? false) continue;
                     _logger.LogInformation("Removing user {userName} from role {roleName}", user.userName, role.name);
-                    await _userRepository.RemoveRoleFromUser(role.name, user.userName);
+                    await _userRepository.RemoveRoleFromUserAsync(role.name, user.userName);
                 }
 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateRoleResponse()

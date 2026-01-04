@@ -26,12 +26,6 @@ public class UsersHttpTriggerDeleteUserTests
             id = userId,
             userName = "testuser",
             emailAddress = "test@example.com",
-            passwordHash = new byte[]
-            {
-            },
-            passwordSalt = new byte[]
-            {
-            },
             roles = new List<Role>()
         };
 
@@ -72,7 +66,7 @@ public class UsersHttpTriggerDeleteUserTests
                 .WithIUserRepository(mockUserRepository =>
                 {
                     mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
-                        .ReturnsAsync((SecureUser)null!);
+                        .ReturnsAsync((User)null!);
                 })
                 .Build();
 
@@ -94,7 +88,7 @@ public class UsersHttpTriggerDeleteUserTests
         var testableHttpRequestData = testableHttpRequestDataFactory.Create()
             .Returns(HttpStatusCode.Unauthorized)
             .Build();        
-        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User>());
+        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<UserPassword>(new List<UserPassword>());
         
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
@@ -109,7 +103,7 @@ public class UsersHttpTriggerDeleteUserTests
         // no header is added so it is a bad request
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         
-        mockedCosmosDbClient.MockedContainer.Verify(x => x.DeleteItemAsync<User>(It.IsAny<string>(), new PartitionKey(It.IsAny<string>()), null, CancellationToken.None), Times.Never);
+        mockedCosmosDbClient.MockedContainer.Verify(x => x.DeleteItemAsync<UserPassword>(It.IsAny<string>(), new PartitionKey(It.IsAny<string>()), null, CancellationToken.None), Times.Never);
     }
     
     
@@ -124,7 +118,7 @@ public class UsersHttpTriggerDeleteUserTests
             .WithInvalidAuthentication()
             .Returns(HttpStatusCode.Unauthorized)
             .Build();        
-        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<User>(new List<User>());
+        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<UserPassword>(new List<UserPassword>());
         
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
@@ -139,7 +133,7 @@ public class UsersHttpTriggerDeleteUserTests
         // no header is added so it is a bad request
         result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         
-        mockedCosmosDbClient.MockedContainer.Verify(x => x.DeleteItemAsync<User>(It.IsAny<string>(), new PartitionKey(It.IsAny<string>()), null, CancellationToken.None), Times.Never);
+        mockedCosmosDbClient.MockedContainer.Verify(x => x.DeleteItemAsync<UserPassword>(It.IsAny<string>(), new PartitionKey(It.IsAny<string>()), null, CancellationToken.None), Times.Never);
     }
 
 }

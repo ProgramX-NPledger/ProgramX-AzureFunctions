@@ -23,15 +23,15 @@ public class LoginHttpTrigger
 {
     private readonly ILogger<LoginHttpTrigger> _logger;
     private readonly JwtTokenIssuer _jwtTokenIssuer;
-    private readonly CosmosClient _cosmosClient;
+    private readonly IUserRepository _userRepository;
 
     public LoginHttpTrigger(ILogger<LoginHttpTrigger> logger,
         JwtTokenIssuer jwtTokenIssuer,
-        CosmosClient cosmosClient)
+        IUserRepository userRepository)
     {
         _logger = logger;
         _jwtTokenIssuer = jwtTokenIssuer;
-        _cosmosClient = cosmosClient;
+        _userRepository = userRepository;
     }
 
     [Function(nameof(Login))]
@@ -44,41 +44,33 @@ public class LoginHttpTrigger
             return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
         }
         
-        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.userName = @userName");
-        queryDefinition.WithParameter("@userName", credentials.UserName);
-        var database = await _cosmosClient.CreateDatabaseIfNotExistsAsync("core");
-        if (database.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Database created");
-        var container = await database.Database.CreateContainerIfNotExistsAsync("users", "/userName");
-        if (container.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Container created");
-        var users = container.Container.GetItemQueryIterator<ProgramX.Azure.FunctionApp.Model.User>(queryDefinition);
-        var user = await users.ReadNextAsync();
-        if (user.Count == 0)
-        {
-            return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
-        }
-            
-        var userFromDb = user.First();
-        
-        if (userFromDb.passwordHash==null) throw new InvalidOperationException("Password salt is null");
-        using var hmac = new HMACSHA512(userFromDb.passwordSalt);
+        // get the user password from the database
+        var userPassword = await _userRepository.GetUserPasswordByUserNameAsync(credentials.UserName);
+        if (userPassword==null) return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
+
+        using var hmac = new HMACSHA512(userPassword.passwordSalt);
         var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(credentials.Password));
 
         for (var i = 0; i < computedHash.Length; i++)
-            if (computedHash[i] != userFromDb.passwordHash[i])
+            if (computedHash[i] != userPassword.passwordHash[i])
             {
                 return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
             }
 
-        string token = _jwtTokenIssuer.IssueTokenForUser(credentials,userFromDb.roles.Select(q=>q.name));
+        // password okay, get user to create JWT token
+        var user = await _userRepository.GetUserByUserNameAsync(credentials.UserName);
+        if (user==null) throw new Exception("User not found");
+        
+        string token = _jwtTokenIssuer.IssueTokenForUser(credentials,user.roles.Select(q=>q.name));
  
         var httpResponse = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
         await httpResponse.WriteAsJsonAsync(new
         {
             token,
-            userFromDb.userName,
-            userFromDb.emailAddress,
-            roles = userFromDb.roles.Select(q=>q.name),
-            applications = userFromDb.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=> 
+            user.userName,
+            user.emailAddress,
+            roles = user.roles.Select(q=>q.name),
+            applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=> 
                 new FullyQualifiedApplication()
                 {
                     application = q.First(),
@@ -88,10 +80,10 @@ public class LoginHttpTrigger
                 }
                 ).ToList(),
             profilePhotoBase64 = string.Empty,
-            userFromDb.firstName,
-            userFromDb.lastName,
-            initials = GetInitials(userFromDb.firstName, userFromDb.lastName),
-            userFromDb.profilePhotographSmall
+            user.firstName,
+            user.lastName,
+            initials = GetInitials(user.firstName, user.lastName),
+            user.profilePhotographSmall
         });
         return httpResponse;
 

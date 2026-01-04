@@ -8,7 +8,6 @@ using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.HttpTriggers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
-using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.RolesHttpTriggerTests;
 

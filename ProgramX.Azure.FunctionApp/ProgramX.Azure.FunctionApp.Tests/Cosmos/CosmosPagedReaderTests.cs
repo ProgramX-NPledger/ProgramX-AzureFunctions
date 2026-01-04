@@ -61,7 +61,7 @@ public class CosmosPagedReaderTests : CosmosTestBase
     }
 
     [Test]
-    public async Task GetNextsItemAsync_WithContinuationToken_ShouldReturnNextThreeItems()
+    public async Task GetNextItemAsync_WithContinuationToken_ShouldReturnNextThreeItems()
     {
         var mockedCosmosDbClientFactory =
             new MockedCosmosDbClientFactory<User>(new List<User>())
@@ -235,8 +235,6 @@ public class CosmosPagedReaderTests : CosmosTestBase
                 userName = $"user{i}",
                 emailAddress = $"",
                 createdAt = DateTime.UtcNow,
-                passwordHash = new byte[] { },
-                passwordSalt = new byte[] { },
                 firstName = $"First Name {i}",
                 lastLoginAt = DateTime.UtcNow,
                 lastName = $"Last Name {i}",

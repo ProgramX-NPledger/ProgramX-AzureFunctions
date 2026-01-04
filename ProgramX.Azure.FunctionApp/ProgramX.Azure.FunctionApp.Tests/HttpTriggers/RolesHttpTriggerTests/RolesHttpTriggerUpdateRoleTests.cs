@@ -55,8 +55,8 @@ public class RolesHttpTriggerUpdateRoleTests : TestBase
                 var mockApplicationsResult = new Mock<IResult<Application>>();
                 mockApplicationsResult.SetupGet(x => x.Items).Returns(new List<Application>());
                 
-                var mockUserResult=new Mock<IResult<SecureUser>>();
-                mockUserResult.SetupGet(x => x.Items).Returns(new List<SecureUser>());
+                var mockUserResult=new Mock<IResult<User>>();
+                mockUserResult.SetupGet(x => x.Items).Returns(new List<User>());
                 
                 mockUserRepository.Setup(x =>
                     x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(), It.IsAny<PagedCriteria>()))

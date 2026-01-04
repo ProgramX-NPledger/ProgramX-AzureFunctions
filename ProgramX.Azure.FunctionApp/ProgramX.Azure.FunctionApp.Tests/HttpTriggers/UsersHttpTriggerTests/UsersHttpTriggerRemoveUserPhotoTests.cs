@@ -42,7 +42,7 @@ public class UsersHttpTriggerRemoveUserPhotoTests : TestBase
             .Build();
 
         var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<User>(new List<User>());
+            new MockedCosmosDbClientFactory<UserPassword>(new List<UserPassword>());
         
         var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
         
@@ -73,12 +73,6 @@ public class UsersHttpTriggerRemoveUserPhotoTests : TestBase
             roles = new List<Role>(),
             profilePhotographOriginal = "somefile.png",
             profilePhotographSmall = "somesmallfile.png",
-            passwordHash = new byte[]
-            {
-            },
-            passwordSalt = new byte[]
-            {
-            }
         };
     
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -100,7 +94,7 @@ public class UsersHttpTriggerRemoveUserPhotoTests : TestBase
             {
                 mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
                     .ReturnsAsync(existingUser);
-                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<SecureUser>()));
+                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<User>()));
             })
             .Build();
         

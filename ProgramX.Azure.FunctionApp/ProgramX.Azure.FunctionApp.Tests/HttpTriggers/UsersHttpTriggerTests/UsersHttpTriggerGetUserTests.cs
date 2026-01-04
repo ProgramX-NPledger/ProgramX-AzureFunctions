@@ -47,8 +47,6 @@ public class UsersHttpTriggerGetUserTests
             firstName = "Test",
             lastName = "User",
             roles = new List<Role> { adminRole },
-            passwordHash = Array.Empty<byte>(),
-            passwordSalt = Array.Empty<byte>()
         };
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -95,7 +93,7 @@ public class UsersHttpTriggerGetUserTests
             .WithIUserRepository(mockUserRepository =>
             {
                 mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
-                    .ReturnsAsync(null as SecureUser);
+                    .ReturnsAsync(null as User);
             })
             .Build();        
         // Act
@@ -156,16 +154,16 @@ public class UsersHttpTriggerGetUserTests
     public async Task GetUser_WithoutId_ShouldReturnPagedUsers()
     {
         // Arrange
-        var users = new List<SecureUser>
+        var users = new List<User>
         {
-            new SecureUser
+            new User
             {
                 id = "user1",
                 emailAddress = "user1@example.com",
                 userName = "user1",
                 roles = new List<Role>()
             },
-            new SecureUser
+            new User
             {
                 id = "user2",
                 emailAddress = "user2@example.com",
@@ -182,7 +180,7 @@ public class UsersHttpTriggerGetUserTests
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                var mockResult = new Mock<IPagedResult<SecureUser>>();
+                var mockResult = new Mock<IPagedResult<User>>();
                 mockResult.Setup(x => x.Items).Returns(users);
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
@@ -206,16 +204,16 @@ public class UsersHttpTriggerGetUserTests
     public async Task GetUser_WithContainsTextFilter_ShouldReturnFilteredUsers()
     {
         // Arrange
-        var users = new List<SecureUser>
+        var users = new List<User>
         {
-            new SecureUser
+            new User
             {
                 id = "user1",
                 emailAddress = "user1@example.com",
                 userName = "john",
                 roles = new List<Role>()
             },
-            new SecureUser
+            new User
             {
                 id = "user2",
                 emailAddress = "user2@example.com",
@@ -239,7 +237,7 @@ public class UsersHttpTriggerGetUserTests
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                var mockResult = new Mock<IPagedResult<SecureUser>>();
+                var mockResult = new Mock<IPagedResult<User>>();
                 mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.userName.Contains("john")));;
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
@@ -266,16 +264,16 @@ public class UsersHttpTriggerGetUserTests
         var adminRole = new Role { name = "Admin" };
         var guestRole = new Role { name = "Guest" };
         
-        var users = new List<SecureUser>
+        var users = new List<User>
         {
-            new SecureUser
+            new User
             {
                 id = "user1",
                 emailAddress = "user1@example.com",
                 userName = "john",
                 roles = new List<Role> { adminRole, guestRole }
             },
-            new SecureUser
+            new User
             {
                 id = "user2",
                 emailAddress = "user2@example.com",
@@ -299,7 +297,7 @@ public class UsersHttpTriggerGetUserTests
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                var mockResult = new Mock<IPagedResult<SecureUser>>();
+                var mockResult = new Mock<IPagedResult<User>>();
                 mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.roles.Any(qq=>qq.name == "Admin")));;
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
@@ -345,16 +343,16 @@ public class UsersHttpTriggerGetUserTests
             applications = new List<Application> { application1, application3 }
         };
         
-        var users = new List<SecureUser>
+        var users = new List<User>
         {
-            new SecureUser
+            new User
             {
                 id = "user1",
                 emailAddress = "user1@example.com",
                 userName = "john",
                 roles = new List<Role> { adminRole, guestRole }
             },
-            new SecureUser
+            new User
             {
                 id = "user2",
                 emailAddress = "user2@example.com",
@@ -378,7 +376,7 @@ public class UsersHttpTriggerGetUserTests
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                var mockResult = new Mock<IPagedResult<SecureUser>>();
+                var mockResult = new Mock<IPagedResult<User>>();
                 mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.roles.Where((qq=>qq.applications.Any(qqq=>qqq.name == "Another App"))).Any()));;
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
