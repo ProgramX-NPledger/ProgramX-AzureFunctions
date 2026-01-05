@@ -86,7 +86,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
     private static string GetRedirectUri()
     {
         // TODO: Calculate redirectUri
-        return "https://apps.programx.co.uk/scouts/osm/completekeyexchange"; // this needs to be the other side within Azure Functions
+        return "https://fa-programx.azurewebsites.net/api/v1/scouts/osm/completekeyexchange"; // this needs to be the other side within Azure Functions
     }
 
     [Function(nameof(CompleteKeyExchange))]
