@@ -12,7 +12,7 @@ public class ScoutingApplication : IApplication
         {
             name = "scouting",
             FriendlyName = "Scouting",
-            requiresRoleNames = ["admin", "pii-reader"],
+            requiresRoleNames = ["admin", "pii-reader", "osm-reader", "scouts-reader", "scouts-writer"],
             targetUrl = "/scouting",
             description = "Manage scouting data",
             imageUrl = null
