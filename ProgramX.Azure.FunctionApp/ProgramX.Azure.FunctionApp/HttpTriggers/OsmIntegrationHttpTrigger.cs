@@ -54,7 +54,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
         {
             var osmClientId = Configuration["Osm:ClientId"];
             var osmScopes = Configuration["Osm:Scopes"];
-            var osmRedirectUri = GetRedirectUri();
+            var osmRedirectUri = GetRedirectUri(httpRequestData);
 
             _logger.LogInformation(
                 "OSM authentication configuration: clientId={clientId}, redirectUrl={redirectUri}, scopes={scopes}",
@@ -110,7 +110,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
                 ["code"] = code,
                 ["client_id"] = Configuration["Osm:ClientId"],
                 ["client_secret"] = Configuration["Osm:ClientSecret"],
-                ["redirect_uri"] = GetRedirectUri()
+                ["redirect_uri"] = GetRedirectUri(httpRequestData)
             };
 
             var httpClient = new HttpClient();
