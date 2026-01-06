@@ -70,23 +70,23 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
             query["scope"] = osmScopes;
 
             var url = $"{osmAuthUrl}?{query}";
-            _logger.LogInformation("GETting URL {url}",url);
-            // TODO GET the url
+            _logger.LogInformation("Browser to URL {url}",url);
             
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
             {
                 clientId = osmClientId,
                 redirectUri = osmRedirectUri,
                 scopes = osmScopes,
-                url
+                url,
+                message = "Navigate to the URL to authenticate with OSM"
             });
         }
     }
 
-    private static string GetRedirectUri()
+    private static string GetRedirectUri(HttpRequestData httpRequestData)
     {
-        // TODO: Calculate redirectUri
-        return "https://fa-programx.azurewebsites.net/api/v1/scouts/osm/completekeyexchange"; // this needs to be the other side within Azure Functions
+        return $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}/api/v1/scouts/osm/completekeyexchange";
+ // this needs to be the other side within Azure Functions
     }
 
     [Function(nameof(CompleteKeyExchange))]
