@@ -53,7 +53,19 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
         using (_logger.BeginScope($"{nameof(OsmIntegrationHttpTrigger)}.{nameof(InitiateKeyExchange)}"))
         {
             var osmClientId = Configuration["Osm:ClientId"];
+            if (string.IsNullOrWhiteSpace(osmClientId))
+            {
+                _logger.LogError("Configuration Osm:ClientId is not set.");
+                return await HttpResponseDataFactory.CreateForServerError(httpRequestData,
+                    "No OSM client ID configured");
+            }
             var osmScopes = Configuration["Osm:Scopes"];
+            if (string.IsNullOrWhiteSpace(osmScopes))
+            {
+                _logger.LogError("Configuration Osm:Scopes is not set.");
+                return await HttpResponseDataFactory.CreateForServerError(httpRequestData,
+                    "No OSM scopes configured");
+            }
             var osmRedirectUri = GetRedirectUri(httpRequestData);
 
             _logger.LogInformation(
