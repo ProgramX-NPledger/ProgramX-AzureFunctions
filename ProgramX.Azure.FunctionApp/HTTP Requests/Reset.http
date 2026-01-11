@@ -1,0 +1,7 @@
+
+
+
+###
+# Reset the application (if possible)
+POST {{host}}/api/v1/reset
+Content-Type: application/json

@@ -171,6 +171,12 @@ public interface IUserRepository
     /// <param name="userName">The username of the User to get the password for.</param>
     /// <returns>The password hash and salt for the specified user, or <c>null</c> if not found.</returns>
     Task<UserPassword?> GetUserPasswordByUserNameAsync(string userName);
+
+    
+    /// <summary>
+    /// Resets the application.
+    /// </summary>
+    Task ResetApplicationAsync();
     
     
 }
