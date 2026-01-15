@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using Azure.Core.Serialization;
 using Azure.Storage.Blobs;
 using Microsoft.Azure.Cosmos;
@@ -7,11 +8,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ProgramX.Azure.FunctionApp;
 using ProgramX.Azure.FunctionApp.AzureStorage;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Core;
 using ProgramX.Azure.FunctionApp.Cosmos;
 using ProgramX.Azure.FunctionApp.Helpers;
+using ProgramX.Azure.FunctionApp.Osm;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -22,6 +25,7 @@ builder.ConfigureFunctionsWebApplication();
 builder.Services
     .AddApplicationInsightsTelemetryWorkerService()
     .ConfigureFunctionsApplicationInsights()
+    .AddTransient<AuthTokenHandler>()
     .AddSingleton<JwtTokenIssuer, JwtTokenIssuer>()
     .AddSingleton<CosmosClient, CosmosClient>(cosmosClient =>
     {
@@ -42,11 +46,18 @@ builder.Services
         return new CosmosUserRepository(cosmosClient, serviceProvider.GetRequiredService<ILogger<CosmosUserRepository>>());;
     })
     .AddSingleton<ISingletonMutex,SingletonMutex>()
+    .AddSingleton<IResetApplication,ResetApplication>()
     .AddTransient<IEmailSender, AzureCommunicationsServicesEmailSender>(serviceProvoder =>
     {
         var configuration = serviceProvoder.GetRequiredService<IConfiguration>();
         return new AzureCommunicationsServicesEmailSender(configuration);
-    });
+    })
+    .AddHttpClient<IOsmClient, OsmClient>(client =>
+    {
+        client.BaseAddress = new Uri("https://www.onlinescoutmanager.co.uk/");
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    })
+    .AddHttpMessageHandler<AuthTokenHandler>();
         
 
 

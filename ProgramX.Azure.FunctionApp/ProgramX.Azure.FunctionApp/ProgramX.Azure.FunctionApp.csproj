@@ -30,5 +30,11 @@
     <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Core\ProgramX.Azure.FunctionApp.Core.csproj" />
     <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Cosmos\ProgramX.Azure.FunctionApp.Cosmos.csproj" />
     <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Model\ProgramX.Azure.FunctionApp.Model.csproj" />
+    <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Osm\ProgramX.Azure.FunctionApp.Osm.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

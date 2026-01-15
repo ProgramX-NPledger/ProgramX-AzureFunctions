@@ -1,0 +1,48 @@
+
+# Login sequence:
+# Call scouts/osm/initiatekeyexchange to get URL
+# Manually navigate to URL to authenticate. This calls the scouts/osm/completekeyexchange endpoint and returns tokens
+# Use tokens returned in JSON
+
+###
+# Initiate key exchange
+# Navigate to returned URL in browser (this uses the Client ID, Client Secret from appsettings.Development.json), which will call the CompleteKeyExchange function in Azure Functions. 
+# Use the returned tokens
+# Make sure to use fa-programx.azurewebsites.net in the returned URL to target the Azure Functions endpoint
+# DO NOT ENCODE THE URL IN redirect_uri AND ENSURE THE SCHEME IS CORRECT
+# The URI to navigate to will look something like:
+# https://www.onlinescoutmanager.co.uk/oauth/authorize?response_type=code&client_id=xxxx&redirect_uri=https://fa-programx.azurewebsites.net/api/v1/scouts/osm/completekeyexchange&scope=section%3aattendance%3aread+section%3abadge%3aread+section%3aevent%3aread+section%3afinance%3aread+section%3aflexirecord%3awrite+section%3amember%3aread+section%3aprogramme%3aread
+GET  {{host}}/api/v1/scouts/osm/initiatekeyexchange
+
+###
+# Get all members
+GET https://www.onlinescoutmanager.co.uk/ext/members/contact/?action=getListOfMembers&sort=dob&sectionid=54338&termid=849238&section=scouts
+Authorization: Bearer <token>
+
+# Response looks like:
+{
+  "identifier": "scoutid",
+  "photos": true,
+  "items": [
+    {
+      "firstname": "firstname",
+      "lastname": "lastname",
+      "photo_guid": "d84b3097-c704-43ac-b207-000000000000",
+      "patrolid": 172240,
+      "patrol": "Wolves PL",
+      "sectionid": 54338,
+      "enddate": null,
+      "age": "13 \/ 10",
+      "patrol_role_level_label": "Patrol Leader",
+      "active": true,
+      "scoutid": 1938172,
+      "full_name": "Full Name"
+    }
+  ]
+}
+
+
+###
+# @name Get Terms
+GET {{host}}/api/v1/scouts/osm/terms
+Authorization: Bearer {{token}}
