@@ -589,16 +589,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             {
                 // password is new
                 
-                using var hmac = new HMACSHA512();
-                var passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(newPassword));
-                var passwordSalt = hmac.Key;                
-                userPassword = new UserPassword()
-                {
-                    userName = userName,
-                    id = Guid.NewGuid().ToString(),
-                    passwordHash = passwordHash,
-                    passwordSalt = passwordSalt,
-                };
+                userPassword = CreateNewUserPassword(userName, newPassword);
                 response = await container.CreateItemAsync(userPassword, new PartitionKey(userName));
                 if (response.StatusCode != HttpStatusCode.Created)
                 {
@@ -626,6 +617,21 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         
     }
 
+    private UserPassword? CreateNewUserPassword(string userName, string newPassword)
+    {
+        using var hmac = new HMACSHA512();
+        var passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(newPassword));
+        var passwordSalt = hmac.Key;                
+        var userPassword = new UserPassword()
+        {
+            userName = userName,
+            id = Guid.NewGuid().ToString(),
+            passwordHash = passwordHash,
+            passwordSalt = passwordSalt,
+        };
+        return userPassword;
+    }
+
     /// <inheritdoc />
     public async Task<UserPassword?> GetUserPasswordByUserNameAsync(string userName)
     {
@@ -643,14 +649,64 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             
             IResult<UserPassword> result = await cosmosReader.GetItemsAsync(queryDefinition);
 
-            logger.LogDebug("Result: {result}", result);
             if (!result.Items.Any())
             {
-                // TODO: Maybe needs migrating frm users container
-                return null;
-            }
-                            
+                logger.LogDebug("No UserPassword found for user {userName}. Looking in {usersContainer} to verify.", userName, ContainerNames.Users);
+                
+                queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.userName=@userName");
+                queryDefinition.WithParameter("@userName", userName);
             
+                logger.LogDebug("QueryDefinition: {queryDefinition}", queryDefinition);
+            
+                CosmosReader<User> userCosmosReader = new CosmosReader<User>(cosmosClient,
+                    DatabaseNames.Core,
+                    ContainerNames.Users,
+                    ContainerNames.UserNamePartitionKey);
+            
+                IResult<User> userResult = await userCosmosReader.GetItemsAsync(queryDefinition);
+
+                if (!userResult.Items.Any())
+                {
+                    logger.LogError("No User found for user {userName}. No UserPassword found.", userName);
+                    return null;
+                }
+                
+                logger.LogInformation("User {userName} found in Container {usersPasswordsContainer} but has no password in Container {usersContainer}. Creating UserPassword.", userName, ContainerNames.Users, ContainerNames.UserPasswords);
+
+                var usersContainer = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+                ItemResponse<dynamic> usersResponse = await usersContainer.ReadItemAsync<dynamic>(
+                    id: userName, 
+                    partitionKey: new PartitionKey("userName")
+                );
+
+                var userPasswordHashAsString = usersResponse.Resource.passwordHash;
+                var userPasswordSaltAsString = usersResponse.Resource.passwordSalt;
+                if (userPasswordHashAsString == null || userPasswordSaltAsString == null)
+                {
+                    logger.LogError("User {userName} does not have correct schema in source Container {usersContainer} and password cannot be automatically migrated",userName,ContainerNames.Users);
+                    return null;
+                }
+                
+                var userPasswordsContainer = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.UserPasswords);
+                var userPasswordsResponse = await userPasswordsContainer.CreateItemAsync(new UserPassword()
+                {
+                    id = Guid.NewGuid().ToString(),
+                    userName = userName,
+                    passwordHash = userPasswordHashAsString!,
+                    passwordSalt = userPasswordSaltAsString!
+                }, new PartitionKey(userName));
+                if (userPasswordsResponse.StatusCode != HttpStatusCode.Created)
+                {
+                    logger.LogError(
+                        "Failed to update UserPassword with UserName {userName} with status code {statusCode} and response {response}", userName,
+                        usersResponse.StatusCode, usersResponse);
+                    throw new RepositoryException(OperationType.Update, typeof(User));
+                }
+                
+                logger.LogInformation("Successfully migrated UserPassword for user {userName}", userName);
+                return userPasswordsResponse.Resource;
+            }
+
             result.IsRequiredToBeOrderedByClient = false;
             return result.Items.SingleOrDefault();
         }
