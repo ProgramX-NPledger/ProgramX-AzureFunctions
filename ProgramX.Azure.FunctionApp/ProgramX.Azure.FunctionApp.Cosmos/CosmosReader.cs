@@ -71,7 +71,7 @@ public class CosmosReader<T>
     /// <returns>The created or existing container.</returns>
     protected async Task<Container> PrepareAndGetContainerAsync()
     {
-        var databaseResponse = await _client.CreateDatabaseIfNotExistsAsync(_databaseName,ThroughputProperties.CreateManualThroughput(100),new RequestOptions(),CancellationToken.None);
+        var databaseResponse = await _client.CreateDatabaseIfNotExistsAsync(_databaseName,ThroughputProperties.CreateManualThroughput(400),new RequestOptions(),CancellationToken.None);
         if (databaseResponse.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Database {_databaseName} created",[_databaseName]);
         var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(_containerName, _partitionKeyPath,null,new RequestOptions(),CancellationToken.None);
         if (containerResponse.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Container {containerName} created",[_containerName,_partitionKeyPath]);
