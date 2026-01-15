@@ -26,7 +26,7 @@ public class ApplicationsHttpTrigger(
     ILogger<ApplicationsHttpTrigger> logger,
     IConfiguration configuration,
     IUserRepository userRepository)
-    : AuthorisedHttpTriggerBase(configuration)
+    : AuthorisedHttpTriggerBase(configuration,logger)
 {
     private readonly ILogger<ApplicationsHttpTrigger> _logger = logger;
 

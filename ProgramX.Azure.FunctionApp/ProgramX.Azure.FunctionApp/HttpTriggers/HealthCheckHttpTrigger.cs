@@ -19,8 +19,9 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
     private readonly ISingletonMutex _singletonMutex;
 
     public HealthCheckHttpTrigger(ILoggerFactory loggerFactory,
+        ILogger<HealthCheckHttpTrigger> logger,
         IConfiguration configuration,
-        ISingletonMutex singletonMutex) : base(configuration)
+        ISingletonMutex singletonMutex) : base(configuration,logger)
     {
         _loggerFactory = loggerFactory;
         _logger = _loggerFactory.CreateLogger<HealthCheckHttpTrigger>();

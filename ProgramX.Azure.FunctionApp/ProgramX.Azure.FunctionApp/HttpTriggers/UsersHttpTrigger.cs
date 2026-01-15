@@ -35,7 +35,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         IStorageClient? storageClient,
         IConfiguration configuration,
         IEmailSender emailSender,
-        IUserRepository userRepository) : base(configuration)
+        IUserRepository userRepository) : base(configuration, logger)
     {
         _logger = logger;
         _storageClient = storageClient;
@@ -474,7 +474,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user")] HttpRequestData httpRequestData
     )
     {
-        return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
+        return await RequiresAuthentication(httpRequestData, ["admin"],  async (_, _) =>
         {
             var createUserRequest =
                 await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateUserRequest>(httpRequestData);
