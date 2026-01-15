@@ -37,6 +37,8 @@ namespace ProgramX.Azure.FunctionApp.Helpers
         public string IssueTokenForUser(Credentials credentials, IEnumerable<string> roles, string? jwtKey = null)
         {
             if (string.IsNullOrWhiteSpace(jwtKey)) jwtKey = _configuration["JwtKey"];
+            if (string.IsNullOrWhiteSpace(jwtKey)) throw new InvalidOperationException("JwtKey not found in configuration.");
+            
             // Instead of returning a string, we'll return the JWT with a set of claims about the user
             Dictionary<string, object> claims = new Dictionary<string, object>
             {
