@@ -31,7 +31,7 @@ public class AuthTokenHandler : DelegatingHandler
         var response = await base.SendAsync(request, cancellationToken);
 
         // 2. If unauthorized, try to refresh
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
         {
             if (await RefreshTokensAsync())
             {
