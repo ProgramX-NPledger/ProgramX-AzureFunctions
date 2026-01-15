@@ -31,7 +31,7 @@ public class ResetHttpTrigger : AuthorisedHttpTriggerBase
 
     public ResetHttpTrigger(ILogger<UsersHttpTrigger> logger,
         IConfiguration configuration,
-        IResetApplication resetApplication) : base(configuration)
+        IResetApplication resetApplication) : base(configuration,logger)
     {
         _logger = logger;
         _resetApplication = resetApplication;

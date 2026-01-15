@@ -22,7 +22,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
  
     public RolesHttpTrigger(ILogger<RolesHttpTrigger> logger,
         IConfiguration configuration,
-        IUserRepository userRepository) : base(configuration)
+        IUserRepository userRepository) : base(configuration,logger)
     {
         _logger = logger;
         _userRepository = userRepository;
