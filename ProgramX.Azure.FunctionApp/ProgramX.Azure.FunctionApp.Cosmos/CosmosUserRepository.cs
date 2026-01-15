@@ -581,7 +581,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     {
         using (logger.BeginScope("UpdateUserPasswordAsync {userName}", userName))
         {
-            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.UserPasswordsPartitionKey);
+            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.UserPasswords);
 
             var userPassword = await GetUserPasswordByUserNameAsync(userName);
             ItemResponse<UserPassword> response;
@@ -600,7 +600,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                     passwordSalt = passwordSalt,
                 };
                 response = await container.CreateItemAsync(userPassword, new PartitionKey(userName));
-                if (response.StatusCode != HttpStatusCode.OK)
+                if (response.StatusCode != HttpStatusCode.Created)
                 {
                     logger.LogError(
                         "Failed to update UserPassword with id {id} with status code {statusCode} and response {response}", userPassword.id,
@@ -644,13 +644,94 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             IResult<UserPassword> result = await cosmosReader.GetItemsAsync(queryDefinition);
 
             logger.LogDebug("Result: {result}", result);
-            if (!result.Items.Any()) return null;            
+            if (!result.Items.Any())
+            {
+                // TODO: Maybe needs migrating frm users container
+                return null;
+            }
+                            
             
             result.IsRequiredToBeOrderedByClient = false;
             return result.Items.SingleOrDefault();
         }
     }
 
+
+    public async Task ResetApplicationAsync()
+    {
+        var adminUserName = "admin";
+        
+        using (logger.BeginScope("ResetApplicationAsync"))
+        {
+            // admin user must exist
+            var adminUser = await GetUserByUserNameAsync(adminUserName);
+            if (adminUser == null)
+            {
+                logger.LogDebug("Admin user does not exist. Creating admin user.");
+                var user = CreateAdminUserRolesAndApplication(adminUserName, "FirstName", "LastName", "Email");
+                await CreateUserAsync(user);
+            }
+            else
+            {
+                logger.LogDebug("Admin user exists. No action taken.");           
+            }
+            
+            var userPassword = await GetUserPasswordByUserNameAsync(adminUserName);
+            if (userPassword == null)
+            {
+                logger.LogDebug("Admin user password does not exist. Creating admin user password.");
+                await UpdateUserPasswordAsync(adminUserName, "g1llsmate");
+            }
+            else
+            {
+                logger.LogDebug("Admin user password exists. No action taken.");           
+            }
+            
+            logger.LogDebug("User {adminUser} is valid.", adminUser);
+        }    
+    }
+
+    private static User CreateAdminUserRolesAndApplication(string userName, string firstName, string lastName, string emailAddress)
+    {
+        return new User()
+        {
+            roles = new[]
+            {
+                new Role()
+                {
+                    name = "admin",
+                    createdAt = DateTime.UtcNow,
+                    applications = new List<Application>()
+                    {
+                        new Application()
+                        {
+                            name = "Administration",
+                            metaDataDotNetAssembly = "ProgramX.Azure.FunctionApp",
+                            metaDataDotNetType =
+                                "ProgramX.Azure.FunctionApp.ApplicationDefinitions.AdministrationApplication",
+                            schemaVersionNumber = 2,
+                            isDefaultApplicationOnLogin = true,
+                            ordinal = 1,
+                            createdAt = DateTime.UtcNow,
+                        }
+
+                    },
+                    description = "Used to manage users, roles and central settings.",
+                    updatedAt = DateTime.UtcNow,
+                    schemaVersionNumber = 1
+                }
+            },
+            userName = userName,
+            id = Guid.NewGuid().ToString(),
+            createdAt = DateTime.UtcNow,
+            updatedAt = DateTime.UtcNow,
+            schemaVersionNumber = 6,
+            emailAddress = emailAddress,
+            firstName = firstName,
+            lastName = lastName
+        };
+    }
+    
     private QueryDefinition BuildQueryDefinitionForApplications(GetApplicationsCriteria criteria)
     {
         var sb = new StringBuilder("SELECT a.name, a.metaDataDotNetAssembly, a.metaDataDotNetType, a.type, a.schemaVersionNumber, a.isDefaultApplicationOnLogin, a.ordinal, a.createdAt,a.updatedAt FROM c JOIN r IN c.roles JOIN a IN r.applications WHERE 1=1");
