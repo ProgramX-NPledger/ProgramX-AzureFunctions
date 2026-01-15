@@ -15,8 +15,15 @@ public static class ApplicationFactory
     /// <exception cref="InvalidOperationException">Thrown if the meta-data cannot be instantiated.</exception>
     public static IApplication GetApplicationForApplicationName(string dotNetAssemblyName, string dotNetTypeName)
     {
-        var assembly = Assembly.Load(dotNetAssemblyName);
-        if (assembly==null) throw new InvalidOperationException($"Could not load assembly {dotNetAssemblyName}");
+        Assembly assembly;
+        try
+        {
+            assembly = Assembly.Load(dotNetAssemblyName);
+        }
+        catch (Exception e)
+        {
+            throw new InvalidOperationException($"Could not load assembly {dotNetAssemblyName}",e);
+        }
 
         var type = assembly.GetType(dotNetTypeName);
         if (type==null) throw new InvalidOperationException($"Could not find type {dotNetTypeName} in assembly {dotNetAssemblyName}");
