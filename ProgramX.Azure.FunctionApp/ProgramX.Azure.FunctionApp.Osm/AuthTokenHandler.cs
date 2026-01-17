@@ -21,14 +21,11 @@ public class AuthTokenHandler : DelegatingHandler
     private string? _bearerToken = null;
     private string? _refreshToken = null;
 
-    public AuthTokenHandler(IConfiguration configuration, IIntegrationRepository integrationRepository, ILogger<AuthTokenHandler> logger)
+    public AuthTokenHandler(IServiceProvider serviceProvider)
     {
-        _configuration = configuration;
-        _integrationRepository = integrationRepository;
-        _logger = logger;
-
-        // the BearerToken may be immediately invalid, but this will be handled
-        // by using the RefreshToken to get a new one
+        _logger = serviceProvider.GetService(typeof(ILogger<AuthTokenHandler>)) as ILogger<AuthTokenHandler> ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _integrationRepository = serviceProvider.GetService(typeof(IIntegrationRepository)) as IIntegrationRepository ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _configuration = serviceProvider.GetService(typeof(IConfiguration)) as IConfiguration ?? throw new ArgumentNullException(nameof(serviceProvider));
     }
 
 
