@@ -15,4 +15,4 @@ public interface IOsmClient
     Task<IEnumerable<Member>> GetMembers(GetMembersCriteria criteria);
     Task<IEnumerable<object>> GetFlexiRecords();
       
-}
+} 
