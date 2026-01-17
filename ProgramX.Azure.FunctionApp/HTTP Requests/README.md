@@ -43,7 +43,22 @@ The following parameters may be used:
 | `termId`    | Yes        | The identifier of the term to return members for.                                                                 |
 | `sectionId` | No         | The identifier of the section to return members for. If not specified, all members for the term will be returned. |
 
+### Getting Meetings
 
+Terms are retrieved using the `GET  {{host}}/api/v1/scouts/osm/meetings` endpoint. A meeting represents a repeatable meeting that is not exceptional, like an Event.
+
+The following parameters may be used:
+
+| Parameter   | Required?  | Description                                                                                                                                                                 |
+|-------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `termId`    | Yes        | The identifier of the term to return members for.                                                                                                                           |
+| `sectionId` | No         | The identifier of the section to return members for. If not specified, all members for the term will be returned.                                                           |
+| `hasOutstandingRequiredParents` | No         | Set to `true` to only return meetings that have outstanding required parents. Set to `false` to return all meetings that do not have outstanding required parents.          |
+| `hasPrimaryLeader` | No         | Set to `true` to only return meetings that have a primary leader. Set to `false` to return all meetings that do not have a primary leader.                                   |
+| `keywords` | No         | A comma separated list of keywords to filter meetings by. Filtering is performed on the Title of the meeting. |
+| `onOrAfter` | No         | Return meetings that start on or after the specified date. |
+| `onOrBefore` | No         | Return meetings that start on or before the specified date. |
+| `sortBy` | No         | The property to sort by. Set to `Natural` or `MeetingDate`. |
 
 ## Reset
 
