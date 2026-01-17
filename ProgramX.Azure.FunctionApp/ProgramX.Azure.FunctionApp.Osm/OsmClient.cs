@@ -66,9 +66,10 @@ public class OsmClient : IOsmClient
        // https://www.onlinescoutmanager.co.uk/ext/programme/?action=getProgrammeSummary&sectionid=54338&termid=849238&verbose=1
        
         var uriBilder = new UriBuilder("https://www.onlinescoutmanager.co.uk/ext/programme/");
-        uriBilder.Query = $"action=getProgrammeSummary&termid={criteria.TermId}"; // &sectionid={criteria.SectionId}
+        uriBilder.Query = $"action=getProgrammeSummary&verbose=1&termid={criteria.TermId}"; // verbose=1 required to return primary_leader and badges
         uriBilder.Query += $"&sectionid={criteria.SectionId ?? SectionId}";
         
+        var s = await _httpClient.GetStringAsync(uriBilder.Uri);
         var getMeetingsResponse = await _httpClient.GetFromJsonAsync<GetProgrammeSummaryResponse>(uriBilder.Uri);
 
         var meetings = TransformOsmProgrammeSummaryResponseItemsToMeetings(getMeetingsResponse.Items).ToList();
