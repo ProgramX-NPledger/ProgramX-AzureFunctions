@@ -10,8 +10,9 @@
 # Use the returned tokens
 # Make sure to use fa-programx.azurewebsites.net in the returned URL to target the Azure Functions endpoint
 # DO NOT ENCODE THE URL IN redirect_uri AND ENSURE THE SCHEME IS CORRECT
-# The URI to navigate to will look something like:
+# The URI to navigate to will look something like (ie. just need to replace the redirect_uri parameter):
 # https://www.onlinescoutmanager.co.uk/oauth/authorize?response_type=code&client_id=xxxx&redirect_uri=https://fa-programx.azurewebsites.net/api/v1/scouts/osm/completekeyexchange&scope=section%3aattendance%3aread+section%3abadge%3aread+section%3aevent%3aread+section%3afinance%3aread+section%3aflexirecord%3awrite+section%3amember%3aread+section%3aprogramme%3aread
+
 GET  {{host}}/api/v1/scouts/osm/initiatekeyexchange
 
 ###
@@ -46,3 +47,9 @@ Authorization: Bearer <token>
 # @name Get Terms
 GET {{host}}/api/v1/scouts/osm/terms
 Authorization: Bearer {{token}}
+
+###
+# @name Get Members
+GET {{host}}/api/v1/scouts/osm/members?termId=888671
+Authorization: Bearer {{token}}
+

@@ -645,7 +645,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             CosmosReader<UserPassword> cosmosReader = new CosmosReader<UserPassword>(cosmosClient,
                 DatabaseNames.Core,
                 ContainerNames.UserPasswords,
-                ContainerNames.UserPasswordsPartitionKey);
+                ContainerNames.UserPasswordPartitionKey);
             
             IResult<UserPassword> result = await cosmosReader.GetItemsAsync(queryDefinition);
 

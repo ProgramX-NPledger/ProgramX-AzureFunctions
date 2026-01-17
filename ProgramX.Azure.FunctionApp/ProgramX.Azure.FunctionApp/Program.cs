@@ -45,6 +45,11 @@ builder.Services
         var cosmosClient = serviceProvider.GetRequiredService<CosmosClient>();
         return new CosmosUserRepository(cosmosClient, serviceProvider.GetRequiredService<ILogger<CosmosUserRepository>>());;
     })
+    .AddSingleton<IIntegrationRepository, CosmosIntegrationRepository>(serviceProvider =>
+    {
+        var cosmosClient = serviceProvider.GetRequiredService<CosmosClient>();
+        return new CosmosIntegrationRepository(cosmosClient, serviceProvider.GetRequiredService<ILogger<CosmosIntegrationRepository>>());;
+    })
     .AddSingleton<ISingletonMutex,SingletonMutex>()
     .AddSingleton<IResetApplication,ResetApplication>()
     .AddTransient<IEmailSender, AzureCommunicationsServicesEmailSender>(serviceProvoder =>
