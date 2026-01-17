@@ -292,6 +292,51 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, terms);
         });
     }
+    
+    
+    [Function(nameof(GetMeetings))]
+    public async Task<HttpResponseData> GetMeetings(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/meetings")] HttpRequestData httpRequestData,
+        int termId,
+        int? sectionId,
+        bool? hasOutstandingRequiredParents,
+        bool? hasPrimaryLeader,
+        string? keywords,
+        string? onOrAfter,
+        string? onOrBefore,
+        string? sortBy)
+    { 
+        return await RequiresAuthentication(httpRequestData, ["admin","reader"], async (userName, _) =>
+        {
+            var criteria = new GetMeetingsCriteria()
+            {
+                TermId = termId,
+                SectionId = sectionId,
+                HasOutstandingRequiredParents = hasOutstandingRequiredParents,
+                HasPrimaryLeader = hasPrimaryLeader
+            };
+            if (!string.IsNullOrWhiteSpace(keywords)) criteria.Keywords = keywords.Split(',').Select(q=>q.Trim()).ToList();
+            if (!string.IsNullOrWhiteSpace(onOrAfter))
+            {
+                DateOnly parsedDateOnly;
+                if (DateOnly.TryParse(onOrAfter,out parsedDateOnly)) criteria.OccursOnorAfter = parsedDateOnly;
+            }
+            if (!string.IsNullOrWhiteSpace(onOrBefore))
+            {
+                DateOnly parsedDateOnly;
+                if (DateOnly.TryParse(onOrBefore,out parsedDateOnly)) criteria.OccursOnOrBefore = parsedDateOnly;
+            }
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                GetMeetingsSortBy getMeetingsSortBy;
+                if (Enum.TryParse(sortBy,true,out getMeetingsSortBy)) criteria.SortBy = getMeetingsSortBy;
+            }
+            
+            var terms = await _osmClient.GetMeetings(criteria);
+            
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, terms);
+        });
+    }
 
      
      [Function(nameof(GetTerms))]

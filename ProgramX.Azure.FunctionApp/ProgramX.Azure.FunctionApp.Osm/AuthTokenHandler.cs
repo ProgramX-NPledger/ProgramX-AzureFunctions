@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Osm.Model;
+using ProgramX.Azure.FunctionApp.Osm.Model.Osm.Responses;
 
 namespace ProgramX.Azure.FunctionApp.Osm;
 

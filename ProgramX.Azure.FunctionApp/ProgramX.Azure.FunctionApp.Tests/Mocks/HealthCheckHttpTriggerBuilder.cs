@@ -46,6 +46,7 @@ public class HealthCheckHttpTriggerBuilder
 
         return new HealthCheckHttpTrigger(
             _mockedLoggerFactory.Object,
+            _mockedLoggerFactory.Object.CreateLogger<HealthCheckHttpTrigger>(),
             _configuration,
             _mockedSingletonMutex.Object);
     }

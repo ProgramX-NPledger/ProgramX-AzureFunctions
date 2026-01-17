@@ -6,6 +6,7 @@ using ProgramX.Azure.FunctionApp.Model.Osm;
 using ProgramX.Azure.FunctionApp.Osm.Helpers;
 using ProgramX.Azure.FunctionApp.Osm.Model;
 using ProgramX.Azure.FunctionApp.Osm.Model.Criteria;
+using ProgramX.Azure.FunctionApp.Osm.Model.Osm.Responses;
 
 namespace ProgramX.Azure.FunctionApp.Osm;
 
@@ -60,9 +61,84 @@ public class OsmClient : IOsmClient
         return terms;
     }
 
-    public async Task<IEnumerable<object>> GetMeetings()
+    public async Task<IEnumerable<object>> GetMeetings(GetMeetingsCriteria criteria)
     {
-        throw new NotImplementedException();
+       // https://www.onlinescoutmanager.co.uk/ext/programme/?action=getProgrammeSummary&sectionid=54338&termid=849238&verbose=1
+       
+        var uriBilder = new UriBuilder("https://www.onlinescoutmanager.co.uk/ext/programme/");
+        uriBilder.Query = $"action=getProgrammeSummary&termid={criteria.TermId}"; // &sectionid={criteria.SectionId}
+        uriBilder.Query += $"&sectionid={criteria.SectionId ?? SectionId}";
+        
+        var getMeetingsResponse = await _httpClient.GetFromJsonAsync<GetProgrammeSummaryResponse>(uriBilder.Uri);
+
+        var meetings = TransformOsmProgrammeSummaryResponseItemsToMeetings(getMeetingsResponse.Items).ToList();
+        var queryable = BuildQueryableForMeetingsCriteria(criteria,meetings);
+        meetings = queryable.ToList();
+
+        switch (criteria.SortBy)
+        {
+            case GetMeetingsSortBy.MeetingDate:
+                meetings = meetings.OrderBy(q => q.Date).ToList();
+                break;
+        }
+
+        return meetings;
+    }
+
+    private IEnumerable<Meeting> TransformOsmProgrammeSummaryResponseItemsToMeetings(IEnumerable<Evening> osmEvenings)
+    {
+        return new List<Meeting>(
+            osmEvenings.Select(q => new Meeting()
+            {
+                ParentsRequiredCount = q.ParentsRequiredCount,
+                PrimaryLeader = TransformOsmPrimaryLeaderToMember(q.PrimaryLeader),
+                Badges = (q.Badges ?? Array.Empty<Badge>()).Select(b => TransformOsmBadgeToBadge(b)),
+                Date = q.MeetingDate,
+                Title = q.Title,
+                OsmEveningId = q.EveningId,
+                ParentsOutstandingCount = q.ParentsRequiredCount - q.ParentsAttendingCount,
+                UnavailableLeadersCount = q.UnavailableLeaders
+            }));
+    }
+
+    private ConciseBadge TransformOsmBadgeToBadge(Badge badge)
+    {
+        return new ConciseBadge()
+        {
+            Name = badge.Name,
+            OsmImagePath = badge.ImagePath
+        };
+    }
+
+    private ConciseMember? TransformOsmPrimaryLeaderToMember(Leader? leader)
+    {
+        if (leader == null) return null;
+        return new ConciseMember()
+        {
+            FirstName = leader.FirstName,
+            LastName = leader.LastName,
+            OsmPhotoGuid = leader.PhotoId,
+            OsmScoutId = leader.MemberId,
+        };
+    }
+
+    private IQueryable<Meeting> BuildQueryableForMeetingsCriteria(GetMeetingsCriteria criteria, IList<Meeting> meetings)
+    {
+        var queryable = meetings.AsQueryable();
+        if (criteria.HasOutstandingRequiredParents.HasValue)
+        {
+            if (criteria.HasOutstandingRequiredParents.Value) queryable = queryable.Where(q => q.ParentsOutstandingCount>0);
+            else queryable = queryable.Where(q => q.ParentsOutstandingCount==0);
+        }
+        if (criteria.HasPrimaryLeader.HasValue)
+        {
+            if (criteria.HasPrimaryLeader.Value) queryable = queryable.Where(q => q.PrimaryLeader!=null);
+            else queryable = queryable.Where(q => q.PrimaryLeader==null);   
+        }
+        if (criteria.Keywords!=null && criteria.Keywords.Any()) queryable = queryable.Where(q => criteria.Keywords.Any(k => q.Title.ToLower().Contains(k.ToLower())));
+        if (criteria.OccursOnorAfter.HasValue) queryable = queryable.Where(q => q.Date>=criteria.OccursOnorAfter.Value);
+        if (criteria.OccursOnOrBefore.HasValue) queryable = queryable.Where(q => q.Date<=criteria.OccursOnOrBefore.Value);
+        return queryable;
     }
 
     public async Task<IEnumerable<Member>> GetMembers(GetMembersCriteria criteria)

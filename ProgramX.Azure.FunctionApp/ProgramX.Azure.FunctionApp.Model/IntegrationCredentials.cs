@@ -5,6 +5,8 @@ namespace ProgramX.Azure.FunctionApp.Model;
 /// </summary>
 public class IntegrationCredentials
 {
+    public string id { get; set; }
+    
     /// <summary>
     /// The name of the service to which the credentials are associated.
     /// </summary>

@@ -6,8 +6,8 @@ POST {{host}} /api/v1/login
 #Content-Type: application/json
 
 {
-    "userName": "nathan",
-    "password": "gillsmate"
+    "userName": "admin",
+    "password": "g1llsmate"
 }
 
 > {%

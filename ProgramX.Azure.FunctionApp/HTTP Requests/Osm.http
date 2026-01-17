@@ -53,3 +53,8 @@ Authorization: Bearer {{token}}
 GET {{host}}/api/v1/scouts/osm/members?termId=888671
 Authorization: Bearer {{token}}
 
+###
+# @name Get Meetings
+GET {{host}}/api/v1/scouts/osm/meetings?termId=849238&onOrBefore=01-02-2026
+Authorization: Bearer {{token}}
+

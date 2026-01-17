@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace ProgramX.Azure.FunctionApp.Osm.Model;
+namespace ProgramX.Azure.FunctionApp.Osm.Model.Osm.Responses;
 
 public class GetTermsResponseTerm
 {
