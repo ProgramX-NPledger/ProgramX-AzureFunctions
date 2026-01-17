@@ -275,82 +275,24 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
     //
     //
     //
-     //
-     // [Function(nameof(GetMembers))]
-     // public async Task<HttpResponseData> GetMembers(
-     //     [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/meetings")] HttpRequestData httpRequestData)
-     // {
-     //     return await RequiresAuthentication(httpRequestData, "pii-reader", async (userName, _) =>
-     //     {
-     //         var bearerToken = Configuration["Osm:BearerToken"];
-     //         if (string.IsNullOrWhiteSpace(bearerToken))
-     //         {
-     //             // need to get a new BearerToken
-     //             
-     //         }
-     //         
-     //         // sort=dob&sectionid=54338&termid=849238&section=scouts
-     //             
-     //         // TODO: Go to OSM and get all meetings between time period
-     //         //
-     //         // if (id == null)
-     //         // {
-     //         //     var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
-     //         //     var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
-     //         //     var withRoles = httpRequestData.Query["withRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["withRoles"]!).Split(new [] {','});
-     //         //     var hasAccessToApplications = httpRequestData.Query["hasAccessToApplications"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["hasAccessToApplications"]!).Split(new [] {','});
-     //         //
-     //         //     var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
-     //         //     var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ??
-     //         //                  0; 
-     //         //     var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
-     //         //     
-     //         //     var users = await _userRepository.GetUsersAsync(new GetUsersCriteria()
-     //         //     {
-     //         //         HasAccessToApplications = hasAccessToApplications,
-     //         //         WithRoles = withRoles,
-     //         //         ContainingText = containsText
-     //         //     }, new PagedCriteria()
-     //         //     {
-     //         //         ItemsPerPage = itemsPerPage,
-     //         //         Offset = offset
-     //         //     });
-     //         //     
-     //         //     var baseUrl =
-     //         //         $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
-     //         //     
-     //         //     var pageUrls = CalculatePageUrls((IPagedResult<User>)users,
-     //         //         baseUrl,
-     //         //         containsText,
-     //         //         withRoles,
-     //         //         hasAccessToApplications,
-     //         //         continuationToken, 
-     //         //         offset,
-     //         //         itemsPerPage);
-     //         //     
-     //         //     return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<User>((IPagedResult<User>)users,pageUrls));
-     //         // }
-     //         // else
-     //         // {
-     //         //     var user = await _userRepository.GetUserByIdAsync(id);
-     //         //     if (user==null)
-     //         //     {
-     //         //         return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-     //         //     }
-     //         //     
-     //         //     List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
-     //         //     
-     //         //     return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
-     //         //     {
-     //         //         user,
-     //         //         applications,
-     //         //         profilePhotoBase64 = string.Empty
-     //         //     });
-     //         // }
-     //     });
-     // }
-     //
-     
+    
+    [Function(nameof(GetMembers))]
+    public async Task<HttpResponseData> GetMembers(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/members")] HttpRequestData httpRequestData,
+        int termId,
+        int? sectionId)
+    { 
+        return await RequiresAuthentication(httpRequestData, ["admin","reader"], async (userName, _) =>
+        {
+            var terms = await _osmClient.GetMembers(new GetMembersCriteria()
+            {
+                TermId = termId,
+                SectionId = sectionId
+            });
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, terms);
+        });
+    }
+
      
      [Function(nameof(GetTerms))]
      public async Task<HttpResponseData> GetTerms(

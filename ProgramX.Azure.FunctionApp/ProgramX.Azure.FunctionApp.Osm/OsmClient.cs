@@ -70,7 +70,10 @@ public class OsmClient : IOsmClient
         // GET https://www.onlinescoutmanager.co.uk/ext/members/contact/?action=getListOfMembers&sort=dob&sectionid=54338&termid=849238&section=scouts
         
         var uriBilder = new UriBuilder("https://www.onlinescoutmanager.co.uk/ext/members/contact/");
-        uriBilder.Query = $"action=getListOfMembers&sort={Translation.TranslateSortBy(criteria.SortBy)}&sectionid={SectionId}&termid={criteria.TermId}&section={criteria.SectionName}";
+        uriBilder.Query = $"action=getListOfMembers&sort={Translation.TranslateSortBy(criteria.SortBy)}&termid={criteria.TermId}&section={criteria.SectionName}";
+        uriBilder.Query += $"&sectionid={criteria.SectionId ?? SectionId}";
+        
+        var s = await _httpClient.GetStringAsync(uriBilder.Uri);
         var getMembersResponse = await _httpClient.GetFromJsonAsync<GetMembersResponse>(uriBilder.Uri);
         return getMembersResponse.Items.Select(q => new Member()
         {
@@ -78,8 +81,8 @@ public class OsmClient : IOsmClient
             FirstName = q.FirstName,
             LastName = q.LastName,
             FullName = q.FullName,
-            IsActive = q.Active,
-            OsmScoutId = q.ScoutId,
+            IsActive = q.IsActive,
+            OsmScoutId = q.OsmScoutId,
             PatrolRoleLevel = q.PatrolRoleLevelLabel,
         });
     }
