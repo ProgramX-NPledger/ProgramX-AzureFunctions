@@ -11,4 +11,7 @@ public class GetTermsCriteria
     /// </summary>
     public int? SectionId { get; set; }
 
+    public DateOnly? StartsOnOrAfter { get; set; }
+    public DateOnly? EndsOnOrBefore { get; set; }
+
 }

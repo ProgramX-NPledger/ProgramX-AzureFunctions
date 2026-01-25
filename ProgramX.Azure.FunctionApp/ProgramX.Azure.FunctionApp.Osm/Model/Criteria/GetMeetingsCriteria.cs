@@ -6,7 +6,7 @@ public class GetMeetingsCriteria
     public IEnumerable<string> Keywords { get; set; }
     
     public bool? HasOutstandingRequiredParents { get; set; }
-    public DateOnly? OccursOnorAfter { get; set; }
+    public DateOnly? OccursOnOrAfter { get; set; }
     public DateOnly? OccursOnOrBefore { get; set; }
     public bool? HasPrimaryLeader { get; set; }
     public int? SectionId { get; set; }

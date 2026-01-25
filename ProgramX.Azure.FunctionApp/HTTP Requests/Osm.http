@@ -15,6 +15,8 @@
 
 GET  {{host}}/api/v1/scouts/osm/initiatekeyexchange
 
+https://www.onlinescoutmanager.co.uk/oauth/authorize?response_type=code&client_id=o37NLKG7LpIqIUaAVLhjobIedXwB5j7W&redirect_uri=https://fa-programx.azurewebsites.net/api/v1/scouts/osm/completekeyexchange&scope=section%3aattendance%3aread+section%3abadge%3aread+section%3aevent%3aread+section%3afinance%3aread+section%3aflexirecord%3awrite+section%3amember%3aread+section%3aprogramme%3aread
+
 ###
 # Get all members
 GET https://www.onlinescoutmanager.co.uk/ext/members/contact/?action=getListOfMembers&sort=dob&sectionid=54338&termid=849238&section=scouts
@@ -55,6 +57,15 @@ Authorization: Bearer {{token}}
 
 ###
 # @name Get Meetings
-GET {{host}}/api/v1/scouts/osm/meetings?termId=849238&onOrBefore=01-02-2026
+GET {{host}}/api/v1/scouts/osm/meetings?termId=849238
 Authorization: Bearer {{token}}
 
+###
+# @name Get Attendance
+GET {{host}}/api/v1/scouts/osm/attendance
+Authorization: Bearer {{token}}
+
+###
+# @name Get Attendance over time
+GET {{host}}/api/v1/scouts/osm/report/attendance-over-term?onOrAfter=01-01-2000&onOrBefore=01-01-2030
+Authorization: Bearer {{token}}

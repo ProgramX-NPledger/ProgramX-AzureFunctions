@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -10,6 +11,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
+using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
@@ -19,6 +21,8 @@ using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using ProgramX.Azure.FunctionApp.Osm;
+using ProgramX.Azure.FunctionApp.Osm.Helpers;
+using ProgramX.Azure.FunctionApp.Osm.Model;
 using ProgramX.Azure.FunctionApp.Osm.Model.Criteria;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -207,75 +211,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
     //     });
     //     
     // }   
-    //
-    // [Function(nameof(GetMeetings))]
-    // public async Task<HttpResponseData> GetMeetings(
-    //     [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/meetings")] HttpRequestData httpRequestData)
-    // {
-    //     return await RequiresAuthentication(httpRequestData, null, async (userName, _) =>
-    //     {
-    //         // TODO: Go to OSM and get all meetings between time period
-    //         //
-    //         // if (id == null)
-    //         // {
-    //         //     var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
-    //         //     var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
-    //         //     var withRoles = httpRequestData.Query["withRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["withRoles"]!).Split(new [] {','});
-    //         //     var hasAccessToApplications = httpRequestData.Query["hasAccessToApplications"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["hasAccessToApplications"]!).Split(new [] {','});
-    //         //
-    //         //     var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
-    //         //     var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ??
-    //         //                  0;
-    //         //     var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
-    //         //     
-    //         //     var users = await _userRepository.GetUsersAsync(new GetUsersCriteria()
-    //         //     {
-    //         //         HasAccessToApplications = hasAccessToApplications,
-    //         //         WithRoles = withRoles,
-    //         //         ContainingText = containsText
-    //         //     }, new PagedCriteria()
-    //         //     {
-    //         //         ItemsPerPage = itemsPerPage,
-    //         //         Offset = offset
-    //         //     });
-    //         //     
-    //         //     var baseUrl =
-    //         //         $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
-    //         //     
-    //         //     var pageUrls = CalculatePageUrls((IPagedResult<User>)users,
-    //         //         baseUrl,
-    //         //         containsText,
-    //         //         withRoles,
-    //         //         hasAccessToApplications,
-    //         //         continuationToken, 
-    //         //         offset,
-    //         //         itemsPerPage);
-    //         //     
-    //         //     return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<User>((IPagedResult<User>)users,pageUrls));
-    //         // }
-    //         // else
-    //         // {
-    //         //     var user = await _userRepository.GetUserByIdAsync(id);
-    //         //     if (user==null)
-    //         //     {
-    //         //         return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-    //         //     }
-    //         //     
-    //         //     List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
-    //         //     
-    //         //     return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
-    //         //     {
-    //         //         user,
-    //         //         applications,
-    //         //         profilePhotoBase64 = string.Empty
-    //         //     });
-    //         // }
-    //     });
-    // }
-    //
-    //
-    //
-    
+  
     [Function(nameof(GetMembers))]
     public async Task<HttpResponseData> GetMembers(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/members")] HttpRequestData httpRequestData,
@@ -284,7 +220,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
     { 
         return await RequiresAuthentication(httpRequestData, ["admin","reader"], async (userName, _) =>
         {
-            var terms = await _osmClient.GetMembers(new GetMembersCriteria()
+            var terms = await _osmClient.GetMembersAsync(new GetMembersCriteria()
             {
                 TermId = termId,
                 SectionId = sectionId
@@ -319,7 +255,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
             if (!string.IsNullOrWhiteSpace(onOrAfter))
             {
                 DateOnly parsedDateOnly;
-                if (DateOnly.TryParse(onOrAfter,out parsedDateOnly)) criteria.OccursOnorAfter = parsedDateOnly;
+                if (DateOnly.TryParse(onOrAfter,out parsedDateOnly)) criteria.OccursOnOrAfter = parsedDateOnly;
             }
             if (!string.IsNullOrWhiteSpace(onOrBefore))
             {
@@ -332,7 +268,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
                 if (Enum.TryParse(sortBy,true,out getMeetingsSortBy)) criteria.SortBy = getMeetingsSortBy;
             }
             
-            var terms = await _osmClient.GetMeetings(criteria);
+            var terms = await _osmClient.GetMeetingsAsync(criteria);
             
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, terms);
         });
@@ -346,12 +282,142 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
      { 
          return await RequiresAuthentication(httpRequestData, ["admin","reader"], async (userName, _) =>
          {
-             var terms = await _osmClient.GetTerms(new GetTermsCriteria()
+             var terms = await _osmClient.GetTermsAsync(new GetTermsCriteria()
              {
                  SectionId = sectionId
              });
              return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, terms);
          });
      }
+    
      
+     [Function(nameof(GetAttendance))]
+     public async Task<HttpResponseData> GetAttendance(
+         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/attendance")] HttpRequestData httpRequestData,
+         int? sectionId,
+         string? onOrAfter,
+         string? onOrBefore
+         )
+     { 
+         return await RequiresAuthentication(httpRequestData, ["admin","reader"], async (_, _) =>
+         {
+             // if term isn't provided, we need to do multiple calls to get all terms to get between dates
+             var attendances = GetAttendancesBetweenDatesAsync(onOrAfter, onOrBefore, sectionId);
+             
+             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, attendances);
+         });
+     }
+
+     private async Task<IEnumerable<Attendance>> GetAttendancesBetweenDatesAsync(string? onOrAfter, string? onOrBefore, int? sectionId, int? memberId = null)
+     {
+        var attendances = new List<Attendance>();
+
+        // get the Terms that include the period
+        var getForTermIds = new List<int>();
+
+        var dateRange = Translation.TranslateStringsToDateRange(onOrAfter,onOrBefore);
+        getForTermIds = (await GetTermIdsForPeriod(sectionId, dateRange.OnOrAfter, dateRange.OnOrBefore)).ToList();
+
+        foreach (var termId in getForTermIds)
+        {
+            var getAttendanceCriteria = new GetAttendanceCriteria()
+            {
+                SectionId = sectionId, 
+                TermId = termId,
+                MemberId = memberId
+            };
+             
+            if (!string.IsNullOrWhiteSpace(onOrAfter))
+            { 
+                DateOnly parsedDateOnly;
+                if (DateOnly.TryParse(onOrAfter,out parsedDateOnly)) getAttendanceCriteria.OnOrAfter = parsedDateOnly;
+            }
+         
+            if (!string.IsNullOrWhiteSpace(onOrBefore))
+            {
+                DateOnly parsedDateOnly;
+                if (DateOnly.TryParse(onOrBefore,out parsedDateOnly)) getAttendanceCriteria.OnOrBefore = parsedDateOnly;
+            }
+             
+            var attendanceForTerm = await _osmClient.GetAttendanceAsync(getAttendanceCriteria);
+            attendances.AddRange(attendanceForTerm);
+        }
+
+        return attendances;
+     }
+
+     private async Task<IEnumerable<int>> GetTermIdsForPeriod(int? sectionId, DateOnly? onOrAfter, DateOnly? onOrBefore)
+     {
+         List<int> getForTermIds;
+         // get all terms between dates
+         var getTermsCriteria = new GetTermsCriteria()
+         {
+             SectionId = sectionId,
+             StartsOnOrAfter = onOrAfter,
+             EndsOnOrBefore = onOrBefore
+         };
+         
+         var terms = await _osmClient.GetTermsAsync(getTermsCriteria);
+         getForTermIds = terms.Select(t => t.OsmTermId).ToList();
+         return getForTermIds;
+     }
+
+
+     [Function(nameof(GetAttendanceOverPeriodReport))]
+     public async Task<HttpResponseData> GetAttendanceOverPeriodReport(
+         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/report/attendance-over-term")] HttpRequestData httpRequestData,
+         string onOrAfter,
+         string onOrBefore,
+         int? sectionId,
+         int? memberId,
+         int intervalInDays = 7
+         )
+     { 
+         return await RequiresAuthentication(httpRequestData, ["admin","reader"], async (userName, _) =>
+         {
+             if (!DateOnly.TryParse(onOrAfter,out DateOnly parsedOnOrAfter)) 
+                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid onOrAfter date");
+             if (!DateOnly.TryParse(onOrBefore,out DateOnly parsedOnOrBefore)) 
+                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid onOrBefore date");
+
+             var attendance = await GetAttendancesBetweenDatesAsync(onOrAfter, onOrBefore, sectionId, memberId);
+             
+            var dates = new List<DateOnly>();
+            var datePtr = parsedOnOrAfter;
+            do
+            {
+                dates.Add(datePtr);
+                datePtr = datePtr.AddDays(intervalInDays);
+            } while (datePtr <= parsedOnOrBefore.AddDays(intervalInDays));
+            
+            // these will be implicitly sorted by Date
+
+            if (memberId.HasValue)
+            {
+                var memberAttendance = dates.ToDictionary(date=>date,date=>attendance.Count(q=>q.AttendanceOverTerm.ContainsKey(date) && q.IsActive));
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new 
+                {
+                    MemberAttendance = memberAttendance,
+                    // PercentageMemberAttendanceChange = ((memberAttendance.LastOrDefault(q=>q.Value>0).Value - memberAttendance.FirstOrDefault(q=>q.Value>0).Value) /
+                    //                                     memberAttendance.FirstOrDefault(q=>q.Value>0).Value) * 100,
+                });
+            }
+            else
+            {
+                var scouts = dates.ToDictionary(date=>date,date=>attendance.Count(q=>q.AttendanceOverTerm.ContainsKey(date) && q.IsActive && q.OsmPatrolId >= 1));
+                var leaders = dates.ToDictionary(date=>date,date=>attendance.Count(q=>q.AttendanceOverTerm.ContainsKey(date) && q.IsActive && q.OsmPatrolId < 0));
+            
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new 
+                {
+                    ScoutsAttendance = scouts,
+                    LeadersAttendance = leaders,
+                    // PercentageScoutsAttendanceChange = ((scouts.LastOrDefault(q=>q.Value>0).Value - scouts.FirstOrDefault(q=>q.Value>0).Value) /
+                    //                                     scouts.FirstOrDefault(q=>q.Value>0).Value) * 100,
+                    // PercentageLeadersAttendanceChange = ((leaders.LastOrDefault(q=>q.Value>0).Value - leaders.FirstOrDefault(q=>q.Value>0).Value) /
+                    //                                      leaders.FirstOrDefault(q=>q.Value>0).Value) * 100,
+                });
+            }
+         });
+     }
+
 }

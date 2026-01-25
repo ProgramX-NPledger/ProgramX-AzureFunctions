@@ -281,7 +281,7 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
     //     },isChangePasswordRequest);
     // }
     //
-    
+//     
 //     
 //     [Function(nameof(CreateScoresLedger))]
 //     public async Task<HttpResponseData> CreateScoresLedger(
@@ -367,6 +367,6 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
 //         });
 //      }
 //     
-//     
+    
     
 }
