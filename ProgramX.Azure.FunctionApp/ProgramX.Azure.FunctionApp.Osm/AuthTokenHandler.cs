@@ -40,6 +40,11 @@ public class AuthTokenHandler : DelegatingHandler
                 _bearerToken = _configuration["Osm:BearerToken"];
                 _refreshToken = _configuration["Osm:RefreshToken"];
             }
+            else
+            {
+                _bearerToken = integrationCredentials.bearerToken;
+                _refreshToken = integrationCredentials.refreshToken;
+            }
             
             // if the tokens are still not set, we have a problem
             if (string.IsNullOrEmpty(_bearerToken) || string.IsNullOrEmpty(_refreshToken))
