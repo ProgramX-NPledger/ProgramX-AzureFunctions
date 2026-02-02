@@ -13,5 +13,9 @@ public static class ContainerNames
         
     public const string HealthChecks = "healthChecks";
     public const string HealthCheckNamePartitionKey = "/id";
+    
+    public const string ScoutingActivities = "scoutingActivities";
+    public const string ScoutingActivityPartitionKey = "/id";
+    
 }
  

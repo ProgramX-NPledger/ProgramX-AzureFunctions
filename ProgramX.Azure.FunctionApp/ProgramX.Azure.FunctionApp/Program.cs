@@ -45,6 +45,11 @@ builder.Services
         var cosmosClient = serviceProvider.GetRequiredService<CosmosClient>();
         return new CosmosUserRepository(cosmosClient, serviceProvider.GetRequiredService<ILogger<CosmosUserRepository>>());;
     })
+    .AddSingleton<IScoutingRepository, CosmosScoutingRepository>(serviceProvider =>
+    {
+        var cosmosClient = serviceProvider.GetRequiredService<CosmosClient>();
+        return new CosmosScoutingRepository(cosmosClient, serviceProvider.GetRequiredService<ILogger<CosmosScoutingRepository>>());;
+    })    
     .AddSingleton<IIntegrationRepository, CosmosIntegrationRepository>(serviceProvider =>
     {
         var cosmosClient = serviceProvider.GetRequiredService<CosmosClient>();
