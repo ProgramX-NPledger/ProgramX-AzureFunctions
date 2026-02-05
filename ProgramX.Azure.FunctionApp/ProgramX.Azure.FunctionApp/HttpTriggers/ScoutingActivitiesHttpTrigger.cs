@@ -295,10 +295,10 @@ public class ScoutingActivitiesHttpTrigger : AuthorisedHttpTriggerBase
                 activityFormat = createActivityRequest.ActivityFormat,
                 activityLocation = createActivityRequest.ActivityLocation,
                 id = Guid.NewGuid().ToString(),
-                preparation = createActivityRequest.Preparation,
-                references = createActivityRequest.References,
+                preparationMarkdown = createActivityRequest.PreparationMarkdown,
+                referencesMarkdown = createActivityRequest.ReferencesMarkdown,
                 resources = createActivityRequest.Resources,
-                rules = createActivityRequest.Rules,
+                descriptionMarkdown = createActivityRequest.DescriptionMarkdown,
                 summary = createActivityRequest.Summary,
                 title = createActivityRequest.Title,
                 tags = createActivityRequest.Tags,
@@ -306,6 +306,10 @@ public class ScoutingActivitiesHttpTrigger : AuthorisedHttpTriggerBase
                 schemaVersionNumber = 1,
                 createdAt = DateTime.UtcNow,
                 updatedAt = DateTime.UtcNow,
+                sections = createActivityRequest.Sections,
+                activityType = createActivityRequest.ActivityType,
+                contributesTowardsOsmBadgeId = createActivityRequest.ContributesTowardsOsmBadgeId,
+                contributesTowardsOsmBadgeName = createActivityRequest.ContributesTowardsOsmBadgeName,
             };
             
             await _scoutingRepository.CreateScoutingActivityAsync(newActivity);
@@ -315,5 +319,90 @@ public class ScoutingActivitiesHttpTrigger : AuthorisedHttpTriggerBase
      }
     
     
+    
+    [Function(nameof(GetAllActivityFormats))]
+    public async Task<HttpResponseData> GetAllActivityFormats(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/activities/activity-formats")] HttpRequestData httpRequestData
+    )
+    {
+        return await RequiresAuthentication(httpRequestData, ["admin","scout-reader"],  async (_, _) =>
+        {
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new []
+            {
+                new { key = ActivityFormat.Individual, label = "Individual" },
+                new { key = ActivityFormat.Team, label = "Team" },
+                new { key = ActivityFormat.Pair, label = "Pair" }
+            }.OrderBy(q=>q.label));    
+        });
+     }
+    
+    
+    
+    [Function(nameof(GetAllActivityTypes))]
+    public async Task<HttpResponseData> GetAllActivityTypes(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/activities/activity-types")] HttpRequestData httpRequestData
+    )
+    {
+        return await RequiresAuthentication(httpRequestData, ["admin","scout-reader"],  async (_, _) =>
+        {
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new []
+            {
+                new { key = ActivityType.Activity, label = "Activity" },
+                new { key = ActivityType.Game, label = "Game" }
+            }.OrderBy(q=>q.label));    
+        });
+    }
+
+    [Function(nameof(GetAllActivityLocations))]
+    public async Task<HttpResponseData> GetAllActivityLocations(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/activities/activity-locations")] HttpRequestData httpRequestData
+    )
+    {
+        return await RequiresAuthentication(httpRequestData, ["admin","scout-reader"],  async (_, _) =>
+        {
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new []
+            {
+                new { key = ActivityLocation.Indoors, label = "Indoors" },
+                new { key = ActivityLocation.Outdoors, label = "Outdoors" }
+            }.OrderBy(q=>q.label));    
+        });
+    }
+    
+    
+    [Function(nameof(GetAllWinModes))]
+    public async Task<HttpResponseData> GetAllWinModes(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/activities/win-modes")] HttpRequestData httpRequestData
+    )
+    {
+        return await RequiresAuthentication(httpRequestData, ["admin","scout-reader"],  async (_, _) =>
+        {
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new []
+            {
+                new { key = WinMode.Success, label = "Success" },
+                new { key = WinMode.Time, label = "Time" },
+                new { key = WinMode.Attrition, label = "Attrition" }
+            }.OrderBy(q=>q.label));    
+        });
+    }
+    
+    
+    [Function(nameof(GetAllSections))]
+    public async Task<HttpResponseData> GetAllSections(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/activities/sections")] HttpRequestData httpRequestData
+    )
+    {
+        return await RequiresAuthentication(httpRequestData, ["admin","scout-reader"],  async (_, _) =>
+        {
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new []
+            {
+                new { key = Section.Beavers, label = "Beavers" },
+                new { key = Section.Squirrels, label = "Squirrels" },
+                new { key = Section.Cubs, label = "Cubs" },
+                new { key = Section.Scouts, label = "Scouts" },
+                new { key = Section.Explorers, label = "Explorers" },
+                new { key = Section.Network, label = "Network" },
+            }.OrderBy(q=>q.key));    
+        });
+    }
     
 }

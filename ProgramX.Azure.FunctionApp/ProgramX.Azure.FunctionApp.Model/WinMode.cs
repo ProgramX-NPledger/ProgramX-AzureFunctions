@@ -4,4 +4,5 @@ public enum WinMode
 {
     Time,
     Success,
+    Attrition
 }

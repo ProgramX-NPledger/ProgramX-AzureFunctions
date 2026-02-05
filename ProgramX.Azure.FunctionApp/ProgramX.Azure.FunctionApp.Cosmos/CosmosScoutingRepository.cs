@@ -19,8 +19,10 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
     {
         using (logger.BeginScope("CreateScoutingActivityAsync {scoutingActivity}", scoutingActivity))
         {
-            var container = cosmosClient.GetContainer(DatabaseNames.Scouting, ContainerNames.ScoutingActivities);
-            var response = await container.CreateItemAsync(scoutingActivity, new PartitionKey(scoutingActivity.id));
+            var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync(DatabaseNames.Scouting);
+            var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(ContainerNames.ScoutingActivities, ContainerNames.ScoutingActivityPartitionKey);
+
+            var response = await containerResponse.Container.CreateItemAsync(scoutingActivity, new PartitionKey(scoutingActivity.id));
 
             if (response.StatusCode != HttpStatusCode.Created)
             {

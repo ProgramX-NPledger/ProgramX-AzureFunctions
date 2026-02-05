@@ -1,4 +1,28 @@
 
+###
+# @name Get all Activity Formats
+GET {{host}}/api/v1/scouts/activities/activity-formats
+Authorization: Bearer {{token}}
+
+###
+# @name Get all Activity Types
+GET {{host}}/api/v1/scouts/activities/activity-types
+Authorization: Bearer {{token}}
+
+###
+# @name Get all Activity Locations
+GET {{host}}/api/v1/scouts/activities/activity-locations
+Authorization: Bearer {{token}}
+
+###
+# @name Get all Win Modes
+GET {{host}}/api/v1/scouts/activities/win-modes
+Authorization: Bearer {{token}}
+
+###
+# @name Get all Sections
+GET {{host}}/api/v1/scouts/activities/sections
+Authorization: Bearer {{token}}
 
 ### 
 # @name Create Scouting Activity
