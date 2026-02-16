@@ -405,4 +405,234 @@ public class ScoutingActivitiesHttpTrigger : AuthorisedHttpTriggerBase
         });
     }
     
+    
+    [Function(nameof(GetScoutingActivities))]
+    public async Task<HttpResponseData> GetScoutingActivities(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/activities/{id?}")] HttpRequestData httpRequestData,
+        string? id)
+    {
+        return await RequiresAuthentication(httpRequestData, null, async (userName, _) =>
+        {
+            if (id == null)
+            {
+                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
+                var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
+                var anyOfActivityLocations = httpRequestData.Query["activityLocations"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["activityLocations"]!).Split([',']).Select(q=>ToEnum<ActivityLocation>(q));
+                var anyOfActivityFormats = httpRequestData.Query["activityFormats"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["activityFormats"]!).Split([',']).Select(q=>ToEnum<ActivityFormat>(q));
+                var anyOfActivityTypes = httpRequestData.Query["activityTypes"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["activityTypes"]!).Split([',']).Select(q=>ToEnum<ActivityType>(q));
+                var anyOfWinModes = httpRequestData.Query["winModes"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["winModes"]!).Split([',']).Select(q=>ToEnum<WinMode>(q));
+                var anyOfSections = httpRequestData.Query["sections"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sections"]!).Split([',']).Select(q=>ToEnum<Section>(q));
+                var anyOfOsmBadgeIds = httpRequestData.Query["osmBadgeIds"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["osmBadgeIds"]!).Split([',']).Select(q=>ToInt(q));
+
+                var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
+                var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ??
+                             0;
+                var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
+                
+                var scoutingActivities = await _scoutingRepository.GetScoutingActivitiesAsync(new GetScoutingActivitiesCriteria()
+                {
+                    AnyOfActivityLocations = anyOfActivityLocations,
+                    AnyOfActivityFormats = anyOfActivityFormats,
+                    AnyOfActivityTypes = anyOfActivityTypes,
+                    AnyOfWinModes = anyOfWinModes,                    
+                    AnyOfSections = anyOfSections,
+                    ContributesTowardsAnyOsmBadgeId = anyOfOsmBadgeIds,
+                    ContainingText = containsText,
+                }, new PagedCriteria()
+                {
+                    ItemsPerPage = itemsPerPage,
+                    Offset = offset
+                });
+                
+                var baseUrl =
+                    $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
+                
+                var pageUrls = CalculatePageUrls((IPagedResult<ScoutingActivity>)scoutingActivities,
+                    baseUrl,
+                    containsText,
+                    anyOfActivityLocations,
+                    anyOfActivityFormats,
+                    anyOfActivityTypes,
+                    anyOfWinModes,
+                    anyOfSections,
+                    anyOfOsmBadgeIds,
+                    continuationToken, 
+                    offset,
+                    itemsPerPage);
+                
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<ScoutingActivity>((IPagedResult<ScoutingActivity>)scoutingActivities,pageUrls));
+            }
+            else
+            {
+                var scoutingActivity = (await _scoutingRepository.GetScoutingActivitiesAsync(new GetScoutingActivitiesCriteria()
+                {
+                    Id = id
+                })).Items.FirstOrDefault();
+                if (scoutingActivity==null)
+                {
+                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, nameof(ScoutingActivity));
+                }
+                
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
+                {
+                    scoutingActivity = scoutingActivity
+                });
+            }
+        });
+    }
+    
+    
+    
+    private IEnumerable<UrlAccessiblePage> CalculatePageUrls(IPagedResult<ScoutingActivity> pagedResults, 
+        string baseUrl, 
+        string? containsText, 
+        IEnumerable<ActivityLocation>? anyOfActivityLocations, 
+        IEnumerable<ActivityFormat>? anyOfActivityFormats, 
+        IEnumerable<ActivityType>? anyOfActivityTypes, 
+        IEnumerable<WinMode>? winModes, 
+        IEnumerable<Section>? anyOfSections, 
+        IEnumerable<int>? anyOfOsmBadgeIds, 
+        string? continuationToken,
+        int offset=0, 
+        int itemsPerPage=PagingConstants.ItemsPerPage)
+    {
+        var currentPageNumber = offset==0 ? 1 : (int)Math.Ceiling((offset+1.0) / itemsPerPage);
+        
+        List<UrlAccessiblePage> pageUrls = new List<UrlAccessiblePage>();
+        for (var pageNumber = 1; pageNumber <= pagedResults.NumberOfPages; pageNumber++)
+        {
+            pageUrls.Add(new UrlAccessiblePage()
+            {
+                Url = BuildPageUrl(baseUrl, 
+                    containsText, 
+                    anyOfActivityLocations, 
+                    anyOfActivityFormats, 
+                    anyOfActivityTypes, 
+                    winModes, 
+                    anyOfSections, 
+                    anyOfOsmBadgeIds, 
+                    continuationToken, 
+                    (pageNumber * itemsPerPage)-itemsPerPage, itemsPerPage),
+                PageNumber = pageNumber,
+                IsCurrentPage = pageNumber == currentPageNumber,
+            });
+        }
+        return pageUrls;
+    }
+    
+    
+    
+    private string BuildPageUrl(string baseUrl, 
+        string? containsText, 
+        IEnumerable<ActivityLocation>? anyOfActivityLocations, 
+        IEnumerable<ActivityFormat>? anyOfActivityFormats, 
+        IEnumerable<ActivityType>? anyOfActivityTypes, 
+        IEnumerable<WinMode>? winModes, 
+        IEnumerable<Section>? anyOfSections, 
+        IEnumerable<int>? anyOfOsmBadgeIds, 
+        string? continuationToken, 
+        int? offset, 
+        int? itemsPerPage)
+    {
+        var parametersDictionary = new Dictionary<string, string>();
+        if (!string.IsNullOrWhiteSpace(containsText))
+        {
+            parametersDictionary.Add("containsText", Uri.EscapeDataString(containsText));
+        }
+
+        if (anyOfActivityLocations != null)
+        {
+            anyOfActivityLocations = anyOfActivityLocations.ToArray();
+            if (anyOfActivityLocations.Any())
+            {
+                parametersDictionary.Add("anyOfActivityLocations", Uri.EscapeDataString(string.Join(",", anyOfActivityLocations)));    
+            }
+        }
+
+        if (anyOfActivityFormats != null)
+        {
+            anyOfActivityFormats = anyOfActivityFormats.ToArray();
+            if (anyOfActivityFormats.Any())
+            {
+                parametersDictionary.Add("anyOfActivityFormats", Uri.EscapeDataString(string.Join(",", anyOfActivityFormats)));    
+            }
+        }
+
+        if (anyOfActivityTypes != null)
+        {
+            anyOfActivityTypes = anyOfActivityTypes.ToArray();
+            if (anyOfActivityTypes.Any())
+            {
+                parametersDictionary.Add("anyOfActivityTypes", Uri.EscapeDataString(string.Join(",", anyOfActivityTypes)));    
+            }
+        }
+        
+        if (winModes != null)
+        {
+            winModes = winModes.ToArray();
+            if (winModes.Any())
+            {
+                parametersDictionary.Add("winModes", Uri.EscapeDataString(string.Join(",", winModes)));    
+            }
+        }
+        
+        if (anyOfSections != null)
+        {
+            anyOfSections = anyOfSections.ToArray();
+            if (anyOfSections.Any())
+            {
+                parametersDictionary.Add("anyOfSections", Uri.EscapeDataString(string.Join(",", anyOfSections)));    
+            }
+        }
+        
+        if (anyOfOsmBadgeIds != null)
+        {
+            anyOfOsmBadgeIds = anyOfOsmBadgeIds.ToArray();
+            if (anyOfOsmBadgeIds.Any())
+            {
+                parametersDictionary.Add("anyOfOsmBadgeIds", Uri.EscapeDataString(string.Join(",", anyOfOsmBadgeIds)));    
+            }
+        }
+        
+        if (!string.IsNullOrWhiteSpace(continuationToken))
+        {
+            parametersDictionary.Add("continuationToken", Uri.EscapeDataString(continuationToken));
+        }
+
+        if (offset != null)
+        {
+            parametersDictionary.Add("offset",offset.Value.ToString());
+        }
+
+        if (itemsPerPage != null)
+        {
+            parametersDictionary.Add("itemsPerPage",itemsPerPage.Value.ToString());       
+        }
+        
+        var sb=new StringBuilder(baseUrl);
+        if (parametersDictionary.Any())
+        {
+            sb.Append("?");
+            foreach (var param in parametersDictionary)
+            {
+                sb.Append($"{param.Key}={param.Value}&");
+            }
+            sb.Remove(sb.Length-1,1);
+        }
+
+        return sb.ToString();
+    }
+    
+    
+
+    private static int ToInt(string s, int defaultValue = 0)
+    {
+        if (int.TryParse(s, out var result)) return result;
+        return defaultValue;
+    }
+
+    private static T ToEnum<T>(string s, T defaultValue = default) where T : struct
+    {
+        return Enum.TryParse(s, out T result) ? result : defaultValue;
+    }
 }

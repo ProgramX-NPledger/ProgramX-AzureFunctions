@@ -31,36 +31,37 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "Location": "Indoors",
-  "Format": "Team",
-  "WinMode": [
-    "Time",
-    "Success"
+  "id": "9405866e-b267-448a-98ed-6da5a677208a",
+  "activityLocation": 0,
+  "activityFormat": 2,
+  "activityType": 0,
+  "winModes": [
+    0,
+    2
   ],
-  "Title": "Bank Robbers",
-  "Resources": [
+  "title": "Bank Robbers",
+  "resources": [
     "6 * 2 silver bars (boxes covered In foil)",
     "Masking tape or rope to mark out team area/zone",
     "Safety pins and coloured tape per team per member (each team has their own colour) OR tag team belts. These represent lives."
   ],
-  "Preparation": [
-    "Mark out two zones, one for each team. Within each zone, mark an area about 3m x 3m, which represents the jail.",
-    "Each Scout gets one 'life'"
-  ],
-  "Summary": "Steal the silver bars from the opposing team without being caught!",
-  "Rules": [
-    "Scouts may only carry one silver bar at a time",
-    "Scouts may only be caught in the opposing team's area. If caught that Scout surrenders their silver bar and goes to jail",
-    "Scouts can be released from jail by a teammate who has a life",
-    "Win when all silver bars have been stolen"
-  ],
-  "Tags": [
+  "preparationMarkdown": "* Mark out two zones, one for each team. Within each zone, mark an area about 3m x 3m, which represents the jail. * Each Scout gets one 'life'",
+  "summary": "Steal the silver bars from the opposing team without being caught!",
+  "descriptionMarkdown": "Scouts may only carry one silver bar at a time * Scouts may only be caught in the opposing team's area. If caught that Scout surrenders their silver bar and goes to jail    * Scouts can be released from jail by a teammate who has a life    * Win when all silver bars have been stolen",
+  "tags": [
     "teamwork",
     "strategy",
     "crime"
   ],
-  "References": [
-    "Hemming-Clark, J. (2016), 1000 Fantastic Scout Games, p. 16, Chiselhurst: Searchline Publishing"
-  ]
+  "referencesMarkdown": "Hemming-Clark, J. (2016), 1000 Fantastic Scout Games, p. 16, Chiselhurst: Searchline Publishing",
+  "schemaVersionNumber": 1,
+  "contributesTowardsOsmBadgeId": null,
+  "contributesTowardsOsmBadgeName": null,
+  "sections": [
+    2,
+    3
+  ],
+  "createdAt": "2026-02-16",
+  "updatedAt": "2026-02-16"
 }
 

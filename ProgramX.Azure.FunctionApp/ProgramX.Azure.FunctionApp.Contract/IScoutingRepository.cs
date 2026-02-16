@@ -13,5 +13,14 @@ public interface IScoutingRepository
     /// </summary>
     /// <param name="scoutingActivity">Activity to create.</param>
     Task CreateScoutingActivityAsync(ScoutingActivity scoutingActivity);
-    
+
+    /// <summary>
+    /// Gets Scouting Activities.
+    /// </summary>
+    /// <param name="criteria"></param>
+    /// <param name="pagedCriteria"></param>
+    /// <returns></returns>
+    Task<IResult<ScoutingActivity>> GetScoutingActivitiesAsync(GetScoutingActivitiesCriteria criteria,
+        PagedCriteria? pagedCriteria = null);
+
 }
