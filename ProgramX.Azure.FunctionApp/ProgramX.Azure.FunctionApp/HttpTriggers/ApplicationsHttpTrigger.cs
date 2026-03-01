@@ -116,8 +116,8 @@ public class ApplicationsHttpTrigger(
     }
     
     
-    [Function(nameof(GetHealthCheck))]
-    public async Task<HttpResponseData> GetHealthCheck(
+    [Function(nameof(GetApplicationHealthCheck))]
+    public async Task<HttpResponseData> GetApplicationHealthCheck(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "application/{name}/health")] HttpRequestData httpRequestData, string name)
     {
         return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
