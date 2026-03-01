@@ -19,6 +19,5 @@ public class Application
 
     public DateTime? createdAt { get; set; }
     public DateTime? updatedAt { get; set; }
-
-    public string? targetUrl { get; set; }
+    
 }
