@@ -142,76 +142,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, json);
         }
     }
-    //
-    // [Function(nameof(GetFlexiRecords))]
-    // public async Task<HttpResponseData> GetFlexiRecords(
-    //     [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/flexirecords")]
-    //     HttpRequestData httpRequestData)
-    // {
-    //     return await RequiresAuthentication(httpRequestData, "osm-reader", async (_, _) =>
-    //     {
-    //         // email=nathan%40programx.co.uk&password=Cruelty7-Rebuild-Phoney&device_id=a8f0c64b-3520-4c95-8f0e-2d3b9b326a8d&seen=internal+2
-    //         
-    //         // TODO: Go to OSM and get all flexi records
-    //         //
-    //         // if (id == null)
-    //         // {
-    //         //     var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
-    //         //     var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
-    //         //     var withRoles = httpRequestData.Query["withRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["withRoles"]!).Split(new [] {','});
-    //         //     var hasAccessToApplications = httpRequestData.Query["hasAccessToApplications"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["hasAccessToApplications"]!).Split(new [] {','});
-    //         //
-    //         //     var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
-    //         //     var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ??
-    //         //                  0;
-    //         //     var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
-    //         //     
-    //         //     var users = await _userRepository.GetUsersAsync(new GetUsersCriteria()
-    //         //     {
-    //         //         HasAccessToApplications = hasAccessToApplications,
-    //         //         WithRoles = withRoles,
-    //         //         ContainingText = containsText
-    //         //     }, new PagedCriteria()
-    //         //     {
-    //         //         ItemsPerPage = itemsPerPage,
-    //         //         Offset = offset
-    //         //     });
-    //         //     
-    //         //     var baseUrl =
-    //         //         $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
-    //         //     
-    //         //     var pageUrls = CalculatePageUrls((IPagedResult<User>)users,
-    //         //         baseUrl,
-    //         //         containsText,
-    //         //         withRoles,
-    //         //         hasAccessToApplications,
-    //         //         continuationToken, 
-    //         //         offset,
-    //         //         itemsPerPage);
-    //         //     
-    //         //     return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<User>((IPagedResult<User>)users,pageUrls));
-    //         // }
-    //         // else
-    //         // {
-    //         //     var user = await _userRepository.GetUserByIdAsync(id);
-    //         //     if (user==null)
-    //         //     {
-    //         //         return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-    //         //     }
-    //         //     
-    //         //     List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
-    //         //     
-    //         //     return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
-    //         //     {
-    //         //         user,
-    //         //         applications,
-    //         //         profilePhotoBase64 = string.Empty
-    //         //     });
-    //         // }
-    //     });
-    //     
-    // }   
-  
+ 
     [Function(nameof(GetMembers))]
     public async Task<HttpResponseData> GetMembers(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/members")] HttpRequestData httpRequestData,

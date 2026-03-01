@@ -74,6 +74,47 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
         }
     }
 
+    public async Task CreateScoreAsync(ScoutingScore scoutingScore)
+    {
+        using (logger.BeginScope("CreateScoreAsync {scoutingScore}", scoutingScore))
+        {
+            var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync(DatabaseNames.Scouting);
+            var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(ContainerNames.Scores, ContainerNames.ScoresPartitionKey);
+
+            var response = await containerResponse.Container.CreateItemAsync(scoutingScore, new PartitionKey(scoutingScore.id));
+
+            if (response.StatusCode != HttpStatusCode.Created)
+            {
+                logger.LogError(
+                    "Failed to create {type} with id {id} with status code {statusCode} and response {response}", nameof(ScoutingActivity),scoutingScore.id,
+                    response.StatusCode, response);
+                throw new RepositoryException(OperationType.Create, typeof(ScoutingActivity));
+            }
+            logger.LogDebug("Success");
+        }    
+    }
+    
+    
+    public async Task AddScoreItemAsync(ScoutingScoreItem scoutingScore)
+    {
+        using (logger.BeginScope("CreateScoreAsync {scoutingScore}", scoutingScore))
+        {
+            var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync(DatabaseNames.Scouting);
+            var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(ContainerNames.Scores, ContainerNames.ScoresPartitionKey);
+
+            var response = await containerResponse.Container.CreateItemAsync(scoutingScore, new PartitionKey(scoutingScore.id));
+
+            if (response.StatusCode != HttpStatusCode.Created)
+            {
+                logger.LogError(
+                    "Failed to create {type} with id {id} with status code {statusCode} and response {response}", nameof(ScoutingActivity),scoutingScore.id,
+                    response.StatusCode, response);
+                throw new RepositoryException(OperationType.Create, typeof(ScoutingActivity));
+            }
+            logger.LogDebug("Success");
+        }    
+    }
+
     private QueryDefinition BuildQueryDefinitionForScoutingActivities(GetScoutingActivitiesCriteria criteria)
     {
         var sb = new StringBuilder(@"SELECT c.id, c.activityLocation, c.activityFormat, c.activityType, c.winModes,

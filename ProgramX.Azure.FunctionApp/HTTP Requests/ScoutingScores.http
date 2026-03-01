@@ -1,0 +1,72 @@
+
+# Sequence:
+# End user chooses member, score and enters score
+# term is automatically determined
+# At end of term, report is generated
+
+
+###
+# @name Get all Members
+GET {{host}}/api/v1/scouts/osm/members
+Authorization: Bearer {{token}}
+
+###
+# @name Get all Activity Types
+GET {{host}}/api/v1/scouts/scores/points
+Authorization: Bearer {{token}}
+
+###
+# @name Create Score
+POST {{host}}/api/v1/scouts/scores/points
+Authorization: Bearer {{token}}
+
+{
+    "name": "Attended session",
+    "points": 1
+}
+
+###
+# @name Set a score
+PATCH {{host}}/api/v1/scouts/(term-id)/(meeting-id)/(score)
+
+{
+    "notes": ""
+}
+
+###
+# @name Get current report (or particular report if provided with a term-id)
+GET {{host}}/api/v1/scouts/scores
+
+### 
+# @name Create Score
+POST {{host}}/api/v1/scouts/scores
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id": "9405866e-b267-448a-98ed-6da5a677208a",
+  "sectionId": 0,
+  "termId": 0,
+  "name": "",
+  "meetings": [
+    {
+      "date": "",
+      "name": "",
+      "scores": [
+        {
+          "osmMemberId": 0,
+          "patrolName": "",
+          "anonymisedMemberName": "",
+          "score": {
+            "name": "",
+            "points": 0
+          }
+        }
+      ]
+    }
+  ],
+  "schemaVersionNumber": 1,
+  "createdAt": "2026-02-16",
+  "updatedAt": "2026-02-16"
+}
+

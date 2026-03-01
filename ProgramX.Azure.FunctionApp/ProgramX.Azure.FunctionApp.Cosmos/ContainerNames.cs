@@ -16,6 +16,9 @@ public static class ContainerNames
     
     public const string ScoutingActivities = "scoutingActivities";
     public const string ScoutingActivityPartitionKey = "/id";
-    
+
+    public const string Scores = "scores";
+    public const string ScoresPartitionKey = "/id";
+
 }
  
