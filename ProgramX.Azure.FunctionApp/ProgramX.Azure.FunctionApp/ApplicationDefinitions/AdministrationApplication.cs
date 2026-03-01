@@ -12,12 +12,12 @@ public class AdministrationApplication : IApplication
     {
         return new ApplicationMetaData()
         {
-            name = "administration",
+            Name = "administration",
             FriendlyName = "Administration",
-            requiresRoleNames = ["admin"],
-            targetUrl = "/admin",
-            description = "Manage security and global preferences",
-            imageUrl = null
+            RequiresRoleNames = ["admin"],
+            TargetUrl = "/admin",
+            Description = "Manage security and global preferences",
+            ImageUrl = null
         };
     }
 

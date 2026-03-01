@@ -25,11 +25,11 @@ public abstract class ApplicationHealthCheckBase
 
         var allUsersWithApplication = await _userRepository.GetUsersAsync(new GetUsersCriteria()
         {
-            HasAccessToApplications = [_applicationMetaData.name],
+            HasAccessToApplications = [_applicationMetaData.Name],
         });
 
         var missingRoles = new List<string>();
-        foreach (var role in _applicationMetaData.requiresRoleNames)
+        foreach (var role in _applicationMetaData.RequiresRoleNames)
         {
             if (!allUsersWithApplication.Items.Any(q => q.roles.Any(r => r.name == role)))
             {

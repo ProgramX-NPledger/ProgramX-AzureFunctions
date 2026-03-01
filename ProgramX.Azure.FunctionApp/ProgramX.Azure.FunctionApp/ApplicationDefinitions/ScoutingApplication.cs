@@ -10,12 +10,12 @@ public class ScoutingApplication : IApplication
     {
         return new ApplicationMetaData()
         {
-            name = "scouting",
+            Name = "scouting",
             FriendlyName = "Scouting",
-            requiresRoleNames = ["admin", "pii-reader", "osm-reader", "scouts-reader", "scouts-writer"],
-            targetUrl = "/scouting",
-            description = "Manage scouting data",
-            imageUrl = null
+            RequiresRoleNames = ["admin", "pii-reader", "osm-reader", "scouts-reader", "scouts-writer"],
+            TargetUrl = "/scouting",
+            Description = "Manage scouting data",
+            ImageUrl = null
         };
     }
 
