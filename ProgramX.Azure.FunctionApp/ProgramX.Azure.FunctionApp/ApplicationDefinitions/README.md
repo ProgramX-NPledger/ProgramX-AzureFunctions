@@ -6,7 +6,7 @@ Applications are assigned to Roles, which are assigned to Users. Each Applicatio
 
 Users ← Roles ← Applications
 
-An Application Definition is required to be defined, and must implement the `IApplication` inteface.
+An Application Definition is required to be defined, and must implement the `IApplication` interface.
 
 Application Definitions must provide the following features:
 
