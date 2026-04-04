@@ -2,9 +2,9 @@ using System.Diagnostics.CodeAnalysis;
 using Azure;
 using Azure.Communication.Email;
 using Microsoft.Extensions.Configuration;
-using ProgramX.Azure.FunctionApp.Model.Responses;
+using EmailMessage = ProgramX.Azure.FunctionApp.Model.EmailMessage;
 
-namespace ProgramX.Azure.FunctionApp.Helpers;
+namespace ProgramX.Azure.FunctionApp.AzureCommunications;
 
 public class AzureCommunicationsServicesEmailSender : Contract.IEmailSender
 {
@@ -24,7 +24,7 @@ public class AzureCommunicationsServicesEmailSender : Contract.IEmailSender
     }
 
     [ExcludeFromCodeCoverage]
-    public async Task SendEmailAsync(ProgramX.Azure.FunctionApp.Model.EmailMessage emailMessage)
+    public async Task SendEmailAsync(EmailMessage emailMessage)
     {
         var emailContent = new EmailContent(emailMessage.Subject)
         {
@@ -38,7 +38,7 @@ public class AzureCommunicationsServicesEmailSender : Contract.IEmailSender
             emailMessage.Bcc!=null && emailMessage.Bcc.Any() ? emailMessage.Bcc.Select(q => new EmailAddress(q.EmailAddress, q.Name)) : null       
             );
         
-        var message = new EmailMessage(
+        var message = new global::Azure.Communication.Email.EmailMessage(
             senderAddress: emailMessage.From.EmailAddress,
             content: emailContent,
             recipients: recipients);

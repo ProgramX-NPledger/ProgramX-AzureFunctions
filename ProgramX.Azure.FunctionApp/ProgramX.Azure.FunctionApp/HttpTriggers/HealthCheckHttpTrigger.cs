@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ProgramX.Azure.FunctionApp.AzureCommunications;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Cosmos;
 using ProgramX.Azure.FunctionApp.Helpers;
@@ -119,6 +120,7 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
         {
             // TODO: More health checks here, using name in GetHealthCheckResponse
             case "azure-cosmos-db": return new CosmosHealthCheck(_loggerFactory);
+            case "azure-email-communication-services": return new AzureCommunicationsHealthCheck(_loggerFactory);
             case "test": return new TestHealthCheck();
             default: return null;
         }

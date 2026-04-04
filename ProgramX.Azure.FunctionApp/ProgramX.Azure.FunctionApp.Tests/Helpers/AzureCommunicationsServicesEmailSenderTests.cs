@@ -3,6 +3,7 @@ using Azure;
 using Azure.Communication.Email;
 using Microsoft.Extensions.Configuration;
 using Moq;
+using ProgramX.Azure.FunctionApp.AzureCommunications;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using EmailMessage = Azure.Communication.Email.EmailMessage;

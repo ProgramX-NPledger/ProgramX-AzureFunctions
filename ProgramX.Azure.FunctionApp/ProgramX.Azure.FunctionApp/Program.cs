@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp;
+using ProgramX.Azure.FunctionApp.AzureCommunications;
 using ProgramX.Azure.FunctionApp.AzureStorage;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Core;
