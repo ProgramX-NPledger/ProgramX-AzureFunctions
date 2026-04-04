@@ -1,4 +1,4 @@
-namespace ProgramX.Azure.FunctionApp.Constants;
+namespace ProgramX.Azure.FunctionApp.AzureStorage.Constants;
 
 public class BlobConstants
 {

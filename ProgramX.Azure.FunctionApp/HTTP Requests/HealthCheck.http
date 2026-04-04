@@ -17,6 +17,11 @@ Authorization: Bearer {{token}}
 GET {{host}}/api/v1/healthcheck/azure-email-communication-services
 Authorization: Bearer {{token}}
 
+###
+# @name Get specfic healthcheck (Azure Storage)
+GET {{host}}/api/v1/healthcheck/azure-storage
+Authorization: Bearer {{token}}
+
 
 > {%
     const token = client.global.get("token");

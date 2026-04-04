@@ -311,7 +311,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             var user = await _userRepository.GetUserByIdAsync(id);
             if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
 
-            var storageFolder = await _storageClient!.GetStorageFolderAsync(BlobConstants.AvatarImagesBlobName);
+            var storageFolder = await _storageClient!.GetStorageFolderAsync(_storageClient.GetBlobName(BlobNames.AvatarImages));
 
             httpRequestData.Body.Position = 0;
             var multipartReader = new MultipartReader(boundary, httpRequestData.Body);
@@ -445,7 +445,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
 
             Debug.Assert(_storageClient != null, nameof(_storageClient) + " != null");
-            var storageFolder = await _storageClient.GetStorageFolderAsync(BlobConstants.AvatarImagesBlobName);
+            var storageFolder = await _storageClient.GetStorageFolderAsync(_storageClient.GetBlobName(BlobNames.AvatarImages));
             
             await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.profilePhotographOriginal}");
             await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.profilePhotographSmall}");
