@@ -1,11 +1,12 @@
+using ProgramX.Azure.FunctionApp.ApplicationDefinitions.Scouting;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
-using ProgramX.Azure.FunctionApp.Scouting.Administration;
 
 namespace ProgramX.Azure.FunctionApp.ApplicationDefinitions;
 
 public class ScoutingApplication : IApplication
 {
+    /// <inheritdoc/>
     public ApplicationMetaData GetApplicationMetaData()
     {
         return new ApplicationMetaData()
@@ -19,7 +20,8 @@ public class ScoutingApplication : IApplication
         };
     }
 
-    public async Task<IHealthCheck> GetHealthCheckAsync(IUserRepository userRepository)
+    /// <inheritdoc/>
+    public async Task<IApplicationHealthCheck> GetHealthCheckAsync(IUserRepository userRepository)
     {
         return new HealthCheck(this.GetApplicationMetaData(),userRepository);
     }

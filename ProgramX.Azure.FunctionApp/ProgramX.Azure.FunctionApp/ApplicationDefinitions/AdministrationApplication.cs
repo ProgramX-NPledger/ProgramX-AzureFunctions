@@ -22,7 +22,7 @@ public class AdministrationApplication : IApplication
     }
 
     /// <inheritdoc/>
-    public async Task<IHealthCheck> GetHealthCheckAsync(IUserRepository userRepository)
+    public async Task<IApplicationHealthCheck> GetHealthCheckAsync(IUserRepository userRepository)
     {
         return new HealthCheck(this.GetApplicationMetaData(),userRepository);
         

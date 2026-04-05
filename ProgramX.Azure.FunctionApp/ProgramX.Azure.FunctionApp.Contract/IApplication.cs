@@ -14,6 +14,6 @@ public interface IApplication
     /// Gets a Health Checker for the Application.
     /// </summary>
     /// <returns>An implementation capable of checking the health of the application.</returns>
-    Task<IHealthCheck> GetHealthCheckAsync(IUserRepository userRepository);
+    Task<IApplicationHealthCheck> GetHealthCheckAsync(IUserRepository userRepository);
     
 }

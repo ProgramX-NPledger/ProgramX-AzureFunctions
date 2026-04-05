@@ -149,6 +149,40 @@ public class ApplicationsHttpTrigger(
         });
 
     }
+    
+    
+    [Function(nameof(FixApplicationByHealthCheck))]
+    public async Task<HttpResponseData> FixApplicationByHealthCheck(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "application/{name}/health/fix")] HttpRequestData httpRequestData, string name)
+    {
+        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
+        {
+            // need to get all applications, including those not in a role to ensure that the application definitely exists
+            var allApplications = ApplicationFactory.GetAllDefinedApplicationsWithinExecutingAssembly();
+            var application = allApplications.SingleOrDefault(q => q.GetApplicationMetaData().Name.Equals(name, StringComparison.CurrentCultureIgnoreCase));
+            if (application == null)
+            {
+                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
+                    $"No application found with name {name}");
+            }
+            
+            var healthCheck = await application.GetHealthCheckAsync(userRepository);
+            var healthCheckResult = await healthCheck.CheckHealthAsync();
+            var fixHealthCheckResult = await healthCheck.FixHealthAsync(healthCheckResult);
+
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                new FixApplicationByHealthCheckResponse()
+                {
+                    Items = fixHealthCheckResult.Items.Select(item => new FixApplicationHealthCheckResultItemResult
+                    {
+                        Name = item.Name,
+                        IsSuccess = item.IsSuccess,
+                        Messages = item.Messages
+                    })
+                });
+        });
+
+    }
 
     /// <summary>
     /// Based on the authenticated user, get the applications that can be checked for health.
