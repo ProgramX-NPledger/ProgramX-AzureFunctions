@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
 
@@ -39,5 +40,27 @@ public static class ApplicationFactory
         {
             throw new InvalidOperationException($"Type {dotNetTypeName} in assembly {dotNetAssemblyName} does not implement IApplication");
         }
+    }
+    
+    /// <summary>
+    /// Returns all defined applications.
+    /// </summary>
+    /// <returns></returns>
+    /// <remarks>The Application must implement IApplication.</remarks>
+    public static IEnumerable<IApplication> GetAllDefinedApplicationsWithinExecutingAssembly()
+    {
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        var allTypes = assembly.GetTypes().Where(t => t.IsClass && !t.IsAbstract && typeof(IApplication).IsAssignableFrom(t));
+
+        List<IApplication> allApplications = new List<IApplication>();
+        foreach (var type in allTypes)
+        {
+            var o = Activator.CreateInstance(type);
+            if (o is IApplication application)
+            {
+                allApplications.Add(application);
+            }
+        }
+        return allApplications;
     }
 }
