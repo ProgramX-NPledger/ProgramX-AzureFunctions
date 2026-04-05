@@ -5,6 +5,8 @@ namespace ProgramX.Azure.FunctionApp.Model;
 public class Application
 {
     public required string name { get; set; }
+
+    public string? friendlyName { get; set; }
     public required string metaDataDotNetAssembly { get; set; }
     public required string metaDataDotNetType { get; set; }
     
