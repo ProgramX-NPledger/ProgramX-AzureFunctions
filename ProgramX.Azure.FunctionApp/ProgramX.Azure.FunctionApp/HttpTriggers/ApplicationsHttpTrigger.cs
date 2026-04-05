@@ -126,27 +126,26 @@ public class ApplicationsHttpTrigger(
     {
         return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
-            IHealthCheck? healthCheck = await GetHealthCheckByNameAsync(name);
-            if (healthCheck != null)
-            {
-                var healthCheckResult = await healthCheck.CheckHealthAsync();
-
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
-                    new GetHealthCheckServiceResponse()
-                    {
-                        Name = name,
-                        IsHealthy = healthCheckResult.IsHealthy,
-                        Message = healthCheckResult.Message,
-                        TimeStamp = DateTime.UtcNow,
-                        SubItems = healthCheckResult.Items ?? new List<HealthCheckItemResult>()
-                    });
-
-            }
-            else
+            // need to get all applications, including those not in a role to ensure that the application definitely exists
+            var allApplications = ApplicationFactory.GetAllDefinedApplicationsWithinExecutingAssembly();
+            var application = allApplications.SingleOrDefault(q => q.GetApplicationMetaData().Name.Equals(name, StringComparison.CurrentCultureIgnoreCase));
+            if (application == null)
             {
                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
-                    $"No health check found for {name}");
+                    $"No application found with name {name}");
             }
+            
+            var healthCheckResult = await (await application.GetHealthCheckAsync(userRepository)).CheckHealthAsync();
+
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                new GetHealthCheckServiceResponse()
+                {
+                    Name = name,
+                    IsHealthy = healthCheckResult.IsHealthy,
+                    Message = healthCheckResult.Message,
+                    TimeStamp = DateTime.UtcNow,
+                    SubItems = healthCheckResult.Items ?? new List<HealthCheckItemResult>()
+                });
         });
 
     }
@@ -162,34 +161,45 @@ public class ApplicationsHttpTrigger(
     {
         return await RequiresAuthentication(httpRequestData, null, async (_, roles) =>
         {
-            var allRoles = await userRepository.GetRolesAsync(new GetRolesCriteria());
-            var currentRoles = allRoles.Items.Where(r => roles.Contains(r.name));
-            var applicationsWithinRoles = currentRoles.SelectMany(r => r.applications);
             var baseUrl =
                 $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}/application".Replace("/application/health", "");
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
-                new GetApplicationsForHealthCheckResponse()
-                {
-                    TimeStamp = DateTime.UtcNow,
-                    HealthCheckServices = applicationsWithinRoles.Select(q => new ApplicationHealthCheckService()
+
+            // if user is an admin return all applications
+            if (roles.Contains("admin"))
+            {
+                var applications = ApplicationFactory.GetAllDefinedApplicationsWithinExecutingAssembly();
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                    new GetApplicationsForHealthCheckResponse()
                     {
-                        Name = q.name,
-                        Url = $"{baseUrl}/{q.name}/health",
-                    }).ToList()
-                });
+                        TimeStamp = DateTime.UtcNow,
+                        IsElevated = true,
+                        HealthCheckServices = applications.Select(q => new ApplicationHealthCheckService()
+                        {
+                            Name = q.GetApplicationMetaData().Name,
+                            Url = $"{baseUrl}/{q.GetApplicationMetaData().Name}/health",
+                        }).ToList()
+                    });
+            }
+            else
+            {
+                var allRoles = await userRepository.GetRolesAsync(new GetRolesCriteria());
+                var currentRoles = allRoles.Items.Where(r => roles.Contains(r.name));
+                var applicationsWithinRoles = currentRoles.SelectMany(r => r.applications);
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                    new GetApplicationsForHealthCheckResponse()
+                    {
+                        TimeStamp = DateTime.UtcNow,
+                        IsElevated = false,
+                        HealthCheckServices = applicationsWithinRoles.Select(q => new ApplicationHealthCheckService()
+                        {
+                            Name = q.name,
+                            Url = $"{baseUrl}/{q.name}/health",
+                        }).ToList()
+                    });
+            }
         });
     }
     
-    private async Task<IHealthCheck?> GetHealthCheckByNameAsync(string name)
-    {
-        // get application by name
-        var application = await userRepository.GetApplicationByNameAsync(name);
-        if (application == null) return null;
-        
-        // get health check
-        var iApplication = ApplicationFactory.GetApplicationForApplicationName(application.metaDataDotNetAssembly,application.metaDataDotNetType);
-        return await iApplication.GetHealthCheckAsync(userRepository);
-    }
 
 
     [Function(nameof(UpdateApplication))]
