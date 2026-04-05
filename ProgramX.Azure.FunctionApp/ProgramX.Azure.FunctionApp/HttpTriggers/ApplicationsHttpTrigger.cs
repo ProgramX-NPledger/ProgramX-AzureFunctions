@@ -73,6 +73,10 @@ public class ApplicationsHttpTrigger(
             }
             else
             {
+                // if the application name is "health" we have a route overlap, just call the intended route
+                // it does mean we cannot have any applications with the name "health"
+                if (name.Equals("health", StringComparison.CurrentCultureIgnoreCase)) return await GetApplicationsForHealthCheck(httpRequestData);
+                
                 var application = await userRepository.GetApplicationByNameAsync(name);
                 if (application==null)
                 {
@@ -147,6 +151,35 @@ public class ApplicationsHttpTrigger(
 
     }
 
+    /// <summary>
+    /// Based on the authenticated user, get the applications that can be checked for health.
+    /// </summary>
+    /// <param name="httpRequestData"></param>
+    /// <returns></returns>
+    [Function(nameof(GetApplicationsForHealthCheck))]
+    public async Task<HttpResponseData> GetApplicationsForHealthCheck(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "application/health")] HttpRequestData httpRequestData)
+    {
+        return await RequiresAuthentication(httpRequestData, null, async (_, roles) =>
+        {
+            var allRoles = await userRepository.GetRolesAsync(new GetRolesCriteria());
+            var currentRoles = allRoles.Items.Where(r => roles.Contains(r.name));
+            var applicationsWithinRoles = currentRoles.SelectMany(r => r.applications);
+            var baseUrl =
+                $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}/application".Replace("/application/health", "");
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                new GetApplicationsForHealthCheckResponse()
+                {
+                    TimeStamp = DateTime.UtcNow,
+                    HealthCheckServices = applicationsWithinRoles.Select(q => new ApplicationHealthCheckService()
+                    {
+                        Name = q.name,
+                        Url = $"{baseUrl}/{q.name}/health",
+                    }).ToList()
+                });
+        });
+    }
+    
     private async Task<IHealthCheck?> GetHealthCheckByNameAsync(string name)
     {
         // get application by name

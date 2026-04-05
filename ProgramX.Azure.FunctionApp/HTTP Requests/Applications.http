@@ -47,6 +47,11 @@ GET {{host}}/api/v1/application/administration/health
 Authorization: Bearer {{token}}
 #
 
+###
+# @name Get Application Health endpoints
+GET {{host}}/api/v1/application/health
+Authorization: Bearer {{token}}
+#
 
 ###
 # @name Update Application
