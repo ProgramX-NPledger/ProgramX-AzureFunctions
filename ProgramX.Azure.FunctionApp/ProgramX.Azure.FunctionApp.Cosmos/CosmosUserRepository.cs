@@ -215,7 +215,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         { 
             ApplicationName = name
         });
-        return applications.Items.SingleOrDefault();
+        return applications.Items.FirstOrDefault();
     }
 
     /// <inheritdoc />
@@ -794,7 +794,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         var parameters = new List<(string name, object value)>();
         if (!string.IsNullOrWhiteSpace(criteria.ApplicationName))
         {
-            sb.Append(" AND (a.name=@id)");
+            sb.Append(" AND (a.name=@id OR a.friendlyName=@id)");
             parameters.Add(("@id", criteria.ApplicationName));
         }
 
@@ -835,7 +835,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             sb.Append($" AND ({string.Join(" OR ", conditions)})");
         }
         
-        sb.Append(" GROUP BY a.name, a.metaDataDotNetAssembly, a.metaDataDotNetType, a.type, a.schemaVersionNumber, a.isDefaultApplicationOnLogin, a.ordinal, a.createdAt,a.updatedAt");
+        sb.Append(" GROUP BY a.name, a.friendlyName, a.metaDataDotNetAssembly, a.metaDataDotNetType, a.type, a.schemaVersionNumber, a.isDefaultApplicationOnLogin, a.ordinal, a.createdAt,a.updatedAt");
         
         var queryDefinition = new QueryDefinition(sb.ToString());
         foreach (var param in parameters)
