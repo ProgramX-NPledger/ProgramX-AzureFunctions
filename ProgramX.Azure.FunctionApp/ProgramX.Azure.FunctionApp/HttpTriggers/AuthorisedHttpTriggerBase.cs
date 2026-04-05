@@ -39,7 +39,17 @@ public abstract class AuthorisedHttpTriggerBase
         _logger = logger;
     }
 
-    protected async Task<HttpResponseData> RequiresAuthentication(HttpRequestData httpRequestData, IEnumerable<string>? requiredAnyOfRoles, Func<string?,IEnumerable<string>?,Task<HttpResponseData>> httpResponseDelegate, bool permitAnonymous=false)
+    /// <summary>
+    /// Checks that the user is authenticated and has the required role.
+    /// </summary>
+    /// <param name="httpRequestData">The HTTP request data that will contain authentication data.</param>
+    /// <param name="requiredAnyOfRoles">A list of required roles for the user.</param>
+    /// <param name="httpResponseDelegate">The delegate to call if authentication succeeds. This provides the currently logged in user and their roles as parameters.</param>
+    /// <param name="permitAnonymous">Whether anonymous access is permitted.</param>
+    /// <returns>An <see cref="HttpResponseData"/> from the delegate if authentication succeeds, otherwise an error response indicating insufficient authorisation.</returns>
+    protected async Task<HttpResponseData> RequiresAuthentication(HttpRequestData httpRequestData, 
+        IEnumerable<string>? requiredAnyOfRoles, 
+        Func<string?,IEnumerable<string>?,Task<HttpResponseData>> httpResponseDelegate, bool permitAnonymous=false)
     {
         if (!permitAnonymous)
         {
