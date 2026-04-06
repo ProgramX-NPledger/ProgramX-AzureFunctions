@@ -9,5 +9,8 @@ public class ApplicationHealthCheckService
     
     [JsonPropertyName("url")]
     public string Url { get; set; }
+
+    [JsonPropertyName("friendlyName")]
+    public string FriendlyName { get; set; }
     
 }

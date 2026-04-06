@@ -210,6 +210,7 @@ public class ApplicationsHttpTrigger(
                         HealthCheckServices = applications.Select(q => new ApplicationHealthCheckService()
                         {
                             Name = q.GetApplicationMetaData().Name,
+                            FriendlyName = q.GetApplicationMetaData().FriendlyName,
                             Url = $"{baseUrl}/{q.GetApplicationMetaData().Name}/health",
                         }).ToList()
                     });
