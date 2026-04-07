@@ -118,7 +118,21 @@ public class HttpResponseDataFactory
         httpResponseData.Headers.Add("Content-Type", "application/json");
         await httpResponseData.WriteStringAsync(jsonString);
         return httpResponseData;
-
+    }
+    
+    /// <summary>
+    /// Creates a Success response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <param name="data">A JSON-serializable object to return to the client.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
+    public static async Task<HttpResponseData> CreateForSuccessAsString(HttpRequestData httpRequestData, string data)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
+        
+        httpResponseData.Headers.Add("Content-Type", "test/plain; charset=utf-8");
+        await httpResponseData.WriteStringAsync(data);
+        return httpResponseData;
     }
     
     

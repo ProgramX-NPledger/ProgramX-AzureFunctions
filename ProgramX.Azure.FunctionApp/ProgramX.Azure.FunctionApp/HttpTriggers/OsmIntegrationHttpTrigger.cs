@@ -67,11 +67,14 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
                 return await HttpResponseDataFactory.CreateForServerError(httpRequestData,
                     "No OSM scopes configured");
             }
-            var osmRedirectUri = GetRedirectUri(httpRequestData);
+
+            osmScopes = osmScopes.Replace(":", "%3a").Replace(" ", "+");
+            
+            var keyCompletionEndpoint = Environment.GetEnvironmentVariable("OsmOAuth2KeyCompletion");
 
             _logger.LogInformation(
                 "OSM authentication configuration: clientId={clientId}, redirectUrl={redirectUri}, scopes={scopes}",
-                osmClientId, osmRedirectUri, osmScopes);
+                osmClientId, keyCompletionEndpoint, osmScopes);
             
             var osmAuthUrl = "https://www.onlinescoutmanager.co.uk/oauth/authorize";
 
@@ -79,27 +82,16 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
             var query = HttpUtility.ParseQueryString(string.Empty);
             query["response_type"] = "code";
             query["client_id"] = osmClientId;
-            query["redirect_uri"] = osmRedirectUri;
+            query["redirect_uri"] = keyCompletionEndpoint;
             query["scope"] = osmScopes;
 
-            var url = $"{osmAuthUrl}?{query}";
+            var url = $"{osmAuthUrl}?response_type=code&client_id={osmClientId}&redirect_uri={keyCompletionEndpoint}&scope={osmScopes}";
             _logger.LogInformation("Browse to URL {url}",url);
             
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
-            {
-                clientId = osmClientId,
-                redirectUri = osmRedirectUri,
-                scopes = osmScopes,
-                url,
-                message = "Navigate to the URL to authenticate with OSM"
-            });
+            return await HttpResponseDataFactory.CreateForSuccessAsString(httpRequestData, url);
         }
     }
-
-    private static string GetRedirectUri(HttpRequestData httpRequestData)
-    {
-        return $"{httpRequestData.Url.Scheme}s://{httpRequestData.Url.Authority}/api/v1/scouts/osm/completekeyexchange";
-    }
+    
 
     [Function(nameof(CompleteKeyExchange))]
     public async Task<HttpResponseData> CompleteKeyExchange(
@@ -141,6 +133,11 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
 
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, json);
         }
+    }
+    
+    private static string GetRedirectUri(HttpRequestData httpRequestData)
+    {
+        return $"{httpRequestData.Url.Scheme}s://{httpRequestData.Url.Authority}/api/v1/scouts/osm/completekeyexchange";
     }
  
     [Function(nameof(GetMembers))]
