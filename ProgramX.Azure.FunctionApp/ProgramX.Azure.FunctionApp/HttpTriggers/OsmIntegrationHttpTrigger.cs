@@ -68,7 +68,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
                     "No OSM scopes configured");
             }
 
-            osmScopes = osmScopes.Replace(":", "%3a").Replace(" ", "+");
+            osmScopes = osmScopes.Replace(":", "%3a").Replace(" ", "%20");
             
             var keyCompletionEndpoint = Environment.GetEnvironmentVariable("OsmOAuth2KeyCompletion");
 
