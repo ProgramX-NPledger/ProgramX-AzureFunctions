@@ -55,19 +55,20 @@ public class CosmosIntegrationRepository : IIntegrationRepository
         using (_logger.BeginScope("{methodName} {serviceName}", nameof(SetBearerAndRefreshTokensAsync), serviceName))
         {
             var container = _cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Integrations);
-            var response = await container.CreateItemAsync(new IntegrationCredentials()
+            var response = await container.ReplaceItemAsync(new IntegrationCredentials() 
             {
+                id = serviceName,
                 serviceName = serviceName,
                 clientId = clientId,
                 bearerToken = bearerToken,
                 refreshToken = refreshToken,
                 lastUpdatedAt = DateTime.Now
-            }, new PartitionKey(serviceName));
+            }, serviceName, new PartitionKey(serviceName));
 
-            if (response.StatusCode != HttpStatusCode.Created)
+            if (response.StatusCode != HttpStatusCode.OK)
             {
                 _logger.LogError(
-                    "Failed to create integration crednetials for service {serviceName} with status code {statusCode} and response {response}", 
+                    "Failed to create integration credentials for service {serviceName} with status code {statusCode} and response {response}", 
                     serviceName,
                     response.StatusCode, 
                     response);

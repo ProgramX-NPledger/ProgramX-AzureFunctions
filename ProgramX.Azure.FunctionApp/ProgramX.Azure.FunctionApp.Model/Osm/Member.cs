@@ -9,4 +9,19 @@ public class Member
     public required bool IsActive { get; set; }
     public required int OsmScoutId { get; set; }
     public required string FullName { get; set; }
+
+    public Guid? PhotoId { get; set; }
+
+    public int? OsmPatrolId { get; set; }
+
+    public required int OsmSectionId { get; set; }
+
+    public required DateOnly StartDate { get; set; }
+
+    public DateOnly? EndDate { get; set; }
+
+    public string? PatrolNameAndLevel { get; set; }
+
+    public bool? HasInvitations { get; set; }
+    
 }

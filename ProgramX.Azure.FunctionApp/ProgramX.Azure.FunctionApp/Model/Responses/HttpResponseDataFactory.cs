@@ -135,6 +135,26 @@ public class HttpResponseDataFactory
         return httpResponseData;
     }
     
+    /// <summary>
+    /// Creates a Success response with an HTML body.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <param name="data">A JSON-serializable object to return to the client.</param>
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
+    public static async Task<HttpResponseData> CreateForSuccessAsHtml(HttpRequestData httpRequestData, string html)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
+        
+        //httpResponseData.Headers.Add("Content-Type", "test/html; charset=utf-8");
+        var htmlBody = @$"HTTP 200 OK
+Content-Type: text/html; charset=utf-8
+
+{html}";
+        await httpResponseData.WriteStringAsync(html);
+        return httpResponseData;
+    }
+
+    
     
     /// <summary>
     /// Creates a NoContent response.

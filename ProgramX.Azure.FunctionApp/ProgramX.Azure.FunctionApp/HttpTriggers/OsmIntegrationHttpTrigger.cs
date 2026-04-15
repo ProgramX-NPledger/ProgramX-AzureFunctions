@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
+using Newtonsoft.Json;
 using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
@@ -21,9 +22,11 @@ using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using ProgramX.Azure.FunctionApp.Osm;
+using ProgramX.Azure.FunctionApp.Osm.Constants;
 using ProgramX.Azure.FunctionApp.Osm.Helpers;
 using ProgramX.Azure.FunctionApp.Osm.Model;
 using ProgramX.Azure.FunctionApp.Osm.Model.Criteria;
+using ProgramX.Azure.FunctionApp.Osm.Model.Osm.Responses;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
@@ -35,15 +38,18 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
 {
     private readonly ILogger<OsmIntegrationHttpTrigger> _logger;
     private readonly IOsmClient _osmClient;
+    private readonly IIntegrationRepository _integrationRepository;
 
 
     public OsmIntegrationHttpTrigger(ILogger<OsmIntegrationHttpTrigger> logger,
         IConfiguration configuration,
-        IOsmClient osmClient
+        IOsmClient osmClient,
+        IIntegrationRepository integrationRepository
         ) : base(configuration,logger)
     {
         _logger = logger;
         _osmClient = osmClient;
+        _integrationRepository = integrationRepository;
     }
 
     [Function(nameof(InitiateKeyExchange))]
@@ -123,21 +129,53 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
             var osmTokenUrl = "https://www.onlinescoutmanager.co.uk/oauth/token";
             
             var tokenResponse = await httpClient.PostAsync(osmTokenUrl, content);
-            string json = await tokenResponse.Content.ReadAsStringAsync();
+            string jsonAsString = await tokenResponse.Content.ReadAsStringAsync();
+            
+            // save tokens
+            var tokens = System.Text.Json.JsonSerializer.Deserialize<OsmTokenRefreshResponse>(jsonAsString);
+            if (tokens.IsError)
+            {
+                throw new OsmException(tokens);
+            }
+            
+            await _integrationRepository.SetBearerAndRefreshTokensAsync(ServiceConstants.ServiceName, Configuration["Osm:ClientId"], tokens.AccessToken, tokens.RefreshToken);
+            
+            
 
             if (!tokenResponse.IsSuccessStatusCode)
             {
-                _logger.LogError("Token exchange failed: {json}", json);
-                return await HttpResponseDataFactory.CreateForServerError(httpRequestData, json);
+                _logger.LogError("Token exchange failed: {json}", jsonAsString);
+                return await HttpResponseDataFactory.CreateForServerError(httpRequestData, jsonAsString);
             }
 
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, json);
+            // return enough
+            string responseBody = @$"
+<html>
+    <head>
+        <title>OSM Authentication Complete</title>
+    </head>
+    <body>
+<script ""text/javascript"">
+            window.opener?.postMessage(
+            {{ type: 'LOGIN_COMPLETE', data: {jsonAsString} }},
+            window.location.origin
+                );
+
+            window.close();
+</script>
+        <p>OSM authentication complete. You can close this window.</p>
+    </body>
+</html>
+";
+            
+            
+            return await HttpResponseDataFactory.CreateForSuccessAsHtml(httpRequestData, responseBody);
         }
     }
     
     private static string GetRedirectUri(HttpRequestData httpRequestData)
     {
-        return $"{httpRequestData.Url.Scheme}s://{httpRequestData.Url.Authority}/api/v1/scouts/osm/completekeyexchange";
+        return $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}/api/v1/scouts/osm/completekeyexchange";
     }
  
     [Function(nameof(GetMembers))]
@@ -146,7 +184,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
         int termId,
         int? sectionId)
     { 
-        return await RequiresAuthentication(httpRequestData, ["admin","reader"], async (userName, _) =>
+        return await RequiresAuthentication(httpRequestData, ["admin","scout-reader"], async (_, _) =>
         {
             var terms = await _osmClient.GetMembersAsync(new GetMembersCriteria()
             {

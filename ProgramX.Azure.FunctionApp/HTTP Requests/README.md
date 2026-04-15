@@ -13,7 +13,7 @@ Integration with the Online Scout Manager API. This integration requires authent
 
 ### How to authenticate with the OSM API
 
-In order to authentication with the OSM API, an OAuth2 token must be obtained.
+In order to authenticate with the OSM API, an OAuth2 token must be obtained.
 
 1. Use the endpoint `GET  {{host}}/api/v1/scouts/osm/initiatekeyexchange` in the `Osm.http` file. 
 2. Browse to the URL in the `url` property returned, ensuring the `redirect_uri` matches the application URL defined in the OSM application _precisely_, ie. remove any encoding and verify the scheme is correct.

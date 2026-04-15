@@ -65,6 +65,7 @@ public class OsmClient : IOsmClient
         return terms;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Meeting>> GetMeetingsAsync(GetMeetingsCriteria criteria)
     {
        // https://www.onlinescoutmanager.co.uk/ext/programme/?action=getProgrammeSummary&sectionid=54338&termid=849238&verbose=1
@@ -90,26 +91,60 @@ public class OsmClient : IOsmClient
         return meetings;
     }
     
+    // public async Task<IEnumerable<Member>> GetMembersAsync(GetMembersCriteria criteria)
+    // {
+    //     // GET https://www.onlinescoutmanager.co.uk/ext/members/contact/?action=getListOfMembers&sort=dob&sectionid=54338&termid=849238&section=scouts
+    //     
+    //     var uriBilder = new UriBuilder("https://www.onlinescoutmanager.co.uk/ext/members/contact/");
+    //     uriBilder.Query = $"action=getListOfMembers&sort={Translation.TranslateSortBy(criteria.SortBy)}&termid={criteria.TermId}&section={criteria.SectionName}";
+    //     uriBilder.Query += $"&sectionid={criteria.SectionId ?? SectionId}";
+    //     
+    //     var s = await _httpClient.GetStringAsync(uriBilder.Uri);
+    //     var getMembersResponse = await _httpClient.GetFromJsonAsync<GetMembersResponse>(uriBilder.Uri);
+    //     return getMembersResponse.Items.Select(q => new Member()
+    //     {
+    //         Age = Translation.TranslateAgeFromStringToPreciseAge(q.Age),
+    //         FirstName = q.FirstName,
+    //         LastName = q.LastName,
+    //         FullName = q.FullName,
+    //         IsActive = q.IsActive,
+    //         OsmScoutId = q.OsmScoutId,
+    //         PatrolRoleLevel = q.PatrolRoleLevelLabel,
+    //     });
+    // }
+    
     public async Task<IEnumerable<Member>> GetMembersAsync(GetMembersCriteria criteria)
     {
         // GET https://www.onlinescoutmanager.co.uk/ext/members/contact/?action=getListOfMembers&sort=dob&sectionid=54338&termid=849238&section=scouts
         
-        var uriBilder = new UriBuilder("https://www.onlinescoutmanager.co.uk/ext/members/contact/");
-        uriBilder.Query = $"action=getListOfMembers&sort={Translation.TranslateSortBy(criteria.SortBy)}&termid={criteria.TermId}&section={criteria.SectionName}";
-        uriBilder.Query += $"&sectionid={criteria.SectionId ?? SectionId}";
+        var uriBuilder = new UriBuilder("https://www.onlinescoutmanager.co.uk/ext/members/contact/");
+        uriBuilder.Query = $"action=getListOfMembers&sort={Translation.TranslateSortBy(criteria.SortBy)}&termid={criteria.TermId}&section={criteria.SectionName}";
+        uriBuilder.Query += $"&sectionid={criteria.SectionId ?? SectionId}";
         
-        var s = await _httpClient.GetStringAsync(uriBilder.Uri);
-        var getMembersResponse = await _httpClient.GetFromJsonAsync<GetMembersResponse>(uriBilder.Uri);
-        return getMembersResponse.Items.Select(q => new Member()
+        var s = await _httpClient.GetStringAsync(uriBuilder.Uri);
+        var getMembersResponse = await _httpClient.GetFromJsonAsync<GetMembersResponse>(uriBuilder.Uri);
+        if (getMembersResponse != null)
         {
-            Age = Translation.TranslateAgeFromStringToPreciseAge(q.Age),
-            FirstName = q.FirstName,
-            LastName = q.LastName,
-            FullName = q.FullName,
-            IsActive = q.IsActive,
-            OsmScoutId = q.OsmScoutId,
-            PatrolRoleLevel = q.PatrolRoleLevelLabel,
-        });
+            return getMembersResponse.Items.Select(q => new Member()
+            {
+                Age = Translation.TranslateAgeFromStringToPreciseAge(q.Age),
+                FirstName = q.FirstName,
+                LastName = q.LastName,
+                FullName = q.FullName,
+                IsActive = q.IsActive,
+                OsmScoutId = q.OsmScoutId,
+                PatrolRoleLevel = q.PatrolRoleLevelLabel,
+                HasInvitations = q.HasInvitations,
+                OsmSectionId = q.OsmSectionId,
+                StartDate = q.StartDate,
+                EndDate = q.EndDate,
+                OsmPatrolId = q.OsmPatrolId,
+                PatrolNameAndLevel = q.PatrolName,
+                PhotoId = q.PhotoGuid
+            });
+        }
+
+        throw new OsmException($"Failed to {nameof(GetMembersAsync)}", uriBuilder.Uri.ToString());
     }
 
 
