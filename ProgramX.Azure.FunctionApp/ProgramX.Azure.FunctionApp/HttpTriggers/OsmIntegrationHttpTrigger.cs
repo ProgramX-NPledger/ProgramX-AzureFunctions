@@ -19,6 +19,9 @@ using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Constants;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
+using ProgramX.Azure.FunctionApp.Model.DTOs.Osm;
+using ProgramX.Azure.FunctionApp.Model.DTOs.Osm.Response;
+using ProgramX.Azure.FunctionApp.Model.Osm;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using ProgramX.Azure.FunctionApp.Osm;
@@ -186,16 +189,18 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
     { 
         return await RequiresAuthentication(httpRequestData, ["admin","scout-reader"], async (_, _) =>
         {
-            var terms = await _osmClient.GetMembersAsync(new GetMembersCriteria()
+            var members = (await _osmClient.GetMembersAsync(new GetMembersCriteria()
             {
                 TermId = termId,
                 SectionId = sectionId
-            });
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, terms);
+            })).ToList();
+            
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, members);
         });
     }
-    
-    
+
+  
+
     [Function(nameof(GetMeetings))]
     public async Task<HttpResponseData> GetMeetings(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/meetings")] HttpRequestData httpRequestData,
@@ -252,7 +257,22 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
              {
                  SectionId = sectionId
              });
-             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, terms);
+             var getTermsResponse = new GetTermsResponse()
+             {
+                 Items = terms.Select(q => new TermDto()
+                 {
+                     Name = q.Name,
+                     StartDate = q.StartDate,
+                     EndDate = q.EndDate,
+                     OsmTermId = q.OsmTermId,
+                     MasterTerm = q.MasterTerm,
+                     IsPast = q.IsPast,
+                     SectionId = q.SectionId,
+                     IsCurrent = q.IsCurrent
+                 }).ToList()
+             };
+             
+             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, getTermsResponse);
          });
      }
     

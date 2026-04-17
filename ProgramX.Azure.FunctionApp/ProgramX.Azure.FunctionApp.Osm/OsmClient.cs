@@ -125,7 +125,7 @@ public class OsmClient : IOsmClient
         var getMembersResponse = await _httpClient.GetFromJsonAsync<GetMembersResponse>(uriBuilder.Uri);
         if (getMembersResponse != null)
         {
-            return getMembersResponse.Items.Select(q => new Member()
+            var members = getMembersResponse.Items.Select(q => new Member()
             {
                 Age = Translation.TranslateAgeFromStringToPreciseAge(q.Age),
                 FirstName = q.FirstName,
@@ -141,11 +141,31 @@ public class OsmClient : IOsmClient
                 OsmPatrolId = q.OsmPatrolId,
                 PatrolNameAndLevel = q.PatrolName,
                 PhotoId = q.PhotoGuid
-            });
+            }).ToList();
+            
+            var membersWithPatrols = new List<Member>();
+            foreach (var member in members)
+            {
+                var patrolName = GetPatrolName(member, members);
+                member.PatrolName = patrolName;
+                membersWithPatrols.Add(member);
+            }
+            
+            return membersWithPatrols;
         }
 
         throw new OsmException($"Failed to {nameof(GetMembersAsync)}", uriBuilder.Uri.ToString());
     }
+    
+    private string GetPatrolName(Member member, IList<Member> members)
+    {
+        var allMembersInPatrol = members.Where(q => q.OsmPatrolId == member.OsmPatrolId);
+        var memberWithShortestPatrolName = allMembersInPatrol
+            .Where(q => !string.IsNullOrWhiteSpace(q.PatrolNameAndLevel))
+            .OrderBy(q => q.PatrolNameAndLevel!.Length).First();
+        return memberWithShortestPatrolName.PatrolNameAndLevel ?? string.Empty;
+    }
+
 
 
     public async Task<IEnumerable<Attendance>> GetAttendanceAsync(GetAttendanceCriteria criteria)

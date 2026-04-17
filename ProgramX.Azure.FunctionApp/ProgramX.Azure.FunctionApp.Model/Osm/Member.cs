@@ -22,6 +22,8 @@ public class Member
 
     public string? PatrolNameAndLevel { get; set; }
 
+    public string PatrolName { get; set; }
+
     public bool? HasInvitations { get; set; }
     
 }
