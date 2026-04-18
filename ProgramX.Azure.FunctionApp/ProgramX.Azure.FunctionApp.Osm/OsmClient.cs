@@ -159,7 +159,8 @@ public class OsmClient : IOsmClient
     
     private string GetPatrolName(Member member, IList<Member> members)
     {
-        var allMembersInPatrol = members.Where(q => q.OsmPatrolId == member.OsmPatrolId);
+        var allMembersInPatrol = members.Where(q => q.OsmPatrolId == member.OsmPatrolId).ToList();
+        if (!allMembersInPatrol.Any()) return string.Empty;
         var memberWithShortestPatrolName = allMembersInPatrol
             .Where(q => !string.IsNullOrWhiteSpace(q.PatrolNameAndLevel))
             .OrderBy(q => q.PatrolNameAndLevel!.Length).First();
