@@ -76,17 +76,61 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
 
     public async Task CreateScoreAsync(ScoutingScore scoutingScore)
     {
-        using (logger.BeginScope("CreateScoreAsync {scoutingScore}", scoutingScore))
+        throw new NotImplementedException();
+    }
+
+
+    /// <inheritdoc />
+    /// <exception cref="InvalidOperationException">Thrown if required initialisation properties are <c>null</c>.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if required parameters are <c>null</c>.</exception>
+    public async Task<IResult<ScoutingScore>> GetScoutingScoresAsync(GetScoutingScoresCriteria criteria, 
+        PagedCriteria? pagedCriteria = null)
+    {  
+        using (logger.BeginScope("GetScoutingScoresAsync {criteria}, {pagedCriteria}", criteria, pagedCriteria?.ToString() ?? "null"))
+        {
+            QueryDefinition queryDefinition = BuildQueryDefinitionForScoutingScores(criteria);
+            logger.LogDebug("QueryDefinition: {queryDefinition}", queryDefinition);
+            
+            CosmosReader<ScoutingScore> cosmosReader;
+            IResult<ScoutingScore> result;
+            if (pagedCriteria != null)
+            {
+                cosmosReader = new CosmosPagedReader<ScoutingScore>(cosmosClient,
+                    DatabaseNames.Scouting,
+                    ContainerNames.Scores,
+                    ContainerNames.ScoresPartitionKey);
+                result = await ((CosmosPagedReader<ScoutingScore>)cosmosReader).GetPagedItemsAsync(queryDefinition,
+                    pagedCriteria.Offset,
+                    pagedCriteria.ItemsPerPage);
+            }
+            else
+            {
+                cosmosReader = new CosmosReader<ScoutingScore>(cosmosClient,
+                    DatabaseNames.Scouting,
+                    ContainerNames.Scores,
+                    ContainerNames.ScoresPartitionKey);
+                result = await cosmosReader.GetItemsAsync(queryDefinition);
+            }
+
+            logger.LogDebug("Result: {result}", result);
+            result.IsRequiredToBeOrderedByClient = false;
+            return result;
+        }
+    }
+
+    public async Task CreateScoutingScoreItemAsync(ScoutingScoreItem scoutingScoreItem)
+    {
+        using (logger.BeginScope("CreateScoutingScoreItemAsync {scoutingScoreItem}", scoutingScoreItem))
         {
             var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync(DatabaseNames.Scouting);
-            var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(ContainerNames.Scores, ContainerNames.ScoresPartitionKey);
+            var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(ContainerNames.ScoresLedger, ContainerNames.ScoresLedgerPartitionKey);
 
-            var response = await containerResponse.Container.CreateItemAsync(scoutingScore, new PartitionKey(scoutingScore.id));
+            var response = await containerResponse.Container.CreateItemAsync(scoutingScoreItem, new PartitionKey(scoutingScoreItem.id));
 
             if (response.StatusCode != HttpStatusCode.Created)
             {
                 logger.LogError(
-                    "Failed to create {type} with id {id} with status code {statusCode} and response {response}", nameof(ScoutingActivity),scoutingScore.id,
+                    "Failed to create {type} with id {id} with status code {statusCode} and response {response}", nameof(ScoutingActivity),scoutingScoreItem.id,
                     response.StatusCode, response);
                 throw new RepositoryException(OperationType.Create, typeof(ScoutingActivity));
             }
@@ -223,6 +267,42 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
                 sb.Append($"CONTAINS(UPPER(c.referencesMarkdown), @containsText{i}) OR");
                 sb.Append($"CONTAINS(UPPER(c.title), @containsText{i})");
                 sb.Append($"CONTAINS(UPPER(c.contributesTowardsOsmBadgeName), @containsText{i})");
+                parameters.Add(($"@containsText{i}", keyword.ToUpperInvariant()));
+            }
+            sb.Append(")");
+        }
+        
+        var queryDefinition = new QueryDefinition(sb.ToString());
+        foreach (var param in parameters)
+        {
+            queryDefinition.WithParameter(param.name, param.value);
+        }
+        return queryDefinition;
+        
+    }
+    
+    
+    private QueryDefinition BuildQueryDefinitionForScoutingScores(GetScoutingScoresCriteria criteria)
+    {
+        var sb = new StringBuilder(@"SELECT c.id, c.name, c.score, c.isDynamicallyCalculated, c.ordinal, c.createdAt, c.updatedAt,
+        c.schemaVersionNumber FROM c WHERE 1=1");
+        var parameters = new List<(string name, object value)>();
+        
+        if (!string.IsNullOrWhiteSpace(criteria.Id))
+        {
+            sb.Append(" AND (c.id=@id)");
+            parameters.Add(("@id", criteria.Id));
+        }
+        
+        if (!string.IsNullOrWhiteSpace(criteria.ContainingText))
+        {
+            var keywords = criteria.ContainingText.Split(' ');
+
+            sb.Append(@" AND (");
+            var i = 0;
+            foreach (var keyword in keywords)
+            {
+                sb.Append($"CONTAINS(UPPER(c.name), @containsText{i})");
                 parameters.Add(($"@containsText{i}", keyword.ToUpperInvariant()));
             }
             sb.Append(")");

@@ -7,14 +7,14 @@ namespace ProgramX.Azure.FunctionApp.ApplicationDefinitions;
 public abstract class ApplicationHealthCheckBase
 {
     protected readonly string AllRolesAcrossAllUsersName = "AllRolesAcrossAllUsers";
-        
-    protected readonly ApplicationMetaData _applicationMetaData;
-    protected readonly IUserRepository _userRepository;
+
+    protected ApplicationMetaData MetaData { get; private set; }
+    protected readonly IUserRepository UserRepository;
     
     protected ApplicationHealthCheckBase(ApplicationMetaData applicationMetaData, IUserRepository userRepository)
     {
-        _applicationMetaData = applicationMetaData;
-        _userRepository = userRepository;
+        MetaData = applicationMetaData;
+        UserRepository = userRepository;
     }
     
     protected async Task<HealthCheckItemResult> GetHealthCheckForAllRolesAcrossAllUsersAsync()
@@ -25,13 +25,13 @@ public abstract class ApplicationHealthCheckBase
             Name = AllRolesAcrossAllUsersName,
         };
 
-        var allUsersWithApplication = await _userRepository.GetUsersAsync(new GetUsersCriteria()
+        var allUsersWithApplication = await UserRepository.GetUsersAsync(new GetUsersCriteria()
         {
-            HasAccessToApplications = [_applicationMetaData.Name],
+            HasAccessToApplications = [MetaData.Name],
         });
 
         var missingRoles = new List<string>();
-        foreach (var role in _applicationMetaData.RequiresRoleNames)
+        foreach (var role in MetaData.RequiresRoleNames)
         {
             if (!allUsersWithApplication.Items.Any(q => q.roles.Any(r => r.name == role)))
             {
@@ -68,28 +68,28 @@ public abstract class ApplicationHealthCheckBase
         };
         
         // create required roles within admin user
-        var adminUser = await _userRepository.GetUserByUserNameAsync("admin");
+        var adminUser = await UserRepository.GetUserByUserNameAsync("admin");
         if (adminUser == null)
         {
             throw new InvalidOperationException("Admin user not found");
         }
         
         // get the application for Scouting
-        var application = await _userRepository.GetApplicationByNameAsync(_applicationMetaData.Name);
+        var application = await UserRepository.GetApplicationByNameAsync(MetaData.Name);
         if (application == null)
         {
             application = applicationToLinkToRoles;
-            ((List<string>)allRolesAcrossAllUsersHealthCheckResult.Messages).Add($"Created missing Application {_applicationMetaData.Name} for inclusion in required roles");
+            ((List<string>)allRolesAcrossAllUsersHealthCheckResult.Messages).Add($"Created missing Application {MetaData.Name} for inclusion in required roles");
         }
         
-        foreach (var requiredRole in _applicationMetaData.RequiresRoleNames)
+        foreach (var requiredRole in MetaData.RequiresRoleNames)
         {
             // ensure role doesn't already exist
-            if (await _userRepository.GetRoleByNameAsync(requiredRole) != null) continue;
+            if (await UserRepository.GetRoleByNameAsync(requiredRole) != null) continue;
             
             try
             {
-                await _userRepository.CreateRoleAsync(new Role()
+                await UserRepository.CreateRoleAsync(new Role()
                 {
                     name = requiredRole,
                     description = $"Created by {nameof(FixHealthCheckForAllRolesAcrossAllUsersAsync)} for {AllRolesAcrossAllUsersName}",
@@ -101,7 +101,7 @@ public abstract class ApplicationHealthCheckBase
                 {
                     adminUser.userName
                 });
-                ((List<string>)allRolesAcrossAllUsersHealthCheckResult.Messages).Add($"Added role {requiredRole} and adding to Admin User {adminUser.userName} and adding Application {_applicationMetaData.Name}");
+                ((List<string>)allRolesAcrossAllUsersHealthCheckResult.Messages).Add($"Added role {requiredRole} and adding to Admin User {adminUser.userName} and adding Application {MetaData.Name}");
             }
             catch (Exception e)
             {

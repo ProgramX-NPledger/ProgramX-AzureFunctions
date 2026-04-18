@@ -20,7 +20,7 @@ public class HealthCheck : ApplicationHealthCheckBase, IApplicationHealthCheck
     {
         var result = new HealthCheckResult()
         {
-            HealthCheckName = _applicationMetaData.FriendlyName,
+            HealthCheckName = MetaData.FriendlyName,
             Items = new List<HealthCheckItemResult>()
             {
                 await GetHealthCheckForAllRolesAcrossAllUsersAsync()
@@ -55,20 +55,20 @@ public class HealthCheck : ApplicationHealthCheckBase, IApplicationHealthCheck
     
     private async Task<Application> CreateApplicationAsync()
     {
-        var allApplications = await _userRepository.GetApplicationsAsync(new GetApplicationsCriteria());
+        var allApplications = await UserRepository.GetApplicationsAsync(new GetApplicationsCriteria());
         var applicationWithHighestOrdinal = allApplications.Items.OrderByDescending(q => q.ordinal).FirstOrDefault();
 
         return new Application()
         {
-            name = _applicationMetaData.Name,
-            friendlyName = _applicationMetaData.FriendlyName,
+            name = MetaData.Name,
+            friendlyName = MetaData.FriendlyName,
             createdAt = DateTime.UtcNow,
             isDefaultApplicationOnLogin = false,
             ordinal = (applicationWithHighestOrdinal?.ordinal ?? 0) + 1,
             schemaVersionNumber = 3,
             updatedAt = DateTime.UtcNow,
-            metaDataDotNetAssembly = _applicationMetaData.GetType().Assembly.GetName().Name,
-            metaDataDotNetType = _applicationMetaData.GetType().Name
+            metaDataDotNetAssembly = MetaData.GetType().Assembly.GetName().Name,
+            metaDataDotNetType = MetaData.GetType().Name
         };
     }
     

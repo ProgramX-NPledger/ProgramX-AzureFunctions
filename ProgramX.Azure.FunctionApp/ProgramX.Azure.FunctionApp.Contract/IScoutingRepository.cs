@@ -36,4 +36,21 @@ public interface IScoutingRepository
     /// <param name="scoutingScore"></param>
     /// <returns></returns>
     Task AddScoreItemAsync(ScoutingScoreItem scoutingScore);
+
+    /// <summary>
+    /// Gets Scouting Scores.
+    /// </summary>
+    /// <param name="criteria"></param>
+    /// <param name="pagedCriteria"></param>
+    /// <returns></returns>
+    Task<IResult<ScoutingScore>> GetScoutingScoresAsync(GetScoutingScoresCriteria criteria, PagedCriteria? pagedCriteria = null);
+
+
+    /// <summary>
+    /// Creates a Scouting Score Item.
+    /// </summary>
+    /// <param name="scoutingScoreItem"></param>
+    /// <returns></returns>
+    Task CreateScoutingScoreItemAsync(ScoutingScoreItem scoutingScoreItem);
+
 }

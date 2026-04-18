@@ -6,6 +6,13 @@ namespace ProgramX.Azure.FunctionApp.ApplicationDefinitions;
 
 public class ScoutingApplication : IApplication
 {
+    private readonly IScoutingRepository _scoutingRepository;
+
+    public ScoutingApplication(IScoutingRepository scoutingRepository)
+    {
+        _scoutingRepository = scoutingRepository;
+    }
+    
     /// <inheritdoc/>
     public ApplicationMetaData GetApplicationMetaData()
     {
@@ -13,7 +20,7 @@ public class ScoutingApplication : IApplication
         {
             Name = "scouting",
             FriendlyName = "Scouting",
-            RequiresRoleNames = ["admin", "pii-reader", "osm-reader", "scouts-reader", "scouts-writer"],
+            RequiresRoleNames = ["admin", "scouts-reader", "scouts-writer"],
             TargetUrl = "/scouting",
             Description = "Manage scouting data",
             ImageUrl = null
@@ -23,7 +30,7 @@ public class ScoutingApplication : IApplication
     /// <inheritdoc/>
     public async Task<IApplicationHealthCheck> GetHealthCheckAsync(IUserRepository userRepository)
     {
-        return new HealthCheck(this.GetApplicationMetaData(),userRepository);
+        return new HealthCheck(this.GetApplicationMetaData(),userRepository,_scoutingRepository);
     }
 }
 

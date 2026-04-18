@@ -34,6 +34,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using EmailMessage = ProgramX.Azure.FunctionApp.Model.EmailMessage;
+using GetMembersResponse = ProgramX.Azure.FunctionApp.Model.DTOs.Osm.Response.GetMembersResponse;
 
 namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 
@@ -187,7 +188,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
         int termId,
         int? sectionId)
     { 
-        return await RequiresAuthentication(httpRequestData, ["admin","scout-reader"], async (_, _) =>
+        return await RequiresAuthentication(httpRequestData, ["admin","scouts-reader"], async (_, _) =>
         {
             var members = (await _osmClient.GetMembersAsync(new GetMembersCriteria()
             {
@@ -195,7 +196,29 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
                 SectionId = sectionId
             })).ToList();
             
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, members);
+            var getMembersResponse = new GetMembersResponse()
+            {
+                Items = members.Select(q => new MemberDto()
+                {
+                    Age = q.Age,
+                    FirstName = q.FirstName,
+                    LastName = q.LastName,
+                    PatrolRoleLevel = q.PatrolRoleLevel,
+                    OsmScoutId = q.OsmScoutId,
+                    StartDate = q.StartDate,
+                    EndDate = q.EndDate,
+                    IsActive = q.IsActive,
+                    FullName = q.FullName,
+                    OsmSectionId = q.OsmSectionId,
+                    OsmPatrolId = q.OsmPatrolId,
+                    PatrolNameAndLevel = q.PatrolNameAndLevel,
+                    HasInvitations = q.HasInvitations,
+                    PatrolName = q.PatrolName,
+                    PhotoId = q.PhotoId
+                }).ToList()
+            };
+            
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, getMembersResponse);
         });
     }
 
@@ -251,7 +274,7 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
          [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/terms")] HttpRequestData httpRequestData,
          int? sectionId)
      { 
-         return await RequiresAuthentication(httpRequestData, ["admin","reader"], async (userName, _) =>
+         return await RequiresAuthentication(httpRequestData, ["admin","scouts-reader"], async (_, _) =>
          {
              var terms = await _osmClient.GetTermsAsync(new GetTermsCriteria()
              {

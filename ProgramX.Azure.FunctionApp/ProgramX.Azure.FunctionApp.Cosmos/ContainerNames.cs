@@ -20,5 +20,8 @@ public static class ContainerNames
     public const string Scores = "scores";
     public const string ScoresPartitionKey = "/id";
 
+    public const string ScoresLedger = "scoresLedger";
+    public const string ScoresLedgerPartitionKey = "/id";
+
 }
  
