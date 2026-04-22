@@ -49,8 +49,8 @@ jobs:
 
       - name: Set Function App settings
         run: |
-          az functionapp config appsettings set --name ${{ secrets.FUNCTION_APP_NAME }} --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --settings GIT_COMMIT_SHA="${GIT_COMMIT_SHA}" BUILD_NUMBER="${BUILD_NUMBER}" DEPLOYED_AT="${DEPLOYED_AT}"
-          
+          az functionapp config appsettings set --name fa-programx --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --settings GIT_COMMIT_SHA="${GIT_COMMIT_SHA}" BUILD_NUMBER="${BUILD_NUMBER}" DEPLOYED_AT="${DEPLOYED_AT}"
+
       - name: 'Deploy Azure Functions App to Staging'
         uses: Azure/functions-action@v1
         id: fa
