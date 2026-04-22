@@ -6,8 +6,13 @@ namespace ProgramX.Azure.FunctionApp.ApplicationDefinitions;
 
 public class ScoutingApplication : IApplication
 {
-    private readonly IScoutingRepository _scoutingRepository;
+    private readonly IScoutingRepository? _scoutingRepository;
 
+    public ScoutingApplication()
+    {
+        _scoutingRepository = null;
+    }
+    
     public ScoutingApplication(IScoutingRepository scoutingRepository)
     {
         _scoutingRepository = scoutingRepository;
