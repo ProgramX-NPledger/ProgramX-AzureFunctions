@@ -23,7 +23,10 @@ public class HealthCheck : ApplicationHealthCheckBase, IApplicationHealthCheck
             HealthCheckName = MetaData.FriendlyName,
             Items = new List<HealthCheckItemResult>()
             {
-                await GetHealthCheckForAllRolesAcrossAllUsersAsync()
+                await GetHealthCheckForAllRolesAcrossAllUsersAsync(),
+                GetGitHubCommitHash(),
+                GetBuildNumber(),
+                GetDeployedAt()
             }
         };
         result.IsHealthy = result.Items.All(q=>q.IsHealthy ?? false);
@@ -33,15 +36,41 @@ public class HealthCheck : ApplicationHealthCheckBase, IApplicationHealthCheck
 
     }
 
-    public async Task<HealthCheckItemResult> GetGitHubCommitHashAsync()
+    public HealthCheckItemResult GetGitHubCommitHash()
     {
-        var commitHash = Environment.GetEnvironmentVariable("GITHUB_SHA") ?? "unknown";
+        var commitHash = Environment.GetEnvironmentVariable("GIT_COMMIT_SHA") ?? "unknown";
         return new HealthCheckItemResult
         {
             Name = "GitHubCommitHash",
             IsHealthy = true,
-            Message = $"Current commit hash: {commitHash}",
+            Message = commitHash,
             FriendlyName = "GitHub Commit Hash"
+        };
+    }
+    
+    
+    public HealthCheckItemResult GetBuildNumber()
+    {
+        var buildNumber = Environment.GetEnvironmentVariable("BUILD_NUMBER") ?? "unknown";
+        return new HealthCheckItemResult
+        {
+            Name = "GetBuildNumber",
+            IsHealthy = true,
+            Message = buildNumber,
+            FriendlyName = "Build number"
+        };
+    }
+    
+    
+    public HealthCheckItemResult GetDeployedAt()
+    {
+        var deployedAt = Environment.GetEnvironmentVariable("DEPLOYED_AT") ?? "unknown";
+        return new HealthCheckItemResult
+        {
+            Name = "GetDeployedAt",
+            IsHealthy = true,
+            Message = deployedAt,
+            FriendlyName = "Deployment date"
         };
     }
     
