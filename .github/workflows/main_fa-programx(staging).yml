@@ -12,6 +12,9 @@ on:
 env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'ProgramX.Azure.FunctionApp' # set this to the path to your web app project, defaults to the repository root
   DOTNET_VERSION: '9.0.x' # set this to the dotnet version to use
+  GIT_COMMIT_SHA: ${{ github.sha }}
+  BUILD_NUMBER: ${{ github.run_number }}
+  DEPLOYED_AT: ${{ github.event.head_commit.timestamp }}
 
 jobs:
   build-and-deploy:
@@ -28,6 +31,16 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Set Function App settings
+        run: |
+          az functionapp config appsettings set \
+            --name ${{ secrets.FUNCTION_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --settings \
+              GIT_COMMIT_SHA="${GIT_COMMIT_SHA}" \
+              BUILD_NUMBER="${BUILD_NUMBER}" \
+              DEPLOYED_AT="${DEPLOYED_AT}"
 
       - name: 'Build'
         working-directory: ./ProgramX.Azure.FunctionApp
