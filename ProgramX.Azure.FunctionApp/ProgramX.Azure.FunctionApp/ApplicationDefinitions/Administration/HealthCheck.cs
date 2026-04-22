@@ -33,6 +33,17 @@ public class HealthCheck : ApplicationHealthCheckBase, IApplicationHealthCheck
 
     }
 
+    public async Task<HealthCheckItemResult> GetGitHubCommitHashAsync()
+    {
+        var commitHash = Environment.GetEnvironmentVariable("GITHUB_SHA") ?? "unknown";
+        return new HealthCheckItemResult
+        {
+            Name = "GitHubCommitHash",
+            IsHealthy = true,
+            Message = $"Current commit hash: {commitHash}",
+            FriendlyName = "GitHub Commit Hash"
+        };
+    }
     
     /// <inheritdoc/>
     public async Task<FixApplicationHealthCheckResult> FixHealthAsync(HealthCheckResult healthCheckResult)

@@ -117,6 +117,57 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
             return result;
         }
     }
+    
+    
+    /// <inheritdoc />
+    /// <exception cref="InvalidOperationException">Thrown if required initialisation properties are <c>null</c>.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if required parameters are <c>null</c>.</exception>
+    public async Task<IResult<ScoutingScoreItem>> GetScoutingScoreItemsAsync(GetScoutingScoreItemsCriteria criteria, 
+        PagedCriteria? pagedCriteria = null)
+    {  
+        using (logger.BeginScope("GetScoutingScoreItemsAsync {criteria}, {pagedCriteria}", criteria, pagedCriteria?.ToString() ?? "null"))
+        {
+            QueryDefinition queryDefinition = BuildQueryDefinitionForScoutingScoreItems(criteria);
+            logger.LogDebug("QueryDefinition: {queryDefinition}", queryDefinition);
+            
+            CosmosReader<ScoutingScoreItem> cosmosReader;
+            IResult<ScoutingScoreItem> result;
+            if (pagedCriteria != null)
+            {
+                cosmosReader = new CosmosPagedReader<ScoutingScoreItem>(cosmosClient,
+                    DatabaseNames.Scouting,
+                    ContainerNames.ScoresLedger,
+                    ContainerNames.ScoresLedgerPartitionKey);
+                result = await ((CosmosPagedReader<ScoutingScoreItem>)cosmosReader).GetPagedItemsAsync(queryDefinition,
+                    pagedCriteria.Offset,
+                    pagedCriteria.ItemsPerPage);
+            }
+            else
+            {
+                cosmosReader = new CosmosReader<ScoutingScoreItem>(cosmosClient,
+                    DatabaseNames.Scouting,
+                    ContainerNames.ScoresLedger,
+                    ContainerNames.ScoresLedgerPartitionKey);
+                result = await cosmosReader.GetItemsAsync(queryDefinition);
+            }
+
+            logger.LogDebug("Result: {result}", result);
+            result.IsRequiredToBeOrderedByClient = false;
+            return result;
+        }
+    }
+    
+    
+    /// <inheritdoc />
+    public async Task<ScoutingScoreItem?> GetScoutingScoreItemByIdAsync(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException(nameof(id));
+        var scoutingScoreItems = await GetScoutingScoreItemsAsync(new GetScoutingScoreItemsCriteria()
+        {
+            Id = id,
+        });
+        return scoutingScoreItems.Items.SingleOrDefault();
+    }
 
     public async Task CreateScoutingScoreItemAsync(ScoutingScoreItem scoutingScoreItem)
     {
@@ -307,6 +358,42 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
             }
             sb.Append(")");
         }
+        
+        var queryDefinition = new QueryDefinition(sb.ToString());
+        foreach (var param in parameters)
+        {
+            queryDefinition.WithParameter(param.name, param.value);
+        }
+        return queryDefinition;
+        
+    }
+    
+    
+    private QueryDefinition BuildQueryDefinitionForScoutingScoreItems(GetScoutingScoreItemsCriteria criteria)
+    {
+        var sb = new StringBuilder(@"SELECT c.osmMemberId, c.id, c.date, c.date, c.notes, c.scoreName, c.score, c.createdAt, c.updatedAt,
+        c.schemaVersionNumber FROM c WHERE 1=1");
+        var parameters = new List<(string name, object value)>();
+        //
+        // if (!string.IsNullOrWhiteSpace(criteria.Id))
+        // {
+        //     sb.Append(" AND (c.id=@id)");
+        //     parameters.Add(("@id", criteria.Id));
+        // }
+        //
+        // if (!string.IsNullOrWhiteSpace(criteria.ContainingText))
+        // {
+        //     var keywords = criteria.ContainingText.Split(' ');
+        //
+        //     sb.Append(@" AND (");
+        //     var i = 0;
+        //     foreach (var keyword in keywords)
+        //     {
+        //         sb.Append($"CONTAINS(UPPER(c.name), @containsText{i})");
+        //         parameters.Add(($"@containsText{i}", keyword.ToUpperInvariant()));
+        //     }
+        //     sb.Append(")");
+        // }
         
         var queryDefinition = new QueryDefinition(sb.ToString());
         foreach (var param in parameters)

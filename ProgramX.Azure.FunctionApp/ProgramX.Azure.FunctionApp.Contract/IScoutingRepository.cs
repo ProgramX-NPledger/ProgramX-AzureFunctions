@@ -53,4 +53,21 @@ public interface IScoutingRepository
     /// <returns></returns>
     Task CreateScoutingScoreItemAsync(ScoutingScoreItem scoutingScoreItem);
 
+    /// <summary>
+    /// Gets Scouting Score Items.
+    /// </summary>
+    /// <param name="criteria"></param>
+    /// <param name="pagedCriteria"></param>
+    /// <returns></returns>
+    Task<IResult<ScoutingScoreItem>> GetScoutingScoreItemsAsync(GetScoutingScoreItemsCriteria criteria,
+        PagedCriteria? pagedCriteria = null);
+
+    /// <summary>
+    /// Gets a Scouting Score Item by Id.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    Task<ScoutingScoreItem?> GetScoutingScoreItemByIdAsync(string id);
+    
+
 }

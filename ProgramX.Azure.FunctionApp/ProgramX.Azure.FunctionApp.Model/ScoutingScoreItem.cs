@@ -9,6 +9,7 @@ public class ScoutingScoreItem
     public DateOnly date { get; set; }
     public string? notes { get; set; }
     public string scoreName { get; set; }
+    public string? patrolName  { get; set; }
     public int score { get; set; }
     public int schemaVersionNumber { get; set; }
     public DateTime createdAt { get; set; }

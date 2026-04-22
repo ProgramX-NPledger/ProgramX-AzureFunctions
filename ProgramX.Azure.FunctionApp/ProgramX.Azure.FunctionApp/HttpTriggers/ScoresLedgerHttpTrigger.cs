@@ -15,6 +15,7 @@ using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Constants;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.DTOs;
+using ProgramX.Azure.FunctionApp.Model.DTOs.Osm.Response;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using ProgramX.Azure.FunctionApp.Osm;
@@ -64,6 +65,7 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
                 score = createScoutingScoreItemRequest.Score,
                 date = DateOnly.FromDateTime(createScoutingScoreItemRequest.Date),
                 osmMemberId = createScoutingScoreItemRequest.OsmScoutId,
+                patrolName = createScoutingScoreItemRequest.PatrolName,
                 createdAt = DateTime.Now,
                 updatedAt = null,
                 schemaVersionNumber = 1,
@@ -76,6 +78,163 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
             return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newScoutingScoreItem, "scoutingScore", newScoutingScoreItem.id);    
         });
      }
+    
+    
+    
+    
+    
+    [Function(nameof(GetScoutingScoreItemsAsync))]
+    public async Task<HttpResponseData> GetScoutingScoreItemsAsync(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/scoresledger/{id?}")] HttpRequestData httpRequestData,
+        string? id)
+    { 
+        return await RequiresAuthentication(httpRequestData, ["admin","scouts-reader"], async (_, _) =>
+        {
+            if (id == null)
+            {
+                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
+                var patrolName = httpRequestData.Query["patrolName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["patrolName"]!).Split(new [] {','});
+                var scoreName = httpRequestData.Query["scoreName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["scoreName"]!).Split(new [] {','});
+                var onOrAfter = httpRequestData.Query["onOrAfter"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrAfter"]!);
+                var onOrBefore = httpRequestData.Query["onOrBefore"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrBefore"]!);
+
+                var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
+                var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
+                var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
+
+                var criteria = new GetScoutingScoreItemsCriteria()
+                {
+                    PatrolNames = patrolName,
+                    ScoreNames = scoreName,
+                    OnOrAfter = string.IsNullOrWhiteSpace(onOrAfter) ? null : DateOnly.Parse(onOrAfter),
+                    OnOrBefore = string.IsNullOrWhiteSpace(onOrBefore) ? null : DateOnly.Parse(onOrBefore)
+                };
+                var scoutingScoreItems = await _scoutingRepository.GetScoutingScoreItemsAsync(criteria, new PagedCriteria()
+                {
+                    ItemsPerPage = itemsPerPage,
+                    Offset = offset
+                });
+                
+                var baseUrl =
+                    $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
+                
+                var pageUrls = CalculateScoutingScoreItemPageUrls((IPagedResult<ScoutingScoreItemDto>)scoutingScoreItems,
+                    baseUrl,
+                    criteria.PatrolNames,
+                    criteria.ScoreNames,
+                    criteria.OnOrAfter,
+                    criteria.OnOrBefore,
+                    continuationToken, 
+                    offset,
+                    itemsPerPage);
+                
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<ScoutingScoreItem>((IPagedResult<ScoutingScoreItem>)scoutingScoreItems,pageUrls));
+            }
+            else
+            {
+                var scoutingScoreItem = await _scoutingRepository.GetScoutingScoreItemByIdAsync(id);
+                if (scoutingScoreItem==null)
+                {
+                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "ScoutingScoreItem");
+                }
+                
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
+                {
+                    user = scoutingScoreItem
+                });
+            }
+            
+        });
+    }
+
+    
+    
+    private IEnumerable<UrlAccessiblePage> CalculateScoutingScoreItemPageUrls(IPagedResult<ScoutingScoreItemDto> pagedResults, 
+        string baseUrl, 
+        IEnumerable<string>? patrolNames, 
+        IEnumerable<string>? scoreNames, 
+        DateOnly? onOrAfter, 
+        DateOnly? onOrBefore, 
+        string? continuationToken,
+        int offset=0, 
+        int itemsPerPage=PagingConstants.ItemsPerPage)
+    {
+        var currentPageNumber = offset==0 ? 1 : (int)Math.Ceiling((offset+1.0) / itemsPerPage);
+        
+        List<UrlAccessiblePage> pageUrls = new List<UrlAccessiblePage>();
+        for (var pageNumber = 1; pageNumber <= pagedResults.NumberOfPages; pageNumber++)
+        {
+            pageUrls.Add(new UrlAccessiblePage()
+            {
+                Url = BuildScoutingScoreItemPageUrl(baseUrl, patrolNames, scoreNames, onOrAfter, onOrBefore, continuationToken, (pageNumber * itemsPerPage)-itemsPerPage, itemsPerPage),
+                PageNumber = pageNumber,
+                IsCurrentPage = pageNumber == currentPageNumber,
+            });
+        }
+        return pageUrls;
+    }
+    
+    
+    
+    private string BuildScoutingScoreItemPageUrl(string baseUrl, 
+        IEnumerable<string>? patrolNames, 
+        IEnumerable<string>? scoreNames, 
+        DateOnly? onOrAfter, 
+        DateOnly? onOrBefore, 
+        string? continuationToken,
+        int? offset, 
+        int? itemsPerPage)
+    {
+        var parametersDictionary = new Dictionary<string, string>();
+        if (patrolNames != null && patrolNames.Any())
+        {
+            parametersDictionary.Add("patrolNames", Uri.EscapeDataString(string.Join(",", patrolNames)));
+        }
+
+        if (scoreNames != null && scoreNames.Any())
+        {
+            parametersDictionary.Add("scoreNames", Uri.EscapeDataString(string.Join(",", scoreNames)));
+        }
+
+        if (onOrAfter != null)
+        {
+            parametersDictionary.Add("onOrAfter", onOrAfter.Value.ToString("yyyy-MM-dd"));
+        }
+        
+        if (onOrBefore != null)
+        {
+            parametersDictionary.Add("onOrBefore", onOrBefore.Value.ToString("yyyy-MM-dd"));
+        }
+        
+        if (!string.IsNullOrWhiteSpace(continuationToken))
+        {
+            parametersDictionary.Add("continuationToken", Uri.EscapeDataString(continuationToken));
+        }
+
+        if (offset != null)
+        {
+            parametersDictionary.Add("offset",offset.Value.ToString());
+        }
+
+        if (itemsPerPage != null)
+        {
+            parametersDictionary.Add("itemsPerPage",itemsPerPage.Value.ToString());       
+        }
+        
+        var sb=new StringBuilder(baseUrl);
+        if (parametersDictionary.Any())
+        {
+            sb.Append("?");
+            foreach (var param in parametersDictionary)
+            {
+                sb.Append($"{param.Key}={param.Value}&");
+            }
+            sb.Remove(sb.Length-1,1);
+        }
+
+        return sb.ToString();
+    }
+    
     
     
     
