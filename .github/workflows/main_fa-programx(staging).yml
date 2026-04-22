@@ -32,16 +32,6 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Set Function App settings
-        run: |
-          az functionapp config appsettings set \
-            --name ${{ secrets.FUNCTION_APP_NAME }} \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --settings \
-              GIT_COMMIT_SHA="${GIT_COMMIT_SHA}" \
-              BUILD_NUMBER="${BUILD_NUMBER}" \
-              DEPLOYED_AT="${DEPLOYED_AT}"
-
       - name: 'Build'
         working-directory: ./ProgramX.Azure.FunctionApp
         shell: pwsh
@@ -49,6 +39,7 @@ jobs:
           pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
           dotnet build --configuration Release --output ./output
           popd
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -56,6 +47,10 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9B99F2F4C48C4990BBBA16E1419B4DE6 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_A7F0747C32CF4301979B23E995724383 }}
 
+      - name: Set Function App settings
+        run: |
+          az functionapp config appsettings set --name ${{ secrets.FUNCTION_APP_NAME }} --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --settings GIT_COMMIT_SHA="${GIT_COMMIT_SHA}" BUILD_NUMBER="${BUILD_NUMBER}" DEPLOYED_AT="${DEPLOYED_AT}"
+          
       - name: 'Deploy Azure Functions App to Staging'
         uses: Azure/functions-action@v1
         id: fa
