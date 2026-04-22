@@ -45,22 +45,36 @@ public class HealthCheck : ApplicationHealthCheckBase, IApplicationHealthCheck
     private async Task<HealthCheckItemResult> GetHealthCheckForAllScoresDefinedAsync()
     {
         IEnumerable<ScoutingScore> allRequiredItems = GetRequiredScores();
-        var allScoutingScores = (await _scoutingRepository.GetScoutingActivitiesAsync(new GetScoutingActivitiesCriteria())).Items;
-        bool allDefined = allRequiredItems
-            .Select(q => q.id)
-            .All(q => 
-                allScoutingScores
-                    .Select(q => q.id)
-                    .Contains(q));
-        return new HealthCheckItemResult
+        if (_scoutingRepository!=null)
         {
-            IsHealthy = allDefined,
-            Message = allDefined
-                ? "All required scores are defined"
-                : "Some required scores are missing",
-            FriendlyName = "All required scores are defined",
-            Name = "ScoutingScoresDefined"
-        };
+            var allScoutingScores =
+                (await _scoutingRepository.GetScoutingActivitiesAsync(new GetScoutingActivitiesCriteria())).Items;
+            bool allDefined = allRequiredItems
+                .Select(q => q.id)
+                .All(q =>
+                    allScoutingScores
+                        .Select(q => q.id)
+                        .Contains(q));
+            return new HealthCheckItemResult
+            {
+                IsHealthy = allDefined,
+                Message = allDefined
+                    ? "All required scores are defined"
+                    : "Some required scores are missing",
+                FriendlyName = "All required scores are defined",
+                Name = "ScoutingScoresDefined"
+            };
+        }
+        else
+        {
+            return new HealthCheckItemResult
+            {
+                IsHealthy = false,
+                Message = "Scouting repository not available",
+                FriendlyName = "Scouting repository not available",
+                Name = "ScoutingScoresDefined"
+            };
+        }
     }
     
     private IEnumerable<ScoutingScore> GetRequiredScores()
