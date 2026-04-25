@@ -32,6 +32,12 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Set version information
+        run: |
+          sed '/s[[GITHUB_COMMIT_API]]/${{ secrets.GIT_COMMIT_SHA }}/g' appsettings.json > appsettings.json && /
+          sed '/s[[GITHUB_BUILD_API]]/${{ secrets.BUILD_NUMBER }}/g' appsettings.json > appsettings.json && /
+          sed '/s[[GITHUB_DATE_API]]/${{ secrets.DEPLOYED_AT }}/g' appsettings.json > appsettings.json
+
       - name: 'Build'
         working-directory: ./ProgramX.Azure.FunctionApp
         shell: pwsh
@@ -46,10 +52,6 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_B11CEB1F20914D5C8ED4FEE74AD8E500 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9B99F2F4C48C4990BBBA16E1419B4DE6 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_A7F0747C32CF4301979B23E995724383 }}
-
-      - name: Set Function App settings
-        run: |
-          az functionapp config appsettings set --name fa-programx --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --settings GIT_COMMIT_SHA="${GIT_COMMIT_SHA}" BUILD_NUMBER="${BUILD_NUMBER}" DEPLOYED_AT="${DEPLOYED_AT}"
 
       - name: 'Deploy Azure Functions App to Staging'
         uses: Azure/functions-action@v1
