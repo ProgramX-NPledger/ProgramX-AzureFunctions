@@ -7,13 +7,10 @@ public class Application
     public required string name { get; set; }
 
     public string? friendlyName { get; set; }
-    public required string metaDataDotNetAssembly { get; set; }
-    public required string metaDataDotNetType { get; set; }
-    
     
     public string type { get; } = "application";
 
-    public int schemaVersionNumber { get; set;  } = 2;
+    public int schemaVersionNumber { get; set;  } = 3;
 
     public bool isDefaultApplicationOnLogin { get; set; } = false;
 

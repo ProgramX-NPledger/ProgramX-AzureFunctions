@@ -58,9 +58,7 @@ public class UserRepositoryFactory
                                 createdAt = DateTime.UtcNow,
                                 name = $"app {y}",
                                 updatedAt = DateTime.UtcNow,
-                                ordinal = y,
-                                metaDataDotNetAssembly = string.Empty,
-                                metaDataDotNetType = string.Empty
+                                ordinal = y
                             }),
                         name = $"role {x}",
                         updatedAt = DateTime.UtcNow,

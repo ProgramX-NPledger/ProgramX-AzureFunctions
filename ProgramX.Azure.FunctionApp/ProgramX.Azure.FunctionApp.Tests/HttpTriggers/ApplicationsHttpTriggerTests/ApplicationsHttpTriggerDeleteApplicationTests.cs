@@ -21,9 +21,7 @@ public class ApplicationsHttpTriggerDeleteApplicationTests
 
         var existingApplication = new Application()
         {
-            name = applicationName,
-            metaDataDotNetAssembly = string.Empty,
-            metaDataDotNetType = string.Empty
+            name = applicationName
         };
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();

@@ -8,45 +8,46 @@ using ProgramX.Azure.FunctionApp.Model.Exceptions;
 
 namespace ProgramX.Azure.FunctionApp.Cosmos;
 
-public class CosmosHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
+public class CosmosServiceHealthCheck(ILoggerFactory loggerFactory) : IServiceHealthCheck
 {
-    public async Task<HealthCheckResult> CheckHealthAsync()
+    public async Task<ServiceHealthCheckResult> CheckHealthAsync()
     {
-        var logger = loggerFactory.CreateLogger<CosmosHealthCheck>();
-        using (logger.BeginScope("Health Check {HealthCheckName}", nameof(CosmosHealthCheck)))
+        var logger = loggerFactory.CreateLogger<CosmosServiceHealthCheck>();
+        using (logger.BeginScope("Health Check {HealthCheckName}", nameof(CosmosServiceHealthCheck)))
         {
-            var result = new HealthCheckResult()
+            var result = new ServiceHealthCheckResult()
             {
-                HealthCheckName = nameof(CosmosHealthCheck),
+                HealthCheckName = nameof(CosmosServiceHealthCheck),
                 IsHealthy = false,
-                Items = new List<HealthCheckItemResult>()
+                FriendlyName = "Cosmos DB",
+                Items = new List<ServiceHealthCheckItemResult>()
                 {
-                    new HealthCheckItemResult()
+                    new ServiceHealthCheckItemResult()
                     {
                         FriendlyName = "Connection string",
                         Name = "ConnectionString"
                     },
-                    new HealthCheckItemResult()
+                    new ServiceHealthCheckItemResult()
                     {
                         FriendlyName = "Connect to Cosmos DB",
                         Name = "CosmosClient"
                     },
-                    new HealthCheckItemResult()
+                    new ServiceHealthCheckItemResult()
                     {
                         FriendlyName = "Cosmos DB Database",
                         Name = "Database"
                     },
-                    new HealthCheckItemResult()
+                    new ServiceHealthCheckItemResult()
                     {
                         FriendlyName = "Cosmos DB Container",
                         Name = "Container"
                     },
-                    new HealthCheckItemResult()
+                    new ServiceHealthCheckItemResult()
                     {
                         FriendlyName = "Write to Container",
                         Name = "WriteToContainer"
                     },
-                    new HealthCheckItemResult()
+                    new ServiceHealthCheckItemResult()
                     {
                         FriendlyName = "Read from Container",
                         Name = "ReadFromContainer"
@@ -100,7 +101,7 @@ public class CosmosHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
 
     }
 
-    private async Task CheckReadAsync(HealthCheckItemResult healthCheckItem, Container container, HealthCheckItemTest healthCheckItemTest)
+    private async Task CheckReadAsync(ServiceHealthCheckItemResult healthCheckItem, Container container, HealthCheckItemTest healthCheckItemTest)
     {
         var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.id = @id");
         queryDefinition.WithParameter("@id", healthCheckItemTest.id);
@@ -121,7 +122,7 @@ public class CosmosHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
     }
 
 
-    private async Task<HealthCheckItemTest> CheckWriteAsync(HealthCheckItemResult healthCheckItem, Container container)
+    private async Task<HealthCheckItemTest> CheckWriteAsync(ServiceHealthCheckItemResult healthCheckItem, Container container)
     {
         var healthCheckItemTest = new HealthCheckItemTest()
         {
@@ -143,7 +144,7 @@ public class CosmosHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
     }
     
     
-    private async Task<Container> CheckAndGetContainerAsync(HealthCheckItemResult healthCheckItem, Database database)
+    private async Task<Container> CheckAndGetContainerAsync(ServiceHealthCheckItemResult healthCheckItem, Database database)
     {
         try
         {
@@ -170,7 +171,7 @@ public class CosmosHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
 
     
     
-    private async Task<Database> CheckAndGetDatabaseAsync(HealthCheckItemResult healthCheckItem, CosmosClient cosmosClient)
+    private async Task<Database> CheckAndGetDatabaseAsync(ServiceHealthCheckItemResult healthCheckItem, CosmosClient cosmosClient)
     {
         try
         {
@@ -196,7 +197,7 @@ public class CosmosHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
     }
 
     
-    private CosmosClient? CheckAndGetCosmosClient(HealthCheckItemResult healthCheckItem, string connectionString)
+    private CosmosClient? CheckAndGetCosmosClient(ServiceHealthCheckItemResult healthCheckItem, string connectionString)
     {
         try
         {
@@ -210,7 +211,7 @@ public class CosmosHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
         }
     }
 
-    private string CheckAndGetEnvironmentVariable(HealthCheckItemResult currentHealthCheck)
+    private string CheckAndGetEnvironmentVariable(ServiceHealthCheckItemResult currentHealthCheck)
     {
         string? connectionString = Environment.GetEnvironmentVariable("CosmosDBConnection");
         if (string.IsNullOrWhiteSpace(connectionString))

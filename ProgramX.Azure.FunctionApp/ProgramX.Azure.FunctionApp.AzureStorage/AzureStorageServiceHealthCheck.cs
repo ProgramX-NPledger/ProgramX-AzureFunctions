@@ -6,21 +6,22 @@ using ProgramX.Azure.FunctionApp.Model.Exceptions;
 
 namespace ProgramX.Azure.FunctionApp.AzureStorage;
 
-public class AzureStorageHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
+public class AzureStorageServiceHealthCheck(ILoggerFactory loggerFactory) : IServiceHealthCheck
 {
     
-    public async Task<HealthCheckResult> CheckHealthAsync()
+    public async Task<ServiceHealthCheckResult> CheckHealthAsync()
     {
-        var logger = loggerFactory.CreateLogger<AzureStorageHealthCheck>();
-        using (logger.BeginScope("Health Check {HealthCheckName}", nameof(AzureStorageHealthCheck)))
+        var logger = loggerFactory.CreateLogger<AzureStorageServiceHealthCheck>();
+        using (logger.BeginScope("Health Check {HealthCheckName}", nameof(AzureStorageServiceHealthCheck)))
         {
-            var result = new HealthCheckResult()
+            var result = new ServiceHealthCheckResult()
             {
-                HealthCheckName = nameof(AzureStorageHealthCheck),
+                HealthCheckName = nameof(AzureStorageServiceHealthCheck),
                 IsHealthy = false,
-                Items = new List<HealthCheckItemResult>()
+                FriendlyName = "Azure Storage",
+                Items = new List<ServiceHealthCheckItemResult>()
                 {
-                    new HealthCheckItemResult()
+                    new ServiceHealthCheckItemResult()
                     {
                         FriendlyName = "Connection string",
                         Name = "ConnectionString"
@@ -54,7 +55,7 @@ public class AzureStorageHealthCheck(ILoggerFactory loggerFactory) : IHealthChec
       
     }
     
-    private string CheckAndGetEnvironmentVariable(HealthCheckItemResult currentHealthCheck)
+    private string CheckAndGetEnvironmentVariable(ServiceHealthCheckItemResult currentHealthCheck)
     {
         string? connectionString = Environment.GetEnvironmentVariable(ConfigurationConstants.AzureStorageConnectionString);
         if (string.IsNullOrWhiteSpace(connectionString))

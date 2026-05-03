@@ -11,9 +11,9 @@ public interface IApplication
     ApplicationMetaData GetApplicationMetaData();
     
     /// <summary>
-    /// Gets a Health Checker for the Application.
+    /// Gets Health Checks for the Application.
     /// </summary>
-    /// <returns>An implementation capable of checking the health of the application.</returns>
-    Task<IApplicationHealthCheck> GetHealthCheckAsync(IUserRepository userRepository);
+    /// <returns>Implementation capable of checking the health of the application.</returns>
+    IEnumerable<IApplicationHealthCheck> GetHealthChecks();
     
 }

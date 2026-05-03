@@ -23,9 +23,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
         // Arrange
         var expectedApplication = new Application
         {
-            name = "application",
-            metaDataDotNetAssembly = string.Empty,
-            metaDataDotNetType = string.Empty
+            name = "application"
         };
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -149,9 +147,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                         {
                             new Application
                             {
-                                name = "Admin Application",
-                                metaDataDotNetAssembly = string.Empty,
-                                metaDataDotNetType = string.Empty
+                                name = "Admin Application"
                             }
                         }
                     }
@@ -171,9 +167,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                         {
                             new Application
                             {
-                                name = "A different Application",
-                                metaDataDotNetAssembly = string.Empty,
-                                metaDataDotNetType = string.Empty
+                                name = "A different Application"
                             }
                         }
                     }
@@ -235,9 +229,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                         {
                             new Application
                             {
-                                name = "Admin Application",
-                                metaDataDotNetAssembly = string.Empty,
-                                metaDataDotNetType = string.Empty
+                                name = "Admin Application"
                             }
                         }
                     }
@@ -257,9 +249,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                         {
                             new Application
                             {
-                                name = "john",
-                                metaDataDotNetAssembly = string.Empty,
-                                metaDataDotNetType = string.Empty
+                                name = "john"
                             }
                         }
                     }
@@ -333,9 +323,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                         {
                             new Application
                             {
-                                name = "Admin Application",
-                                metaDataDotNetAssembly = string.Empty,
-                                metaDataDotNetType = string.Empty
+                                name = "Admin Application"
                             }
                         }
                     }
@@ -355,9 +343,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                         {
                             new Application
                             {
-                                name = "john",
-                                metaDataDotNetAssembly = string.Empty,
-                                metaDataDotNetType = string.Empty
+                                name = "john"
                             }
                         }
                     }

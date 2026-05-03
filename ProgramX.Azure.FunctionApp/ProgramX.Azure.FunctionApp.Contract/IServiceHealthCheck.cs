@@ -5,13 +5,13 @@ namespace ProgramX.Azure.FunctionApp.Contract;
 /// <summary>
 /// Performs health checking for a service or application.
 /// </summary>
-public interface IHealthCheck
+public interface IServiceHealthCheck
 {
     /// <summary>
     /// Performs a health check.
     /// </summary>
     /// <returns>A result indicating the health status.</returns>
-    Task<HealthCheckResult> CheckHealthAsync();
+    Task<ServiceHealthCheckResult> CheckHealthAsync();
 
     
 }

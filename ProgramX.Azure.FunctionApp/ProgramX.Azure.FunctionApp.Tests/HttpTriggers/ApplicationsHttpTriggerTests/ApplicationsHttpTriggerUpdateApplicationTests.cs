@@ -33,9 +33,7 @@ public class ApplicationsHttpTriggerUpdateApplicationTests : TestBase
 
         var existingApplication = new Application
         {
-            name = "existingApplication",
-            metaDataDotNetAssembly = string.Empty,
-            metaDataDotNetType = string.Empty
+            name = "existingApplication"
         };
         var updateApplicationRequest = new UpdateApplicationRequest()
         {

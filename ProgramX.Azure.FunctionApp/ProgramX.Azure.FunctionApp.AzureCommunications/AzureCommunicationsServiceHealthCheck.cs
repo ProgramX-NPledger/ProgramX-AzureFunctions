@@ -6,21 +6,22 @@ using ProgramX.Azure.FunctionApp.Model.Exceptions;
 
 namespace ProgramX.Azure.FunctionApp.AzureCommunications;
 
-public class AzureCommunicationsHealthCheck(ILoggerFactory loggerFactory) : IHealthCheck
+public class AzureCommunicationsServiceHealthCheck(ILoggerFactory loggerFactory) : IServiceHealthCheck
 {
     
-    public async Task<HealthCheckResult> CheckHealthAsync()
+    public async Task<ServiceHealthCheckResult> CheckHealthAsync()
     {
-        var logger = loggerFactory.CreateLogger<AzureCommunicationsHealthCheck>();
-        using (logger.BeginScope("Health Check {HealthCheckName}", nameof(AzureCommunicationsHealthCheck)))
+        var logger = loggerFactory.CreateLogger<AzureCommunicationsServiceHealthCheck>();
+        using (logger.BeginScope("Health Check {HealthCheckName}", nameof(AzureCommunicationsServiceHealthCheck)))
         {
-            var result = new HealthCheckResult()
+            var result = new ServiceHealthCheckResult()
             {
-                HealthCheckName = nameof(AzureCommunicationsHealthCheck),
+                HealthCheckName = nameof(AzureCommunicationsServiceHealthCheck),
                 IsHealthy = false,
-                Items = new List<HealthCheckItemResult>()
+                FriendlyName = "Azure Communication Services",
+                Items = new List<ServiceHealthCheckItemResult>()
                 {
-                    new HealthCheckItemResult()
+                    new ServiceHealthCheckItemResult()
                     {
                         FriendlyName = "Connection string",
                         Name = "ConnectionString"
@@ -54,7 +55,7 @@ public class AzureCommunicationsHealthCheck(ILoggerFactory loggerFactory) : IHea
       
     }
     
-    private string CheckAndGetEnvironmentVariable(HealthCheckItemResult currentHealthCheck)
+    private string CheckAndGetEnvironmentVariable(ServiceHealthCheckItemResult currentHealthCheck)
     {
         string? connectionString = Environment.GetEnvironmentVariable("AzureCommunicationServicesConnection");
         if (string.IsNullOrWhiteSpace(connectionString))

@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace ProgramX.Azure.FunctionApp.Model.Responses;
 
-public class GetHealthCheckServiceResponse
+public class GetHealthCheckForApplicationResponse
 {
     [JsonPropertyName("name")]
     public required string Name { get; set; }
@@ -26,7 +26,7 @@ public class GetHealthCheckServiceResponse
     /// <summary>
     /// The sub items of the health check item.
     /// </summary>
-    [JsonPropertyName("subItems")]
-    public IEnumerable<HealthCheckItemResult> SubItems { get; set; } = new List<HealthCheckItemResult>();
+    [JsonPropertyName("items")]
+    public IEnumerable<HealthCheckResult> Items { get; set; } = new List<HealthCheckResult>();
 
 }

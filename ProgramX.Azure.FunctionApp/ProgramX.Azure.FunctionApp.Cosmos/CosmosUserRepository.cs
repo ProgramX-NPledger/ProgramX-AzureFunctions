@@ -762,10 +762,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                         new Application()
                         {
                             name = "Administration",
-                            metaDataDotNetAssembly = "ProgramX.Azure.FunctionApp",
-                            metaDataDotNetType =
-                                "ProgramX.Azure.FunctionApp.ApplicationDefinitions.AdministrationApplication",
-                            schemaVersionNumber = 2,
+                            schemaVersionNumber = 3,
                             isDefaultApplicationOnLogin = true,
                             ordinal = 1,
                             createdAt = DateTime.UtcNow,

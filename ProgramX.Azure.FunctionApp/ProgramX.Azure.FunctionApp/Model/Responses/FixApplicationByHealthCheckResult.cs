@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace ProgramX.Azure.FunctionApp.Model.Responses;
 
-public class GetHealthCheckServiceItemResponse
+public class FixApplicationByHealthCheckResult
 {
     [JsonPropertyName("name")]
     public required string Name { get; set; }
@@ -12,5 +12,4 @@ public class GetHealthCheckServiceItemResponse
     
     [JsonPropertyName("messages")]
     public required IEnumerable<string> Messages { get; set; } = [];
-
 }

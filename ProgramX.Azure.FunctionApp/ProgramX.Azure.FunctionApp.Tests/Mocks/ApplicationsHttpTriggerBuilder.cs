@@ -44,10 +44,13 @@ public class ApplicationsHttpTriggerBuilder
             throw new InvalidOperationException("All dependencies must be set before building");
         }
 
+        var mockedServiceProvider = new Mock<IServiceProvider>();
+        
         return new ApplicationsHttpTrigger(
             _mockedLogger.Object,
             _configuration,
-            _mockedUserRepository.Object);
+            _mockedUserRepository.Object,
+            mockedServiceProvider.Object);
     }
 
     private void CreateDefaultMocksWhereNotSet()

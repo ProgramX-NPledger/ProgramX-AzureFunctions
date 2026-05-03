@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgramX.Azure.FunctionApp.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgramX.Azure.FunctionApp.AzureStorage", "ProgramX.Azure.FunctionApp.AzureStorage\ProgramX.Azure.FunctionApp.AzureStorage.csproj", "{607C8ECA-6253-4487-9DD5-1FEBE4DE5B04}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgramX.Azure.FunctionApp.Scouting", "ProgramX.Azure.FunctionApp.Scouting\ProgramX.Azure.FunctionApp.Scouting.csproj", "{8199EDA8-CC0B-45AB-BEDF-4E3D0FB962AC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,5 +62,9 @@ Global
 		{607C8ECA-6253-4487-9DD5-1FEBE4DE5B04}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{607C8ECA-6253-4487-9DD5-1FEBE4DE5B04}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{607C8ECA-6253-4487-9DD5-1FEBE4DE5B04}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8199EDA8-CC0B-45AB-BEDF-4E3D0FB962AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8199EDA8-CC0B-45AB-BEDF-4E3D0FB962AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8199EDA8-CC0B-45AB-BEDF-4E3D0FB962AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8199EDA8-CC0B-45AB-BEDF-4E3D0FB962AC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

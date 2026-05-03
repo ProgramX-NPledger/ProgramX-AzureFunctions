@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.ApplicationDefinitions;
 using ProgramX.Azure.FunctionApp.Contract;
@@ -22,14 +23,20 @@ namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 public class LoginHttpTrigger
 {
     private readonly ILogger<LoginHttpTrigger> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly IServiceProvider _serviceProvider;
     private readonly JwtTokenIssuer _jwtTokenIssuer;
     private readonly IUserRepository _userRepository;
 
     public LoginHttpTrigger(ILogger<LoginHttpTrigger> logger,
+        IConfiguration configuration,
+        IServiceProvider serviceProvider,
         JwtTokenIssuer jwtTokenIssuer,
         IUserRepository userRepository)
     {
         _logger = logger;
+        _configuration = configuration;
+        _serviceProvider = serviceProvider;
         _jwtTokenIssuer = jwtTokenIssuer;
         _userRepository = userRepository;
     }
@@ -63,6 +70,8 @@ public class LoginHttpTrigger
         
         string token = _jwtTokenIssuer.IssueTokenForUser(credentials,user.roles.Select(q=>q.name));
  
+        var applicationLoader = new ApplicationLoader(_configuration, _serviceProvider);
+        
         var httpResponse = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
         await httpResponse.WriteAsJsonAsync(new
         {
@@ -74,9 +83,7 @@ public class LoginHttpTrigger
                 new FullyQualifiedApplication()
                 {
                     application = q.First(),
-                    applicationMetaData = ApplicationFactory.GetApplicationForApplicationName(
-                        q.First().metaDataDotNetAssembly,
-                        q.First().metaDataDotNetType).GetApplicationMetaData()
+                    applicationMetaData = applicationLoader.LoadApplication(q.First().name).GetApplicationMetaData()
                 }
                 ).ToList(),
             profilePhotoBase64 = string.Empty,

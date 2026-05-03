@@ -91,18 +91,18 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
     {
         // return the health check item for the specified name
 
-        IHealthCheck? healthCheck = GetHealthCheckByName(name);
+        IServiceHealthCheck? healthCheck = GetHealthCheckByName(name);
         if (healthCheck != null)
         {
             var healthCheckResult = await healthCheck.CheckHealthAsync();
             
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetHealthCheckServiceResponse()
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetHealthCheckForServiceResponse()
             {
                 Name = name,
                 IsHealthy = healthCheckResult.IsHealthy, 
                 Message = healthCheckResult.Message,
                 TimeStamp = DateTime.UtcNow,
-                SubItems = healthCheckResult.Items ?? new List<HealthCheckItemResult>()
+                SubItems = healthCheckResult.Items ?? new List<ServiceHealthCheckItemResult>()
             });
             
         }
@@ -114,16 +114,14 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
         
     }
 
-    [ExcludeFromCodeCoverage(Justification = "Test health checks are not part of the production co")]
-    private IHealthCheck? GetHealthCheckByName(string name)
+    private IServiceHealthCheck? GetHealthCheckByName(string name)
     {
         switch (name)
         {
             // TODO: More health checks here, using name in GetHealthCheckResponse
-            case "azure-storage": return new AzureStorageHealthCheck(_loggerFactory);
-            case "azure-cosmos-db": return new CosmosHealthCheck(_loggerFactory);
-            case "azure-email-communication-services": return new AzureCommunicationsHealthCheck(_loggerFactory);
-            case "test": return new TestHealthCheck();
+            case "azure-storage": return new AzureStorageServiceHealthCheck(_loggerFactory);
+            case "azure-cosmos-db": return new CosmosServiceHealthCheck(_loggerFactory);
+            case "azure-email-communication-services": return new AzureCommunicationsServiceHealthCheck(_loggerFactory);
             default: return null;
         }
     }

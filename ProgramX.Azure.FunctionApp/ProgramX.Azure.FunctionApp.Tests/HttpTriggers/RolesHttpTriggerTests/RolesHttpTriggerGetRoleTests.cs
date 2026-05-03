@@ -61,9 +61,7 @@ public class RolesHttpTriggerGetRoleTests
                                     {
                                         new Application
                                         {
-                                            name = "AnApp",
-                                            metaDataDotNetAssembly = string.Empty,
-                                            metaDataDotNetType = string.Empty
+                                            name = "AnApp"
                                         }
                                     }
                                 }
@@ -83,9 +81,7 @@ public class RolesHttpTriggerGetRoleTests
                                     {
                                         new Application
                                         {
-                                            name = "AnotherApp",
-                                            metaDataDotNetAssembly = string.Empty,
-                                            metaDataDotNetType = string.Empty
+                                            name = "AnotherApp"
                                         }
                                     }
                                 }
@@ -366,11 +362,9 @@ public class RolesHttpTriggerGetRoleTests
                 name = "role1",
                 applications = new List<Application>
                 {
-                    new Application { name = "UsedInThisApp",            metaDataDotNetAssembly = string.Empty,
-                        metaDataDotNetType = string.Empty
+                    new Application { name = "UsedInThisApp"
                     },
-                    new Application { name = "Another App",             metaDataDotNetAssembly = string.Empty,
-                        metaDataDotNetType = string.Empty
+                    new Application { name = "Another App"
                     }
                 }
             },
@@ -379,11 +373,9 @@ public class RolesHttpTriggerGetRoleTests
                 name = "role2",
                 applications = new List<Application>
                 {
-                    new Application { name = "Dashboard",             metaDataDotNetAssembly = string.Empty,
-                        metaDataDotNetType = string.Empty
+                    new Application { name = "Dashboard"
                     },
-                    new Application { name = "Not this App",             metaDataDotNetAssembly = string.Empty,
-                        metaDataDotNetType = string.Empty
+                    new Application { name = "Not this App"
                     }
                 }
             }

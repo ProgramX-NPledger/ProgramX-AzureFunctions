@@ -20,10 +20,12 @@ public class ApplicationsHttpTriggerCtorTests
         var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
         var mockedLogger = new Mock<ILogger<ApplicationsHttpTrigger>>();
         var mockedConfiguration = new Mock<IConfiguration>();
-
+        var mockedServiceProvider = new Mock<IServiceProvider>();
+        
         var target = new ApplicationsHttpTrigger(mockedLogger.Object,
                 mockedConfiguration.Object,
-                mockedUserRepository.Object);
+                mockedUserRepository.Object,
+                mockedServiceProvider.Object);
         Assert.That(target,Is.Not.Null);
     }
 

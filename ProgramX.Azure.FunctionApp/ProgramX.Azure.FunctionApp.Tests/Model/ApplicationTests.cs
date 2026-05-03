@@ -13,9 +13,7 @@ public class ApplicationTests
         // Arrange & Act
         var application = new Application
         {
-            name = "TestApp",
-            metaDataDotNetAssembly = string.Empty,
-            metaDataDotNetType = string.Empty
+            name = "TestApp"
         };
 
         // Assert
@@ -35,8 +33,6 @@ public class ApplicationTests
         var application = new Application
         {
             name = "TestApplication",
-            metaDataDotNetAssembly = string.Empty,
-            metaDataDotNetType = string.Empty,
             isDefaultApplicationOnLogin = true,
             ordinal = 5,
             createdAt = createdAt,
@@ -70,9 +66,7 @@ public class ApplicationTests
         // Arrange & Act
         var application = new Application
         {
-            name = name,
-            metaDataDotNetAssembly = string.Empty,
-            metaDataDotNetType = string.Empty
+            name = name
         };
 
         // Assert

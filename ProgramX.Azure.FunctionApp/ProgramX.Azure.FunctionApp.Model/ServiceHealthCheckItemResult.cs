@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace ProgramX.Azure.FunctionApp.Model;
 
-public class HealthCheckItemResult
+public class ServiceHealthCheckItemResult
 {
     /// <summary>
     /// Whether the check is healthy. If <c>null</c>, the check has not been run yet.

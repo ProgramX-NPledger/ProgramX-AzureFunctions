@@ -25,7 +25,8 @@ namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 public class ApplicationsHttpTrigger(
     ILogger<ApplicationsHttpTrigger> logger,
     IConfiguration configuration,
-    IUserRepository userRepository)
+    IUserRepository userRepository,
+    IServiceProvider serviceProvider)
     : AuthorisedHttpTriggerBase(configuration,logger)
 {
     private readonly ILogger<ApplicationsHttpTrigger> _logger = logger;
@@ -127,59 +128,92 @@ public class ApplicationsHttpTrigger(
         return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
             // need to get all applications, including those not in a role to ensure that the application definitely exists
-            var allApplications = ApplicationFactory.GetAllDefinedApplicationsWithinExecutingAssembly();
-            var application = allApplications.SingleOrDefault(q => q.GetApplicationMetaData().Name.Equals(name, StringComparison.CurrentCultureIgnoreCase));
-            if (application == null)
+            var applicationLoader = new ApplicationLoader(Configuration, serviceProvider);
+            var applicationNames = applicationLoader.GetApplicationNames();
+            if (!applicationNames.Contains(name))
             {
                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
                     $"No application found with name {name}");
             }
-            
-            var healthCheckResult = await (await application.GetHealthCheckAsync(userRepository)).CheckHealthAsync();
 
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
-                new GetHealthCheckServiceResponse()
+            try
+            {
+                var application = applicationLoader.LoadApplication(name);
+
+                var healthCheckResults = new List<HealthCheckResult>();
+                var healthChecks = application.GetHealthChecks();
+                foreach (var healthCheck in healthChecks)
                 {
-                    Name = name,
-                    IsHealthy = healthCheckResult.IsHealthy,
-                    Message = healthCheckResult.Message,
-                    TimeStamp = DateTime.UtcNow,
-                    SubItems = healthCheckResult.Items ?? new List<HealthCheckItemResult>()
-                });
+                    healthCheckResults.Add(await healthCheck.CheckHealthAsync());
+                }
+
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                    new GetHealthCheckForApplicationResponse()
+                    {
+                        Name = name,
+                        IsHealthy = healthCheckResults.All(q => q.IsHealthy),
+                        Message = healthCheckResults.All(q => q.IsHealthy) ? "The Application is healthy" : "The Application is unhealthy",
+                        TimeStamp = DateTime.UtcNow,
+                        Items = healthCheckResults
+                    });
+
+            }
+            catch (InvalidOperationException ioe)
+            {
+                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
+                    $"Failed to load Application with name {name} due to {ioe.Message}");
+            }
+            
         });
 
     }
     
     
-    [Function(nameof(FixApplicationByHealthCheck))]
-    public async Task<HttpResponseData> FixApplicationByHealthCheck(
+    [Function(nameof(FixApplication))]
+    public async Task<HttpResponseData> FixApplication(
         [HttpTrigger(AuthorizationLevel.Function, "post", Route = "application/{name}/health/fix")] HttpRequestData httpRequestData, string name)
     {
         return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
-            // need to get all applications, including those not in a role to ensure that the application definitely exists
-            var allApplications = ApplicationFactory.GetAllDefinedApplicationsWithinExecutingAssembly();
-            var application = allApplications.SingleOrDefault(q => q.GetApplicationMetaData().Name.Equals(name, StringComparison.CurrentCultureIgnoreCase));
-            if (application == null)
+            var applicationLoader = new ApplicationLoader(Configuration, serviceProvider);
+            var applicationNames = applicationLoader.GetApplicationNames();
+            if (!applicationNames.Contains(name))
             {
                 return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
                     $"No application found with name {name}");
             }
-            
-            var healthCheck = await application.GetHealthCheckAsync(userRepository);
-            var healthCheckResult = await healthCheck.CheckHealthAsync();
-            var fixHealthCheckResult = await healthCheck.FixHealthAsync(healthCheckResult);
 
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
-                new FixApplicationByHealthCheckResponse()
+            try
+            {
+                var application = applicationLoader.LoadApplication(name);
+
+                var fixApplicationHealthCheckResults = new List<FixApplicationHealthCheckResult>();
+                var healthChecks = application.GetHealthChecks();
+                foreach (var healthCheck in healthChecks)
                 {
-                    Items = fixHealthCheckResult.Items.Select(item => new FixApplicationHealthCheckResultItemResult
+                    var healthCheckResult = await healthCheck.CheckHealthAsync();
+                    var fixApplicationHealthCheckResult = await healthCheck.FixHealthAsync(healthCheckResult);
+
+                    fixApplicationHealthCheckResults.Add(fixApplicationHealthCheckResult);
+                }
+
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                    new FixApplicationResponse()
                     {
-                        Name = item.Name,
-                        IsSuccess = item.IsSuccess,
-                        Messages = item.Messages
-                    })
-                });
+                        Items = fixApplicationHealthCheckResults.Select(q => new FixApplicationByHealthCheckResult
+                        {
+                            Name = fixApplicationHealthCheckResults.First().Name,
+                            IsSuccess = fixApplicationHealthCheckResults.All(q => q.IsSuccess),
+                            Messages = fixApplicationHealthCheckResults.SelectMany(q => q.Messages)
+                        })
+                    });
+            }
+            catch (InvalidOperationException ioe)
+            {
+                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
+                    $"Failed to load Application with name {name} due to {ioe.Message}");
+            }
+            
         });
 
     }
@@ -201,17 +235,24 @@ public class ApplicationsHttpTrigger(
             // if user is an admin return all applications
             if (roles.Contains("admin"))
             {
-                var applications = ApplicationFactory.GetAllDefinedApplicationsWithinExecutingAssembly();
+                var applicationLoader = new ApplicationLoader(Configuration, serviceProvider);
+                var applications = applicationLoader.GetApplicationNames().ToList();
+                List<ApplicationMetaData> applicationsMetaData = new List<ApplicationMetaData>();
+                applications.ForEach(q =>
+                {
+                    var application = applicationLoader.LoadApplication(q);
+                    applicationsMetaData.Add(application.GetApplicationMetaData());
+                });
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
                     new GetApplicationsForHealthCheckResponse()
                     {
                         TimeStamp = DateTime.UtcNow,
                         IsElevated = true,
-                        HealthCheckServices = applications.Select(q => new ApplicationHealthCheckService()
+                        HealthCheckServices = applicationsMetaData.Select(q => new ApplicationHealthCheckService()
                         {
-                            Name = q.GetApplicationMetaData().Name,
-                            FriendlyName = q.GetApplicationMetaData().FriendlyName,
-                            Url = $"{baseUrl}/{q.GetApplicationMetaData().Name}/health",
+                            Name = q.Name,
+                            FriendlyName = q.FriendlyName,
+                            Url = $"{baseUrl}/{q.Name}/health",
                         }).ToList()
                     });
             }

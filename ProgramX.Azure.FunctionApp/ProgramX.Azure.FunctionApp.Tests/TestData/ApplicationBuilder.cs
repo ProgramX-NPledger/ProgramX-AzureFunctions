@@ -10,9 +10,7 @@ public class ApplicationBuilder
     {
         _application = new Application
         {
-            name = "DefaultApp",
-            metaDataDotNetAssembly = string.Empty,
-            metaDataDotNetType = string.Empty
+            name = "DefaultApp"
         };
     }
 

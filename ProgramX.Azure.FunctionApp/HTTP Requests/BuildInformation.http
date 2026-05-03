@@ -1,0 +1,7 @@
+# Build Information
+
+###
+# @name Get Build Information
+GET {{host}} /api/v1/build
+#Content-Type: application/json
+
