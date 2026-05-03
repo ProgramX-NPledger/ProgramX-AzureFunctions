@@ -40,11 +40,11 @@ jobs:
       - name: Set version information
         shell: pwsh
         run: |
-          $text = Get-Content -Raw appsettings.json
+          $text = Get-Content -Raw ProgramX.Azure.FunctionApp\appsettings.json
           $text = $text -replace '\[\[GITHUB_COMMIT_API\]\]', '${{ env.GIT_COMMIT_SHA }}'
           $text = $text -replace '\[\[GITHUB_BUILD_API\]\]', '${{ env.BUILD_NUMBER }}'
           $text = $text -replace '\[\[GITHUB_DATE_API\]\]', '${{ env.DEPLOYED_AT }}'
-          Set-Content -Path appsettings.json -Value $text -Encoding utf8
+          Set-Content -Path ProgramX.Azure.FunctionApp\appsettings.json -Value $text -Encoding utf8
 
       - name: 'Build'
         working-directory: ./ProgramX.Azure.FunctionApp
