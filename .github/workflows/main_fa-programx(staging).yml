@@ -34,9 +34,9 @@ jobs:
 
       - name: Set version information
         run: |
-          sed '/s[[GITHUB_COMMIT_API]]/${{ secrets.GIT_COMMIT_SHA }}/g' appsettings.json > appsettings.json && /
-          sed '/s[[GITHUB_BUILD_API]]/${{ secrets.BUILD_NUMBER }}/g' appsettings.json > appsettings.json && /
-          sed '/s[[GITHUB_DATE_API]]/${{ secrets.DEPLOYED_AT }}/g' appsettings.json > appsettings.json
+          sed '/s[[GITHUB_COMMIT_API]]/${{ env.GIT_COMMIT_SHA }}/g' appsettings.json > appsettings.json && /
+          sed '/s[[GITHUB_BUILD_API]]/${{ env.BUILD_NUMBER }}/g' appsettings.json > appsettings.json && /
+          sed '/s[[GITHUB_DATE_API]]/${{ env.DEPLOYED_AT }}/g' appsettings.json > appsettings.json
 
       - name: 'Build'
         working-directory: ./ProgramX.Azure.FunctionApp
