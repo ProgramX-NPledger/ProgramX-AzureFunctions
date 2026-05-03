@@ -37,10 +37,11 @@ jobs:
         run: |
           cd ProgramX.Azure.FunctionApp\ProgramX.Azure.FunctionApp;
           ls;
+          type host.json;
           $text = Get-Content -Raw host.json
-          $text = $text -replace '\[\[GITHUB_COMMIT_API\]\]', '${{ env.GIT_COMMIT_SHA }}'
-          $text = $text -replace '\[\[GITHUB_BUILD_API\]\]', '${{ env.BUILD_NUMBER }}'
-          $text = $text -replace '\[\[GITHUB_DATE_API\]\]', '${{ env.DEPLOYED_AT }}'
+          $text = $text -replace '((GITHUB_COMMIT_API))', '${{ env.GIT_COMMIT_SHA }}'
+          $text = $text -replace '((GITHUB_BUILD_API))', '${{ env.BUILD_NUMBER }}'
+          $text = $text -replace '((GITHUB_DATE_API))', '${{ env.DEPLOYED_AT }}'
           Set-Content -Path host.json -Value $text -Encoding utf8
 
       - name: 'Build'
