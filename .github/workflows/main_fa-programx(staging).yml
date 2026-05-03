@@ -24,13 +24,18 @@ jobs:
       contents: read #This is required for actions/checkout
 
     steps:
-      - name: 'Checkout GitHub Action'
+      - name: 'Checkout GitHub Action' 
         uses: actions/checkout@v4
 
       - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: directory
+        shell: pwsh
+        run: |
+          ls
 
       - name: Set version information
         shell: pwsh
