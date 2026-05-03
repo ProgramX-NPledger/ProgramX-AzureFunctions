@@ -49,13 +49,13 @@ jobs:
 
       - name: Set Azure Function App environment variables
         run: |
-          az functionapp config appsettings set \
-            --name "${{ secrets.AZURE_FUNCTIONAPP_NAME }}" \
-            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
-            --settings \
-              Commit__CommitHash="${{ github.sha }}" \
-              Commit__BuildNumber="${{ github.run_number }}" \
-              Commit__DeployedAt="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          az functionapp config appsettings set `
+            --name "${{ secrets.AZURE_FUNCTIONAPP_NAME }}" `
+            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" `
+            --settings `
+              Commit__CommitHash="${{ github.sha }}" `
+              Commit__BuildNumber="${{ github.run_number }}" `
+              Commit__DeployedAt="$env:DEPLOYED_AT"
           
       - name: 'Deploy Azure Functions App to Staging'
         uses: Azure/functions-action@v1
