@@ -32,14 +32,11 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: directory
-        shell: pwsh
-        run: |
-          ls
-
       - name: Set version information
         shell: pwsh
         run: |
+          cd ProgramX.Azure.FunctionApp;
+          ls;
           $text = Get-Content -Raw ProgramX.Azure.FunctionApp\appsettings.json
           $text = $text -replace '\[\[GITHUB_COMMIT_API\]\]', '${{ env.GIT_COMMIT_SHA }}'
           $text = $text -replace '\[\[GITHUB_BUILD_API\]\]', '${{ env.BUILD_NUMBER }}'
