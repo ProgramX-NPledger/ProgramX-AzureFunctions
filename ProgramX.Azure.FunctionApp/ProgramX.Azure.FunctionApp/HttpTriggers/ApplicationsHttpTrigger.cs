@@ -238,23 +238,60 @@ public class ApplicationsHttpTrigger(
                 var applicationLoader = new ApplicationLoader(Configuration, serviceProvider);
                 var applications = applicationLoader.GetApplicationNames().ToList();
                 List<ApplicationMetaData> applicationsMetaData = new List<ApplicationMetaData>();
+
+                var response = new GetApplicationsForHealthCheckResponse()
+                {
+                    TimeStamp = DateTime.UtcNow,
+                    IsElevated = true,
+                    HealthCheckServices = new List<ApplicationHealthCheckService>()
+                };
+                
                 applications.ForEach(q =>
                 {
-                    var application = applicationLoader.LoadApplication(q);
-                    applicationsMetaData.Add(application.GetApplicationMetaData());
-                });
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
-                    new GetApplicationsForHealthCheckResponse()
+                    IApplication? application = null;
+                    try
                     {
-                        TimeStamp = DateTime.UtcNow,
-                        IsElevated = true,
-                        HealthCheckServices = applicationsMetaData.Select(q => new ApplicationHealthCheckService()
+                        application = applicationLoader.LoadApplication(q);
+                    }
+                    catch (InvalidOperationException ioex)
+                    {
+                        // TODO: Log it
+                        response.HealthCheckServices.Add(new ApplicationHealthCheckService()
                         {
-                            Name = q.Name,
-                            FriendlyName = q.FriendlyName,
-                            Url = $"{baseUrl}/{q.Name}/health",
-                        }).ToList()
-                    });
+                            Name = q,
+                            FriendlyName = q,
+                            IsLoaded = false,
+                            Messages = new string[] { ioex.Message }
+                        });
+                    }
+                    
+                    if (application != null)
+                    {
+                        try
+                        {
+                            var applicationMetaData = application.GetApplicationMetaData();
+                            response.HealthCheckServices.Add(new ApplicationHealthCheckService()
+                            {
+                                Name = applicationMetaData.Name,
+                                FriendlyName = applicationMetaData.FriendlyName,
+                                Url = $"{baseUrl}/{applicationMetaData.Name}/health",
+                                IsLoaded = true
+                            });
+                        }
+                        catch (Exception e)
+                        {
+                            // TODO: Log it
+                            response.HealthCheckServices.Add(new ApplicationHealthCheckService()
+                            {
+                                Name = application.GetType().Name,
+                                FriendlyName = application.GetType().Name,
+                                IsLoaded = false,
+                                Messages = new string[] { e.Message }
+                            });
+                        }
+                    }                
+                });
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, response);
             }
             else
             {

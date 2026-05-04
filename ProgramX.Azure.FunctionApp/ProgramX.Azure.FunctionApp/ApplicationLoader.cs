@@ -22,8 +22,7 @@ public class ApplicationLoader
     public IEnumerable<string> GetApplicationNames()
     {
         var names = _configuration.GetSection("Applications").GetChildren().Select(q => q.Value);
-        var applicationNames = names.Select(q => q.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).First());
-        return applicationNames.Select(q => q.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Last());
+        return names.Select(q => q.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Last());
     }
     
     /// <summary>
@@ -34,18 +33,20 @@ public class ApplicationLoader
     /// <exception cref="InvalidOperationException">Thrown if an invalid operation was attempted.</exception>
     public IApplication LoadApplication(string applicationName)
     {
+        // create a tuple of (className, assemblyName, applicationName)
         var allApplications = _configuration.GetSection("Applications").GetChildren().Select(q => q.Value)
             .Select(q => q.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
-        var selectedApplication = allApplications.SingleOrDefault(q => q.First().Equals(applicationName, StringComparison.CurrentCultureIgnoreCase));
+        
+        var selectedApplication = allApplications.SingleOrDefault(q => q.Last().Equals(applicationName, StringComparison.CurrentCultureIgnoreCase));
         
         if (selectedApplication == null)
         {
             throw new InvalidOperationException($"No application found with name {applicationName}");
-        }
+        }   
 
-        if (selectedApplication.Length != 2)
+        if (selectedApplication.Length != 3)
         {
-            throw new InvalidOperationException($"Invalid application configuration for {applicationName}. Expected 2 parts, found {selectedApplication.Length}.");
+            throw new InvalidOperationException($"Invalid application configuration for {applicationName}. Expected 3 parts, found {selectedApplication.Length}.");
         }
         
         var className = selectedApplication[0];
@@ -61,7 +62,7 @@ public class ApplicationLoader
             throw new InvalidOperationException($"Could not load assembly {assemblyName}", e);
         }
         
-        var t = assembly.GetTypes().SingleOrDefault(q => q.Name.Equals(className, StringComparison.CurrentCultureIgnoreCase));
+        var t = assembly.GetTypes().SingleOrDefault(q => q.FullName.Equals(className, StringComparison.CurrentCultureIgnoreCase));
         if (t == null)
         {
             throw new InvalidOperationException($"Type {className} not found in assembly {assemblyName}");

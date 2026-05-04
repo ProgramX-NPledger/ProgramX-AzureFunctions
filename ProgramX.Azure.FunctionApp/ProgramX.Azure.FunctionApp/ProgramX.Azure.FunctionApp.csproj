@@ -32,6 +32,7 @@
     <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Cosmos\ProgramX.Azure.FunctionApp.Cosmos.csproj" />
     <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Model\ProgramX.Azure.FunctionApp.Model.csproj" />
     <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Osm\ProgramX.Azure.FunctionApp.Osm.csproj" />
+    <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Scouting\ProgramX.Azure.FunctionApp.Scouting.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="appsettings.Development.json">

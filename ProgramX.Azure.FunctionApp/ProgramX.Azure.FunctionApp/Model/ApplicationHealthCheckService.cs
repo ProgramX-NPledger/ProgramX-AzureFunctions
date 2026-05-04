@@ -12,5 +12,11 @@ public class ApplicationHealthCheckService
 
     [JsonPropertyName("friendlyName")]
     public string FriendlyName { get; set; }
-    
+
+    [JsonPropertyName("isLoaded")]
+    public bool IsLoaded { get; set; }
+
+    [JsonPropertyName("messages")]
+    public string[] Messages { get; set; } = [];
+
 }
