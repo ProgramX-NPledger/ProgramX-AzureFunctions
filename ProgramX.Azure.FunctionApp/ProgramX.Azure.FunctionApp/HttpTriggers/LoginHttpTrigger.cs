@@ -42,18 +42,22 @@ public class LoginHttpTrigger
     }
 
     [Function(nameof(Login))]
-    public async Task<HttpResponseData> Login([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "login")] HttpRequestData httpRequestData,
-        ILogger logger)
+    public async Task<HttpResponseData> Login([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "login")] HttpRequestData httpRequestData)
     {
         var credentials = await httpRequestData.ReadFromJsonAsync<Credentials>();
         if (credentials == null)
         {
+            _logger.LogError($"Invalid request body. Should by of type {nameof(Credentials)}, but was null");
             return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
         }
         
         // get the user password from the database
         var userPassword = await _userRepository.GetUserPasswordByUserNameAsync(credentials.UserName);
-        if (userPassword==null) return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
+        if (userPassword==null)
+        {
+            _logger.LogError("User {UserName} not found when getting password", credentials.UserName);
+            return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
+        }
 
         using var hmac = new HMACSHA512(userPassword.passwordSalt);
         var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(credentials.Password));
@@ -61,12 +65,17 @@ public class LoginHttpTrigger
         for (var i = 0; i < computedHash.Length; i++)
             if (computedHash[i] != userPassword.passwordHash[i])
             {
+                _logger.LogError("Password for user {UserName} is incorrect", credentials.UserName);
                 return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
             }
 
         // password okay, get user to create JWT token
         var user = await _userRepository.GetUserByUserNameAsync(credentials.UserName);
-        if (user==null) throw new Exception("User not found");
+        if (user==null)
+        {
+            _logger.LogError("User {UserName} not found", credentials.UserName);
+            throw new Exception("User not found");
+        }
         
         string token = _jwtTokenIssuer.IssueTokenForUser(credentials,user.roles.Select(q=>q.name));
  

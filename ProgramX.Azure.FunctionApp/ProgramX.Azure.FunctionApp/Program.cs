@@ -69,7 +69,11 @@ builder.Services
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     })
     .AddHttpMessageHandler<AuthTokenHandler>();
-        
 
+// Logging configuration
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
+builder.Logging.AddFilter("System", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.Azure.Functions.Worker", LogLevel.Information);
 
 builder.Build().Run();
