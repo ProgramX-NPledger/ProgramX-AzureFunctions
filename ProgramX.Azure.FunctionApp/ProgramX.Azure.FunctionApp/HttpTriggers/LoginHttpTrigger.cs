@@ -81,6 +81,8 @@ public class LoginHttpTrigger
  
         var applicationLoader = new ApplicationLoader(_configuration, _serviceProvider);
         
+        _logger.LogInformation("User {UserName} logged in", credentials.UserName);
+        
         var httpResponse = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
         await httpResponse.WriteAsJsonAsync(new
         {
