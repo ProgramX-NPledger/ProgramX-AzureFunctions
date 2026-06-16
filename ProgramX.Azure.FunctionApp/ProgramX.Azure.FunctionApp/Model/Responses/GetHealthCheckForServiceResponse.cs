@@ -2,14 +2,22 @@ using System.Text.Json.Serialization;
 
 namespace ProgramX.Azure.FunctionApp.Model.Responses;
 
+/// <summary>
+/// Represents the response to a health check request.
+/// </summary>
 public class GetHealthCheckForServiceResponse
 {
+    /// <summary>
+    /// Name of the service. Use this when requesting for a Health Check or identifying the service.
+    /// </summary>
     [JsonPropertyName("name")]
     public required string Name { get; set; }
     
+    /// <summary>
+    /// The time stamp of the health check item.
+    /// </summary>
     [JsonPropertyName("timeStamp")]
     public DateTime TimeStamp { get; set; }
-    
     
     /// <summary>
     /// Whether the health check item is healthy.

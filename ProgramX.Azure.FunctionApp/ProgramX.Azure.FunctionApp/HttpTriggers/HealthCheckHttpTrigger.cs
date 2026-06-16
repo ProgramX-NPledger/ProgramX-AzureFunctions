@@ -14,6 +14,9 @@ using ProgramX.Azure.FunctionApp.Model.Responses;
 
 namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 
+/// <summary>
+/// Provides Health Checks for services.
+/// </summary>
 public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
 {
     private readonly ILoggerFactory _loggerFactory;
@@ -30,6 +33,16 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
         _singletonMutex = singletonMutex;
     }
     
+    /// <summary>
+    /// Returns a list of services that are eligible for health checks or performs a Health Check for a specific service.
+    /// </summary>
+    /// <param name="req">The <see cref="HttpRequestData"/> for the Azure HTTP Trigger.</param>
+    /// <param name="name">Optional. If not specified, returns an array of <see cref="HealthCheckService"/> items which are eligible for health checks.
+    /// Or, provide the name to perform a health check for a specific service.</param>
+    /// <returns>An array of <see cref="HealthCheckService"/> items or a <see cref="GetHealthCheckForServiceResponse"/>.</returns>
+    /// <remarks>Throttles health checks to once every minute. If requests are made within this minute, a 429 response is returned.</remarks>
+    /// <response code="200">Returns a list of services that are eligible for health checks or performs a Health Check for a specific service.</response>
+    /// <response code="429">Too many requests.</response>
     [Function(nameof(GetHealthCheck))]
     public async Task<HttpResponseData> GetHealthCheck(
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "healthcheck/{name?}")] HttpRequestData req, string? name)
