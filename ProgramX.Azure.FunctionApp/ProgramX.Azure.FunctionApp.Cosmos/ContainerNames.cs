@@ -5,6 +5,9 @@ public static class ContainerNames
     public const string Users = "users";
     public const string UserNamePartitionKey = "/userName";
     
+    public const string Roles = "roles";
+    public const string RoleNamePartitionKey = "/roleName";
+
     public const string UserPasswords = "userPasswords";
     public const string UserPasswordPartitionKey = "/userName";
 

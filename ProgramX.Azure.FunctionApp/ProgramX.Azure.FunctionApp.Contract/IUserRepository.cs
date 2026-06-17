@@ -8,16 +8,7 @@ namespace ProgramX.Azure.FunctionApp.Contract;
 /// </summary>
 public interface IUserRepository
 {
-    /// <summary>
-    /// Gets Roles from the repository.
-    /// </summary>
-    /// <param name="criteria">The <see cref="GetRolesCriteria"/> to determine which Roles to return.</param>
-    /// <param name="pagedCriteria">The <see cref="PagedCriteria"/> that determines paging requirements.
-    /// Do not specify if paging is not required.</param>
-    /// <returns>Matching items.</returns>
-    /// <remarks>Roles are not an outermost model, therefore they cannot be sorted.</remarks>   
-    Task<IResult<Role>> GetRolesAsync(GetRolesCriteria criteria, PagedCriteria? pagedCriteria = null);
-    
+
     /// <summary>
     /// Gets Users from the repository.
     /// </summary>
@@ -86,13 +77,6 @@ public interface IUserRepository
     Task CreateUserAsync(User user);
 
     /// <summary>
-    /// Creates the specified role and adds to the specified users.
-    /// </summary>
-    /// <param name="role">Role to create.</param>
-    /// <param name="usersInRoles">List of usernames of users to add to Role.</param>
-    Task CreateRoleAsync(Role role, IEnumerable<string> usersInRoles);
-
-    /// <summary>
     /// Creates the specified Application and adds to the specified Roles.
     /// </summary>
     /// <param name="application">Application to create.</param>
@@ -100,39 +84,11 @@ public interface IUserRepository
     Task CreateApplicationAsync(Application application, IEnumerable<string> withinRoles);
     
     /// <summary>
-    /// Gets a Role by their unique username.
-    /// </summary>
-    /// <param name="id">The ID of the role.</param>
-    /// <returns>The requested <see cref="Role"/>, or <c>null</c> if not found.</returns>
-    Task<Role?> GetRoleByNameAsync(string name);
-    
-    /// <summary>
-    /// Update the specified role. 
-    /// </summary>
-    /// <param name="roleName">The Role Name of the role to update.</param>   
-    /// <param name="role">The updated <see cref="Role"/>.</param>
-    /// <remarks>
-    /// This will not:
-    /// <list type="bullet">
-    /// <item>Add additional Users to the Role. Instead, use <see cref="AddRoleToUserAsync"/>.</item>
-    /// <item>Remove Users from the Role. Instead, use <see cref="RemoveRoleFromUserAsync"/>.</item>
-    /// </list>
-    /// </remarks>
-    Task UpdateRoleAsync(string roleName, Role role);
-    
-    /// <summary>
     /// Update the specified Application.
     /// </summary>
     /// <param name="applicationName">The Application Name of the Application to update.</param>   
     /// <param name="application">The updated <see cref="Application"/>.</param>
     Task UpdateApplicationAsync(string applicationName, Application application);
-    
-    /// <summary>
-    /// Deletes the Role with the given name.
-    /// </summary>
-    /// <param name="roleName">The name of the role to delete.</param>
-    Task DeleteRoleByNameAsync(string roleName);
-    
     
     /// <summary>
     /// Deletes the Application with the given name.

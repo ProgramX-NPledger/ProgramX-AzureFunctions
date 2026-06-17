@@ -32,7 +32,13 @@ builder.Services
     {
         string? connectionString = Environment.GetEnvironmentVariable("CosmosDBConnection");
         if (string.IsNullOrWhiteSpace(connectionString)) throw new ArgumentException("CosmosDBConnection environment variable is not set");
-        return new CosmosClient(connectionString);
+        return new CosmosClient(connectionString, new CosmosClientOptions()
+        {
+            SerializerOptions = new CosmosSerializationOptions()
+            {
+                PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+            }
+        });
     })
     .AddSingleton<BlobServiceClient, BlobServiceClient>(blobService =>
     {
@@ -45,6 +51,11 @@ builder.Services
     {
         var cosmosClient = serviceProvider.GetRequiredService<CosmosClient>();
         return new CosmosUserRepository(cosmosClient, serviceProvider.GetRequiredService<ILogger<CosmosUserRepository>>());;
+    })
+    .AddSingleton<IRoleRepository, CosmosRoleRepository>(serviceProvider =>
+    {
+        var cosmosClient = serviceProvider.GetRequiredService<CosmosClient>();
+        return new CosmosRoleRepository(cosmosClient, serviceProvider.GetRequiredService<ILogger<CosmosRoleRepository>>());;
     })
     .AddSingleton<IScoutingRepository, CosmosScoutingRepository>(serviceProvider =>
     {

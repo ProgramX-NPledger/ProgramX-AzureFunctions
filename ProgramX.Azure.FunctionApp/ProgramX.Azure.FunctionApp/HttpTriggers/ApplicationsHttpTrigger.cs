@@ -26,6 +26,7 @@ public class ApplicationsHttpTrigger(
     ILogger<ApplicationsHttpTrigger> logger,
     IConfiguration configuration,
     IUserRepository userRepository,
+    IRoleRepository roleRepository,
     IServiceProvider serviceProvider)
     : AuthorisedHttpTriggerBase(configuration,logger)
 {
@@ -84,14 +85,14 @@ public class ApplicationsHttpTrigger(
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
                 }
 
-                var withinRoles = userRepository.GetRolesAsync(new GetRolesCriteria()
-                {
-                    UsedInApplicationNames = [name]
-                });
+                // var withinRoles = userRepository.GetRolesAsync(new GetRolesCriteria()
+                // {
+                //     UsedInApplicationNames = [name]
+                // });
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
                 {
                     application,
-                    usedInRoles = withinRoles.Result.Items
+                    //usedInRoles = withinRoles.Result.Items
                 });
             }
         });
@@ -295,19 +296,21 @@ public class ApplicationsHttpTrigger(
             }
             else
             {
-                var allRoles = await userRepository.GetRolesAsync(new GetRolesCriteria());
-                var currentRoles = allRoles.Items.Where(r => roles.Contains(r.name));
-                var applicationsWithinRoles = currentRoles.SelectMany(r => r.applications);
+                var allRoles = await roleRepository.GetRolesAsync(new GetRolesCriteria());
+                var currentRoles = allRoles.Items.Where(r => roles.Contains(r.RoleName));
+//                var applicationsWithinRoles = currentRoles.SelectMany(r => r.applications);
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
                     new GetApplicationsForHealthCheckResponse()
                     {
                         TimeStamp = DateTime.UtcNow,
                         IsElevated = false,
-                        HealthCheckServices = applicationsWithinRoles.Select(q => new ApplicationHealthCheckService()
-                        {
-                            Name = q.name,
-                            Url = $"{baseUrl}/{q.name}/health",
-                        }).ToList()
+                        HealthCheckServices = Enumerable.Empty<ApplicationHealthCheckService>().ToList()
+                        // TODO applicationsWithinRoles
+                        // applicationsWithinRoles.Select(q => new ApplicationHealthCheckService()
+                        // {
+                        //     Name = q.name,
+                        //     Url = $"{baseUrl}/{q.name}/health",
+                        // }).ToList()
                     });
             }
         });

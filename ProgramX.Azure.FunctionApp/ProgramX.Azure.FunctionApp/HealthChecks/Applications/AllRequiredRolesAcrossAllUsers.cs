@@ -31,15 +31,16 @@ public class AllRequiredRolesAcrossAllUsers : IApplicationHealthCheck
             HasAccessToApplications = [_applicationMetaData.Name],
         });
 
+        // TODO calculate missing roles
         var missingRoles = new List<string>();
-        foreach (var role in _applicationMetaData.RequiresRoleNames)
-        {
-            if (!allUsersWithApplication.Items.Any(q => q.roles.Any(r => r.name == role)))
-            {
-                missingRoles.Add(role);
-            }
-        }
-
+        // foreach (var role in _applicationMetaData.RequiresRoleNames)
+        // {
+        //     if (!allUsersWithApplication.Items.Any(q => q.roles.Any(r => r.name == role)))
+        //     {
+        //         missingRoles.Add(role);
+        //     }
+        // }
+        //
         if (!missingRoles.Any())
         {
             result.IsHealthy = true;
@@ -79,30 +80,30 @@ public class AllRequiredRolesAcrossAllUsers : IApplicationHealthCheck
         
         foreach (var requiredRole in _applicationMetaData.RequiresRoleNames)
         {
-            // ensure role doesn't already exist
-            if (await _userRepository.GetRoleByNameAsync(requiredRole) != null) continue;
-            
-            try
-            {
-                await _userRepository.CreateRoleAsync(new Role()
-                {
-                    name = requiredRole,
-                    description = $"Created by {nameof(FixHealthAsync)} for {nameof(AllRequiredRolesAcrossAllUsers)}",
-                    applications = new List<Application>
-                    {
-                        CreateApplicationFromMetaData()
-                    }
-                }, new List<string>
-                {
-                    adminUser.userName
-                });
-                ((List<string>)allRolesAcrossAllUsersHealthCheckResult.Messages).Add($"Added role {requiredRole} and adding to Admin User {adminUser.userName} and adding Application {_applicationMetaData.Name}");
-            }
-            catch (Exception e)
-            {
-                ((List<string>)allRolesAcrossAllUsersHealthCheckResult.Messages).Add(e.Message);
-                allRolesAcrossAllUsersHealthCheckResult.IsSuccess = false;
-            }
+            // TODO: ensure role doesn't already exist
+            // if (await _userRepository.GetRoleByNameAsync(requiredRole) != null) continue;
+            //
+            // try
+            // {
+            //     await _userRepository.CreateRoleAsync(new Role()
+            //     {
+            //         name = requiredRole,
+            //         description = $"Created by {nameof(FixHealthAsync)} for {nameof(AllRequiredRolesAcrossAllUsers)}",
+            //         applications = new List<Application>
+            //         {
+            //             CreateApplicationFromMetaData()
+            //         }
+            //     }, new List<string>
+            //     {
+            //         adminUser.userName
+            //     });
+            //     ((List<string>)allRolesAcrossAllUsersHealthCheckResult.Messages).Add($"Added role {requiredRole} and adding to Admin User {adminUser.userName} and adding Application {_applicationMetaData.Name}");
+            // }
+            // catch (Exception e)
+            // {
+            //     ((List<string>)allRolesAcrossAllUsersHealthCheckResult.Messages).Add(e.Message);
+            //     allRolesAcrossAllUsersHealthCheckResult.IsSuccess = false;
+            // }
 
         }
         return allRolesAcrossAllUsersHealthCheckResult;    

@@ -77,7 +77,9 @@ public class LoginHttpTrigger
             throw new Exception("User not found");
         }
         
-        string token = _jwtTokenIssuer.IssueTokenForUser(credentials,user.roles.Select(q=>q.name));
+        // TODO: get roles
+        
+        string token = _jwtTokenIssuer.IssueTokenForUser(credentials,user.roles.Select(q=>q.RoleName));
  
         var applicationLoader = new ApplicationLoader(_configuration, _serviceProvider);
         
@@ -89,15 +91,15 @@ public class LoginHttpTrigger
             token,
             user.userName,
             user.emailAddress,
-            roles = user.roles.Select(q=>q.name),
+            roles = user.roles.Select(q=>q.RoleName),
             // TODO: simplify this
-            applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=> 
-                new FullyQualifiedApplication()
-                {
-                    application = q.First(),
-                    applicationMetaData = applicationLoader.LoadApplication(q.First().name).GetApplicationMetaData()
-                }
-                ).ToList(),
+            // applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=> 
+            //     new FullyQualifiedApplication()
+            //     {
+            //         application = q.First(),
+            //         applicationMetaData = applicationLoader.LoadApplication(q.First().name).GetApplicationMetaData()
+            //     }
+            //     ).ToList(),
             profilePhotoBase64 = string.Empty,
             user.firstName,
             user.lastName,

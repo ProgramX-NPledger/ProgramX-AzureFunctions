@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ProgramX.Azure.FunctionApp.Model.Requests;
 
 /// <summary>
@@ -8,21 +10,20 @@ public class CreateRoleRequest
     /// <summary>
     /// Name of the Role.
     /// </summary>
-    public required string name { get; set; }
+    [JsonPropertyName("name")]
+    public required string Name { get; set; }
     
     /// <summary>
     /// Description of the Role.
     /// </summary>
-    public string? description { get; set; }
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
 
     /// <summary>
     /// The Users to add to the Role.
     /// </summary>
-    public IEnumerable<string> addToUsers { get; set; } = [];
+    [JsonPropertyName("addToUsers")]
+    public IEnumerable<string> AddToUsers { get; set; } = [];
 
-    /// <summary>
-    /// The Applications to add the Role to.
-    /// </summary>
-    public IEnumerable<string> addToApplications { get; set; } = [];
 
 }

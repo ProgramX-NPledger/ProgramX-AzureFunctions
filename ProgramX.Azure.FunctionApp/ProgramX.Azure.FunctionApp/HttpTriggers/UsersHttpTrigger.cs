@@ -29,18 +29,21 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     private readonly IStorageClient? _storageClient;
     private readonly IEmailSender _emailSender;
     private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
 
- 
+
     public UsersHttpTrigger(ILogger<UsersHttpTrigger> logger,
         IStorageClient? storageClient,
         IConfiguration configuration,
         IEmailSender emailSender,
-        IUserRepository userRepository) : base(configuration, logger)
+        IUserRepository userRepository,
+        IRoleRepository roleRepository) : base(configuration, logger)
     {
         _logger = logger;
         _storageClient = storageClient;
         _emailSender = emailSender;
         _userRepository = userRepository;
+        _roleRepository = roleRepository;
     }
 
 
@@ -97,12 +100,12 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
                 }
                 
-                List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
+                //List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
                 {
                     user,
-                    applications,
+                  //  applications,
                     profilePhotoBase64 = string.Empty
                 });
             }
@@ -238,11 +241,12 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 user.schemaVersionNumber = user.schemaVersionNumber >= 3 ? user.schemaVersionNumber : 3; 
             }
             
-            if (updateUserRequest.updateRolesScope)
-            {
-                var roles=await _userRepository.GetRolesAsync(new GetRolesCriteria());
-                user.roles = roles.Items.Where(q => updateUserRequest.roles.Contains(q.name)).OrderBy(q => q.name).ToList();
-            }
+            // TODO update roles
+            // if (updateUserRequest.updateRolesScope)
+            // {
+            //     var roles=await _userRepository.GetRolesAsync(new GetRolesCriteria());
+            //     user.roles = roles.Items.Where(q => updateUserRequest.roles.Contains(q.name)).OrderBy(q => q.name).ToList();
+            // }
 
             if (updateUserRequest.updateProfilePictureScope)
             {
@@ -480,14 +484,14 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateUserRequest>(httpRequestData);
             if (createUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
-            var allRoles = await _userRepository.GetRolesAsync(new GetRolesCriteria());
+            var allRoles = await _roleRepository.GetRolesAsync(new GetRolesCriteria());
         
             var newUser = new User()
             {
                 id = Guid.NewGuid().ToString("N"),
                 emailAddress = createUserRequest.emailAddress,
                 userName = createUserRequest.userName,
-                roles = allRoles.Items.Where(q=>createUserRequest.addToRoles.Contains(q.name)),
+                roles = allRoles.Items.Where(q=>createUserRequest.addToRoles.Contains(q.RoleName)),
                 schemaVersionNumber = 6,
                 createdAt = DateTime.UtcNow,
                 updatedAt = DateTime.UtcNow,
