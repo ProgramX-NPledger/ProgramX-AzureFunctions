@@ -90,6 +90,7 @@ public class LoginHttpTrigger
             user.userName,
             user.emailAddress,
             roles = user.roles.Select(q=>q.name),
+            // TODO: simplify this
             applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=> 
                 new FullyQualifiedApplication()
                 {
