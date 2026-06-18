@@ -135,10 +135,10 @@ public class ApplicationsHttpTriggerGetApplicationTests
         {
             new User
             {
-                id = "user1",
+                Id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "user1",
-                roles = new List<Role>
+                UserName = "user1",
+                Roles = new List<Role>
                 {
                     new Role()
                     {
@@ -155,10 +155,10 @@ public class ApplicationsHttpTriggerGetApplicationTests
             },
             new User
             {
-                id = "user2",
+                Id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2",
-                roles = new List<Role>
+                UserName = "user2",
+                Roles = new List<Role>
                 {
                     new Role()
                     {
@@ -187,7 +187,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                 mockResult.SetupGet(x => x.Items)
                     .Returns(
                         users.SelectMany(q =>
-                            q.roles.SelectMany(qq =>
+                            q.Roles.SelectMany(qq =>
                                 qq.applications
                             )
                         ));
@@ -217,10 +217,10 @@ public class ApplicationsHttpTriggerGetApplicationTests
         {
             new User
             {
-                id = "user1",
+                Id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "john",
-                roles = new List<Role>()
+                UserName = "john",
+                Roles = new List<Role>()
                 {
                     new Role()
                     {
@@ -237,10 +237,10 @@ public class ApplicationsHttpTriggerGetApplicationTests
             },
             new User
             {
-                id = "user2",
+                Id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2",
-                roles = new List<Role>()
+                UserName = "user2",
+                Roles = new List<Role>()
                 {
                     new Role()
                     {
@@ -276,7 +276,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                 mockResult.SetupGet(x => x.Items)
                     .Returns(
                         users.SelectMany(q =>
-                            q.roles.SelectMany(qq =>
+                            q.Roles.SelectMany(qq =>
                                 qq.applications.Where(qqq =>
                                     qqq.name.Contains("john")
                                 )
@@ -311,10 +311,10 @@ public class ApplicationsHttpTriggerGetApplicationTests
         {
             new User
             {
-                id = "user1",
+                Id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "john",
-                roles = new List<Role>()
+                UserName = "john",
+                Roles = new List<Role>()
                 {
                     new Role()
                     {
@@ -331,10 +331,10 @@ public class ApplicationsHttpTriggerGetApplicationTests
             },
             new User
             {
-                id = "user2",
+                Id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2",
-                roles = new List<Role>()
+                UserName = "user2",
+                Roles = new List<Role>()
                 {
                     new Role()
                     {
@@ -370,7 +370,7 @@ public class ApplicationsHttpTriggerGetApplicationTests
                 mockResult.SetupGet(x => x.Items)
                     .Returns(
                         users.SelectMany(q =>
-                            q.roles.SelectMany(qq =>
+                            q.Roles.SelectMany(qq =>
                                 qq.applications.Where(qqq =>
                                     qqq.name.Contains("Admin Application")
                                 )

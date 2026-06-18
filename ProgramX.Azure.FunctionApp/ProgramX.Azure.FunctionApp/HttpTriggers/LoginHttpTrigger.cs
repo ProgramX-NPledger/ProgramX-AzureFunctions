@@ -79,39 +79,30 @@ public class LoginHttpTrigger
         
         // TODO: get roles
         
-        string token = _jwtTokenIssuer.IssueTokenForUser(credentials,user.roles.Select(q=>q.RoleName));
+        string token = _jwtTokenIssuer.IssueTokenForUser(credentials,user.Roles);
  
         var applicationLoader = new ApplicationLoader(_configuration, _serviceProvider);
         
         _logger.LogInformation("User {UserName} logged in", credentials.UserName);
         
         var httpResponse = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
-        await httpResponse.WriteAsJsonAsync(new
+        await httpResponse.WriteAsJsonAsync(new LoginResponse()
         {
-            token,
-            user.userName,
-            user.emailAddress,
-            roles = user.roles.Select(q=>q.RoleName),
-            // TODO: simplify this
-            // applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=> 
-            //     new FullyQualifiedApplication()
-            //     {
-            //         application = q.First(),
-            //         applicationMetaData = applicationLoader.LoadApplication(q.First().name).GetApplicationMetaData()
-            //     }
-            //     ).ToList(),
-            profilePhotoBase64 = string.Empty,
-            user.firstName,
-            user.lastName,
-            initials = GetInitials(user.firstName, user.lastName),
-            user.profilePhotographSmall
+            Token = token,
+            UserName = user.UserName,
+            EmailAddress = user.EmailAddress,
+            MemberOfRoles = user.Roles,
+            CanUseApplications = [], // TODO populate applications roles have access to (as defined by application)
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            ProfilePhotographSmall = user.ProfilePhotographSmall,
+            ProfilePhotoBase64 = string.Empty,
+            Initials = GetInitials(user.FirstName, user.LastName),
         });
         return httpResponse;
-
-
     }
 
-
+    
     private string GetInitials(string? firstName, string? lastName)
     {
         StringBuilder sb = new StringBuilder();

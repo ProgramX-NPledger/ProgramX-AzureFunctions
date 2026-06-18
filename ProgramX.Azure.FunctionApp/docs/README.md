@@ -3,6 +3,7 @@
 ## Table of Contents
 
 1. [Authentication](./01-Getting-started/Authentication.md)
+   1. [Roles](./01-Getting-started/Roles.md)
 
 
 ## Conventions

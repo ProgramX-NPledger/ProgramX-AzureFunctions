@@ -29,8 +29,8 @@ public class RepositoryException : ApplicationException
         EntityType = entityType;
     }
 
-    public OperationType OperationType { get; }
-    public Type? EntityType { get; }
+    public OperationType OperationType { get; protected set; }
+    public Type? EntityType { get; protected set; }
 }
 
 public enum OperationType

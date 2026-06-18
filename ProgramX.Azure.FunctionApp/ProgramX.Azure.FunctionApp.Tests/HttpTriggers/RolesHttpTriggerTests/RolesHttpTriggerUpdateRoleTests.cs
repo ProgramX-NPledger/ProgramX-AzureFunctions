@@ -38,7 +38,7 @@ public class RolesHttpTriggerUpdateRoleTests : TestBase
         };
         var updateRoleRequest = new UpdateRoleRequest()
         {
-            description = expectedDescription,
+            Description = expectedDescription,
             name = roleName
         };
 
@@ -92,7 +92,7 @@ public class RolesHttpTriggerUpdateRoleTests : TestBase
         var updateRole = new UpdateRoleRequest()
         {
             name = roleName,
-            description = "updated description"
+            Description = "updated description"
         };
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -124,7 +124,7 @@ public class RolesHttpTriggerUpdateRoleTests : TestBase
         var updateRole = new UpdateRoleRequest()
         {
             name = roleName,
-            description = "updated description"
+            Description = "updated description"
         };
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -156,7 +156,7 @@ public class RolesHttpTriggerUpdateRoleTests : TestBase
         var updateRole = new UpdateRoleRequest()
         {
             name = roleName,
-            description = "updated description"
+            Description = "updated description"
         };
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();

@@ -67,12 +67,12 @@ public class UsersHttpTriggerRemoveUserPhotoTests : TestBase
         const string userId = "test-user-123";
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
+            Id = userId,
+            UserName = userId,
             emailAddress = "old@emailAddress.com",
-            roles = new List<Role>(),
-            profilePhotographOriginal = "somefile.png",
-            profilePhotographSmall = "somesmallfile.png",
+            Roles = new List<Role>(),
+            ProfilePhotographOriginal = "somefile.png",
+            ProfilePhotographSmall = "somesmallfile.png",
         };
     
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();

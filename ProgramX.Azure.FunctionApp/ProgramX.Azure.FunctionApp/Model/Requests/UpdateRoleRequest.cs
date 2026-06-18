@@ -8,23 +8,15 @@ namespace ProgramX.Azure.FunctionApp.Model.Requests;
 public class UpdateRoleRequest
 {
     /// <summary>
-    /// Name of the Role.
-    /// </summary>
-    public string? name { get; set; }
-    
-    /// <summary>
     /// Description of the Role.
     /// </summary>
-    public string? description { get; set; }
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
 
     /// <summary>
-    /// If set, contains usernames in the role. If <c>null</c> no changesto users are made.
+    /// If set, contains usernames in the role. If <c>null</c> no changes to users are made.
     /// </summary>
     [JsonPropertyName("usersInRole")]
     public string[]? usersInRole { get; set; }
-
-    [JsonPropertyName("applications")] public IEnumerable<string> applications { get; set; } = [];
-
-
     
 }

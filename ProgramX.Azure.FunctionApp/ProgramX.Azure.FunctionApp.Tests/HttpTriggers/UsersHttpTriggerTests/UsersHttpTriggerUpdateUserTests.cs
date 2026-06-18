@@ -37,10 +37,10 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
 
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
+            Id = userId,
+            UserName = userId,
             emailAddress = "old@emailAddress.com",
-            roles = new List<Role>(),
+            Roles = new List<Role>(),
         };
         var updateUser = new UpdateUserRequest()
         {
@@ -84,11 +84,11 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
 
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
+            Id = userId,
+            UserName = userId,
             emailAddress = "old@emailAddress.com",
-            theme = "old-theme",
-            roles = new List<Role>(),
+            Theme = "old-theme",
+            Roles = new List<Role>(),
         };
         var updateUser = new UpdateUserRequest()
         {
@@ -132,10 +132,10 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
 
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
+            Id = userId,
+            UserName = userId,
             emailAddress = "old@emailAddress.com",
-            roles = new List<Role>()
+            Roles = new List<Role>()
         };
         var updateUser = new UpdateUserRequest()
         {
@@ -179,10 +179,10 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
 
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
+            Id = userId,
+            UserName = userId,
             emailAddress = "old@emailAddress.com",
-            roles = new List<Role>()
+            Roles = new List<Role>()
         };
         var updateUser = new UpdateUserRequest()
         {
@@ -225,11 +225,11 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
 
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
-            passwordConfirmationNonce = "nonce",
+            Id = userId,
+            UserName = userId,
+            PasswordConfirmationNonce = "nonce",
             emailAddress = "old@emailAddress.com",
-            roles = new List<Role>()
+            Roles = new List<Role>()
         };
         var updateUser = new UpdateUserRequest()
         {
@@ -273,11 +273,11 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
 
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
-            passwordLinkExpiresAt = DateTime.UtcNow.AddDays(-1),
+            Id = userId,
+            UserName = userId,
+            PasswordLinkExpiresAt = DateTime.UtcNow.AddDays(-1),
             emailAddress = "old@emailAddress.com",
-            roles = new List<Role>()
+            Roles = new List<Role>()
         };
         var updateUser = new UpdateUserRequest()
         {
@@ -321,12 +321,12 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
 
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
+            Id = userId,
+            UserName = userId,
             emailAddress = "old@emailAddress.com",
-            passwordLinkExpiresAt = DateTime.MaxValue,
-            passwordConfirmationNonce = expectedNonce,
-            roles = new List<Role>()
+            PasswordLinkExpiresAt = DateTime.MaxValue,
+            PasswordConfirmationNonce = expectedNonce,
+            Roles = new List<Role>()
         };
         var updateUser = new UpdateUserRequest()
         {
@@ -397,10 +397,10 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
         
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
+            Id = userId,
+            UserName = userId,
             emailAddress = "email@address.com",
-            roles = new List<Role>()
+            Roles = new List<Role>()
             {
                 new Role()
                 {
@@ -456,10 +456,10 @@ public class UsersHttpTriggerUpdateUserTests : TestBase
 
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
+            Id = userId,
+            UserName = userId,
             emailAddress = "old@emailAddress.com",
-            roles = new List<Role>()
+            Roles = new List<Role>()
         };
         var updateUser = new UpdateUserRequest()
         {

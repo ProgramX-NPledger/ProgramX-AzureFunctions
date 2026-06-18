@@ -99,16 +99,16 @@ public interface IUserRepository
     /// <summary>
     /// Adds the specified Role to the specified User.
     /// </summary>
-    /// <param name="role">The Role to add to the User.</param>
+    /// <param name="roleName">The Role to add to the User.</param>
     /// <param name="userName">The username of the User to add the Role to.</param>
-    Task AddRoleToUserAsync(Role role, string userName);
+    Task AddUserToRole(Role roleName, string userName);
     
     /// <summary>
     /// Removes the specified Role from the specified User.
     /// </summary>
     /// <param name="roleName">The name of the Role to remove from the User.</param>
     /// <param name="userName">The username of the User to remove the Role from.</param>
-    Task RemoveRoleFromUserAsync(string roleName, string userName);
+    Task RemoveUserFromRole(string roleName, string userName);
 
 
     /// <summary>
@@ -133,6 +133,8 @@ public interface IUserRepository
     /// Resets the application.
     /// </summary>
     Task ResetApplicationAsync();
+    
+    
     
     
 }

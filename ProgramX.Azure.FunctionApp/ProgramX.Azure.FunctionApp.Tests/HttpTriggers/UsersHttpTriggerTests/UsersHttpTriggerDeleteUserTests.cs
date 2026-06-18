@@ -23,10 +23,10 @@ public class UsersHttpTriggerDeleteUserTests
 
         var existingUser = new User
         {
-            id = userId,
-            userName = "testuser",
+            Id = userId,
+            UserName = "testuser",
             emailAddress = "test@example.com",
-            roles = new List<Role>()
+            Roles = new List<Role>()
         };
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();

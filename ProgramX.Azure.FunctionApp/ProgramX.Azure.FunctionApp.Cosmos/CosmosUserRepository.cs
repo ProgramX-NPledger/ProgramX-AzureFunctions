@@ -160,12 +160,12 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         using (logger.BeginScope("UpdateUserAsync {user}", user))
         {
             var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-            var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+            var response = await container.ReplaceItemAsync(user, user.Id, new PartitionKey(user.UserName));
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 logger.LogError(
-                    "Failed to update user with id {id} with status code {statusCode} and response {response}", user.id,
+                    "Failed to update user with id {id} with status code {statusCode} and response {response}", user.Id,
                     response.StatusCode, response);
                 throw new RepositoryException(OperationType.Update, typeof(User));
             }
@@ -183,12 +183,12 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         using (logger.BeginScope("CreateUserAsync {user}", user))
         {
             var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-            var response = await container.CreateItemAsync(user, new PartitionKey(user.userName));
+            var response = await container.CreateItemAsync(user, new PartitionKey(user.UserName));
 
             if (response.StatusCode != HttpStatusCode.Created)
             {
                 logger.LogError(
-                    "Failed to create user with id {id} with status code {statusCode} and response {response}", user.id,
+                    "Failed to create user with id {id} with status code {statusCode} and response {response}", user.Id,
                     response.StatusCode, response);
                 throw new RepositoryException(OperationType.Create, typeof(UserPassword));
             }
@@ -278,8 +278,8 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             //     }
             // }
             
-            var response = await container.ReplaceItemAsync(user, user.id,
-                new PartitionKey(user.userName));
+            var response = await container.ReplaceItemAsync(user, user.Id,
+                new PartitionKey(user.UserName));
             if (response.StatusCode != HttpStatusCode.OK)
                 throw new RepositoryException(OperationType.Update, typeof(Application));
         }        
@@ -311,13 +311,13 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                 //         !q.name.Equals(applicationName, StringComparison.InvariantCultureIgnoreCase)).ToList();
                 // }
 
-                var response = await container.ReplaceItemAsync(user, user.id,
-                    new PartitionKey(user.userName));
+                var response = await container.ReplaceItemAsync(user, user.Id,
+                    new PartitionKey(user.UserName));
                 if (response.StatusCode != HttpStatusCode.OK)
                 {
                     throw new RepositoryException(OperationType.Delete, typeof(Application));
                 }
-                logger.LogDebug("Removed Application from user {userName}", user.userName);           
+                logger.LogDebug("Removed Application from user {userName}", user.UserName);           
             }
         }
         
@@ -338,16 +338,16 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                 throw new RepositoryException(OperationType.Update, typeof(User), $"User {userName} not found");
             }
 
-            user.roles = user.roles.Union([role]).ToList();
-            var response = await container.ReplaceItemAsync(user, user.id, new PartitionKey(user.userName));
+            user.Roles = user.Roles.Union([role]).ToList();
+            var response = await container.ReplaceItemAsync(user, user.Id, new PartitionKey(user.UserName));
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 logger.LogError(
                     "Failed to update user with id {id} with status code {statusCode} and response {response}",
-                    user.id, response.StatusCode, response);
+                    user.Id, response.StatusCode, response);
                 throw new RepositoryException(OperationType.Update, typeof(User));
             }
-            logger.LogDebug("Added Role to user {userName}", user.userName);                      
+            logger.LogDebug("Added Role to user {userName}", user.UserName);                      
         }
     }
 
@@ -566,7 +566,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     {
         return new User()
         {
-            roles = new Role[]
+            Roles = new Role[]
             {
                 
             },
@@ -593,14 +593,14 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             //         schemaVersionNumber = 1
             //     }
             // },
-            userName = userName,
-            id = Guid.NewGuid().ToString(),
-            createdAt = DateTime.UtcNow,
-            updatedAt = DateTime.UtcNow,
-            schemaVersionNumber = 6,
+            UserName = userName,
+            Id = Guid.NewGuid().ToString(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            SchemaVersionNumber = 6,
             emailAddress = emailAddress,
-            firstName = firstName,
-            lastName = lastName
+            FirstName = firstName,
+            LastName = lastName
         };
     }
     

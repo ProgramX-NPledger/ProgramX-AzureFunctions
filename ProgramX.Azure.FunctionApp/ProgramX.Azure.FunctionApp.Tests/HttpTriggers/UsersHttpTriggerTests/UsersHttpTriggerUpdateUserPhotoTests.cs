@@ -168,10 +168,10 @@ public class UsersHttpTriggerUpdateUserPhotoTests : TestBase
         const string userId = "test-user-123";
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
+            Id = userId,
+            UserName = userId,
             emailAddress = "old@emailAddress.com",
-            roles = new List<Role>(),
+            Roles = new List<Role>(),
         };
         
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -217,10 +217,10 @@ public class UsersHttpTriggerUpdateUserPhotoTests : TestBase
         const string userId = "test-user-123";
         var existingUser = new User
         {
-            id = userId,
-            userName = userId,
+            Id = userId,
+            UserName = userId,
             emailAddress = "old@emailAddress.com",
-            roles = new List<Role>(),
+            Roles = new List<Role>(),
         };
 
         var smallPhoto = new byte[] { 71, 73, 70, 56, 55, 97,       

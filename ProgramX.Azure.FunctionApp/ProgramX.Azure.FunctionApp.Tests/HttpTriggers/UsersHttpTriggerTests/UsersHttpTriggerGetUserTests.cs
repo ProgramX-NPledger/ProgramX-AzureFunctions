@@ -39,12 +39,12 @@ public class UsersHttpTriggerGetUserTests
 
         var expectedUser = new User
         {
-            id = userId,
-            userName = "testuser",
+            Id = userId,
+            UserName = "testuser",
             emailAddress = "test@example.com",
-            firstName = "Test",
-            lastName = "User",
-            roles = new List<Role> { adminRole },
+            FirstName = "Test",
+            LastName = "User",
+            Roles = new List<Role> { adminRole },
         };
 
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -156,17 +156,17 @@ public class UsersHttpTriggerGetUserTests
         {
             new User
             {
-                id = "user1",
+                Id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "user1",
-                roles = new List<Role>()
+                UserName = "user1",
+                Roles = new List<Role>()
             },
             new User
             {
-                id = "user2",
+                Id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2",
-                roles = new List<Role>()
+                UserName = "user2",
+                Roles = new List<Role>()
             }
         };
         
@@ -206,17 +206,17 @@ public class UsersHttpTriggerGetUserTests
         {
             new User
             {
-                id = "user1",
+                Id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "john",
-                roles = new List<Role>()
+                UserName = "john",
+                Roles = new List<Role>()
             },
             new User
             {
-                id = "user2",
+                Id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2",
-                roles = new List<Role>()
+                UserName = "user2",
+                Roles = new List<Role>()
             }
         };
         
@@ -236,7 +236,7 @@ public class UsersHttpTriggerGetUserTests
             .WithIUserRepository(mockUserRepository =>
             {
                 var mockResult = new Mock<IPagedResult<User>>();
-                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.userName.Contains("john")));;
+                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.UserName.Contains("john")));;
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
                     .ReturnsAsync(mockResult.Object);
@@ -266,17 +266,17 @@ public class UsersHttpTriggerGetUserTests
         {
             new User
             {
-                id = "user1",
+                Id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "john",
-                roles = new List<Role> { adminRole, guestRole }
+                UserName = "john",
+                Roles = new List<Role> { adminRole, guestRole }
             },
             new User
             {
-                id = "user2",
+                Id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2",
-                roles = new List<Role> { guestRole }
+                UserName = "user2",
+                Roles = new List<Role> { guestRole }
             }
         };
         
@@ -296,7 +296,7 @@ public class UsersHttpTriggerGetUserTests
             .WithIUserRepository(mockUserRepository =>
             {
                 var mockResult = new Mock<IPagedResult<User>>();
-                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.roles.Any(qq=>qq.name == "Admin")));;
+                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.Roles.Any(qq=>qq.name == "Admin")));;
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
                     .ReturnsAsync(mockResult.Object);
@@ -342,17 +342,17 @@ public class UsersHttpTriggerGetUserTests
         {
             new User
             {
-                id = "user1",
+                Id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "john",
-                roles = new List<Role> { adminRole, guestRole }
+                UserName = "john",
+                Roles = new List<Role> { adminRole, guestRole }
             },
             new User
             {
-                id = "user2",
+                Id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2",
-                roles = new List<Role> { guestRole }
+                UserName = "user2",
+                Roles = new List<Role> { guestRole }
             }
         };
         
@@ -372,7 +372,7 @@ public class UsersHttpTriggerGetUserTests
             .WithIUserRepository(mockUserRepository =>
             {
                 var mockResult = new Mock<IPagedResult<User>>();
-                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.roles.Where((qq=>qq.applications.Any(qqq=>qqq.name == "Another App"))).Any()));;
+                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.Roles.Where((qq=>qq.applications.Any(qqq=>qqq.name == "Another App"))).Any()));;
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
                     .ReturnsAsync(mockResult.Object);

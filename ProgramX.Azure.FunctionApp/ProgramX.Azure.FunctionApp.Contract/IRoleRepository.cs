@@ -30,19 +30,22 @@ public interface IRoleRepository
     /// </summary>
     /// <param name="roleName">The name of the Role to delete.</param>
     Task DeleteRoleByNameAsync(string roleName);
-    
+
     /// <summary>
     /// Creates the specified Role and adds to the specified users.
     /// </summary>
-    /// <param name="role">Role to create.</param>
-    Task CreateRoleAsync(Role role);
+    /// <returns>The created Role.</returns>
+    /// <param name="roleName">Name of the Role.</param>
+    /// <param name="description">Description of the Role.</param>  
+    Task<Role> CreateRoleAsync(string roleName, string? description);
 
     /// <summary>
     /// Update the specified role. 
     /// </summary>
-    /// <param name="roleName">Thename of the Role to update.</param>   
-    /// <param name="role">The updated <see cref="Role"/>.</param>
-    Task UpdateRoleAsync(Role role);
+    /// <returns>The updated Role.</returns>
+    /// <param name="roleName">Thename of the Role to update.</param>
+    /// <param name="description">The description of the Role to update.</param>   
+    Task<Role> UpdateRoleAsync(string roleName, string? description);
 
-    
+
 }

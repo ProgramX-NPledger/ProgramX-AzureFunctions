@@ -6,10 +6,10 @@ using ProgramX.Azure.FunctionApp.Model.Constants;
 
 namespace ProgramX.Azure.FunctionApp.Model.Responses;
 
-public class PagedResponse<T>
+public class PagedResponse<TPagedType, TDto>
 {
     [JsonPropertyName("items")]
-    public IEnumerable<T> Items { get; set; }
+    public IEnumerable<TDto> Items { get; set; }
     
 
     [JsonPropertyName("pagesWithUrls")]
@@ -33,11 +33,11 @@ public class PagedResponse<T>
     public long TotalItems { get; set; }
         
 
-    public PagedResponse(IPagedResult<T> pagedResult, IEnumerable<UrlAccessiblePage> pagesWithUrls)
+    public PagedResponse(IPagedResult<TPagedType> pagedResult, IEnumerable<UrlAccessiblePage> pagesWithUrls, Func<TPagedType, TDto> dtoConverter)
     {
         PagesWithUrls = pagesWithUrls;
         ContinuationToken = pagedResult.ContinuationToken;
-        Items = pagedResult.Items;
+        Items = pagedResult.Items.Select(dtoConverter); 
         ItemsPerPage = pagedResult.ItemsPerPage;
         if (pagedResult is IChargeableResult chargeableResult)
         {

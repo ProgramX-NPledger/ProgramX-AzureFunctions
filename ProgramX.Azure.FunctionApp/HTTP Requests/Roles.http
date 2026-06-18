@@ -33,7 +33,7 @@ GET {{host}}/api/v1/role
 Authorization: Bearer {{token}}
 
 ###
-# @name Get Users containing text
+# @name Get Roles containing text
 GET {{host}}/api/v1/role?containsText=xx
 Authorization: Bearer {{token}}
 

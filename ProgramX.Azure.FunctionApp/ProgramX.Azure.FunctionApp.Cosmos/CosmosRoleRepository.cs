@@ -68,75 +68,96 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
     }
 
     /// <inheritdoc />
-    /// <exception cref="RepositoryException">Thrown if the deletion failed.</exception>
+    /// <exception cref="ItemNotFoundException">Thrown if the Role does not exist.</exception>
+    /// <exception cref="ArgumentException">Thrown if the Role name is <c>null</c> or whitespace.</exception>
+    /// <exception cref="ItemDeleteException">Thrown if the deletion failed.</exception>   
     public async Task DeleteRoleByNameAsync(string roleName)
     {
-        using (logger.BeginScope("DeleteRoleByNameAsync {roleName}", roleName))
+        if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentException(nameof(roleName));
+
+        var existingRole = await GetRoleByNameAsync(roleName);
+        if (existingRole == null)
         {
-            if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentException(nameof(roleName));
+            throw new ItemNotFoundException(OperationType.Update, typeof(Role), "Role does not exist");
+        }
 
-            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Roles);
-            var response = await container.DeleteItemAsync<UserPassword>(roleName, new PartitionKey(roleName));
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Roles);
+        var response = await container.DeleteItemAsync<UserPassword>(roleName, new PartitionKey(roleName));
 
-            if (response.StatusCode != HttpStatusCode.NoContent)
-            {
-                logger.LogError(
-                    "Failed to delete Role with name {roleName} with status code {statusCode} and response {response}", roleName,
-                    response.StatusCode, response);
-                throw new RepositoryException(OperationType.Delete, typeof(UserPassword));
-            }
+        if (response.StatusCode != HttpStatusCode.NoContent)
+        {
+            throw new ItemDeleteException(typeof(Role), response.StatusCode);
         }
     }
 
     /// <inheritdoc />
-    /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
-    public async Task UpdateRoleAsync(Role role)
+    /// <exception cref="ItemNotFoundException">Thrown if the Role does not exist.</exception>
+    /// <exception cref="UpdateImmutablePropertyException">Thrown if the Role name is attempted to be changed.</exception>
+    /// <exception cref="ItemUpdateException">Thrown if the update failed.</exception>   
+    /// <exception cref="ArgumentException">Thrown if the Role name is <c>null</c> or whitespace.</exception>
+    public async Task<Role> UpdateRoleAsync(string roleName, string? description)
     {
-        using (logger.BeginScope("UpdateRoleAsync {role}", role))
-        {
-            // it is not possible to change the name of the role, because that is used as the partition key
-            
-            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-            var response = await container.ReplaceItemAsync(role, role.RoleName, new PartitionKey(role.RoleName));
+        if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentException(nameof(roleName));
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                logger.LogError(
-                    "Failed to update Role with id {roleName} with status code {statusCode} and response {response}", role.RoleName,
-                    response.StatusCode, response);
-                throw new RepositoryException(OperationType.Update, typeof(User));
-            }
-            logger.LogDebug("Success");
+        var existingRole = await GetRoleByNameAsync(roleName);
+        if (existingRole == null)
+        {
+            throw new ItemNotFoundException(OperationType.Update, typeof(Role), "Role does not exist");
         }
+
+        // it is not possible to change the name of the role, because that is used as the partition key
+        if (existingRole.RoleName != roleName)
+        {
+            throw new UpdateImmutablePropertyException(OperationType.Update, typeof(Role), "Attempt to change Role name prevented. Role Name is immutable.", "RoleName");           
+        }
+        
+        existingRole.Description = description;
+        
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+        var response = await container.ReplaceItemAsync(existingRole, existingRole.RoleName, new PartitionKey(role.RoleName));
+
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            throw new ItemUpdateException(typeof(Role), response.StatusCode);
+        }
+        
+        return existingRole;       
     }
 
     /// <inheritdoc />
-    /// <exception cref="RepositoryException">Thrown if the creation failed.</exception>
-    /// <remarks>
-    /// This will not set the user's password. Instead, this is performed when the user sets their password as a separate operation.
-    /// </remarks>
-    public async Task CreateRoleAsync(Role role)
+    /// <exception cref="ItemCreationException">Thrown if the creation failed.</exception>
+    /// <exception cref="ItemAlreadyExistsException">Thrown if the role already exists.</exception>
+    /// <exception cref="ArgumentException">Thrown if the Role name is <c>null</c> or whitespace.</exception>
+    public async Task<Role> CreateRoleAsync(string roleName, string? description)
     {
-        using (logger.BeginScope("CreateRoleAsync {role}", role))
-        {
-            // populate Cosmos-specific fields
-            role.Id = Guid.NewGuid();
-            role.SchemaVersionNumber = 2;
-            role.CreatedAt = DateTime.UtcNow;
-            role.UpdatedAt = DateTime.UtcNow;
-            
-            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Roles);
-            var response = await container.CreateItemAsync(role, new PartitionKey(role.RoleName));
+        if (string.IsNullOrWhiteSpace(roleName)) throw new ArgumentException(nameof(roleName));
 
-            if (response.StatusCode != HttpStatusCode.Created)
-            {
-                logger.LogError(
-                    "Failed to create Role with name {roleName} with status code {statusCode} and response {response}", role.RoleName,
-                    response.StatusCode, response);
-                throw new RepositoryException(OperationType.Create, typeof(UserPassword));
-            }
-            logger.LogDebug("Success");
-        }    
+        // verify role doesn't already exist
+        var existingRole = await GetRoleByNameAsync(roleName);
+        if (existingRole != null)
+        {
+            throw new ItemAlreadyExistsException(typeof(Role));
+        }
+
+        var newRole = new Role()
+        {
+            Id = Guid.NewGuid(),
+            RoleName = roleName,
+            Description = description,
+            SchemaVersionNumber = 2,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Roles);
+        var response = await container.CreateItemAsync(newRole, new PartitionKey(roleName));
+
+        if (response.StatusCode != HttpStatusCode.Created)
+        {
+            throw new ItemCreationException(typeof(Role), response.StatusCode);
+        }
+        
+        return newRole;
     }
     
 

@@ -49,10 +49,10 @@ public class RolesHttpTriggerGetRoleTests
                     {
                         new User()
                         {
-                            id = Guid.NewGuid().ToString(),
+                            Id = Guid.NewGuid().ToString(),
                             emailAddress = "hello@email.com",
-                            userName = "hello",
-                            roles = new List<Role>()
+                            UserName = "hello",
+                            Roles = new List<Role>()
                             {
                                 new Role()
                                 {
@@ -69,10 +69,10 @@ public class RolesHttpTriggerGetRoleTests
                         },
                         new User()
                         {
-                            id = Guid.NewGuid().ToString(),
+                            Id = Guid.NewGuid().ToString(),
                             emailAddress = "hello@email.com",
-                            userName = "hello2",
-                            roles = new List<Role>()
+                            UserName = "hello2",
+                            Roles = new List<Role>()
                             {
                                 new Role()
                                 {
@@ -302,17 +302,17 @@ public class RolesHttpTriggerGetRoleTests
         {
             new User
             {
-                id = "user1",
+                Id = "user1",
                 emailAddress = "user1@example.com",
-                userName = "john",
-                roles = new List<Role> { adminRole, guestRole }
+                UserName = "john",
+                Roles = new List<Role> { adminRole, guestRole }
             },
             new User
             {
-                id = "user2",
+                Id = "user2",
                 emailAddress = "user2@example.com",
-                userName = "user2",
-                roles = new List<Role> { guestRole }
+                UserName = "user2",
+                Roles = new List<Role> { guestRole }
             }
         };
         
@@ -332,7 +332,7 @@ public class RolesHttpTriggerGetRoleTests
             .WithIUserRepository(mockUserRepository =>
             {
                 var mockResult = new Mock<IPagedResult<User>>();
-                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.roles.Any(qq=>qq.name == "Admin")));;
+                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.Roles.Any(qq=>qq.name == "Admin")));;
                 
                 mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
                     .ReturnsAsync(mockResult.Object);

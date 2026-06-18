@@ -231,15 +231,15 @@ public class CosmosPagedReaderTests : CosmosTestBase
         {
             users.Add(new User()
             {
-                id = Guid.NewGuid().ToString(),
-                userName = $"user{i}",
+                Id = Guid.NewGuid().ToString(),
+                UserName = $"user{i}",
                 emailAddress = $"",
-                createdAt = DateTime.UtcNow,
-                firstName = $"First Name {i}",
-                lastLoginAt = DateTime.UtcNow,
-                lastName = $"Last Name {i}",
-                updatedAt = DateTime.UtcNow,
-                roles = new List<Role>()
+                CreatedAt = DateTime.UtcNow,
+                FirstName = $"First Name {i}",
+                LastLoginAt = DateTime.UtcNow,
+                LastName = $"Last Name {i}",
+                UpdatedAt = DateTime.UtcNow,
+                Roles = new List<Role>()
                 
             });
         }

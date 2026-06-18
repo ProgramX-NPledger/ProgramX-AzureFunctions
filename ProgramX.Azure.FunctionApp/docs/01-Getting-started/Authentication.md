@@ -30,17 +30,12 @@ Successful authentication will return a JSON payload:
   "token": "(bearer-token)",
   "userName": "admin",
   "emailAddress": "admin@example.com",
-  "roles": [
+  "memberOfRoles": [
     "reader",
     "writer"
   ],
-  "applications": [
-    {
-      "name": "application-name",
-      "friendlyName": "My Application",
-      "isDefaultApplicationOnLogin": true,
-      "ordinal": 1,
-    }
+  "canUseApplications": [
+    "application-name"
   ],
   "profilePhotoBase64": "(base64-encoded-image)",
   "firstName": "John",
@@ -51,17 +46,17 @@ Successful authentication will return a JSON payload:
 
 Where:
 
-| Field | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-|-------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `token` | The Bearer token which must be used in all subsequent authenticated requests.                                                                                                                                                                                                                                                                                                                                                                                               |
-| `userName` | The user's username.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `emailAddress` | The user's email address.                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `roles` | The user's roles.                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `applications` | The user's applications (according to permissions). The `name` of the application is the 'slug' of the application which can be used in the URL. eg. `https://myserver.com/application-name` There must be a user interface capable of responding to this route. When displayed in a menu, the menu should be sorted by the `ordinal`. When logging in, the user should be immediately sent to the first application which has `isDefaultApplicationOnLogin` set to `true`. |
-| `profilePhotoBase64` | The user's profile photo as a base64-encoded image.                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `firstName` | The user's first name.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `lastName` | The user's last name.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `initials` | The user's initials.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Field | Description                                                                   |
+|-------|-------------------------------------------------------------------------------|
+| `token` | The Bearer token which must be used in all subsequent authenticated requests. |
+| `userName` | The user's username.                                                          |
+| `emailAddress` | The user's email address.                                                     |
+| `roles` | The user's roles.                                                             |
+| `applications` | The user's applications (according to permissions).                           |
+| `profilePhotoBase64` | The user's profile photo as a base64-encoded image.                           |
+| `firstName` | The user's first name.                                                        |
+| `lastName` | The user's last name.                                                         |
+| `initials` | The user's initials.                                                          |
 
 ## Authenticated calls
 

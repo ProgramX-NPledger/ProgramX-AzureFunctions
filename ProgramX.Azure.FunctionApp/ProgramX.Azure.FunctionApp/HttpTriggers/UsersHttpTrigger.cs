@@ -227,18 +227,18 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             
             if (updateUserRequest.updateProfileScope)
             {
-                if (user.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
+                if (user.UserName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
                 if (!IsValidEmail(updateUserRequest.emailAddress!)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid email address");
                 
                 user.emailAddress=updateUserRequest.emailAddress!;
-                user.firstName=updateUserRequest.firstName!;
-                user.lastName=updateUserRequest.lastName!;
+                user.FirstName=updateUserRequest.firstName!;
+                user.LastName=updateUserRequest.lastName!;
             }
 
             if (updateUserRequest.updateSettingsScope)
             {
-                user.theme = updateUserRequest.theme;
-                user.schemaVersionNumber = user.schemaVersionNumber >= 3 ? user.schemaVersionNumber : 3; 
+                user.Theme = updateUserRequest.theme;
+                user.SchemaVersionNumber = user.SchemaVersionNumber >= 3 ? user.SchemaVersionNumber : 3; 
             }
             
             // TODO update roles
@@ -254,14 +254,14 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
 
             // store the nonce/etc. currently on the user before we reset it
-            var passwordNonce = updateUserRequest.updatePasswordScope ? user.passwordConfirmationNonce : null;
-            var passwordLinkExpiresAt = updateUserRequest.updatePasswordScope ? user.passwordLinkExpiresAt : null;
+            var passwordNonce = updateUserRequest.updatePasswordScope ? user.PasswordConfirmationNonce : null;
+            var passwordLinkExpiresAt = updateUserRequest.updatePasswordScope ? user.PasswordLinkExpiresAt : null;
             
             if (updateUserRequest.updatePasswordScope)
             {
                 // user is changing their password so reset these
-                user.passwordConfirmationNonce = null;
-                user.passwordLinkExpiresAt = null;
+                user.PasswordConfirmationNonce = null;
+                user.PasswordLinkExpiresAt = null;
             }
             
             await _userRepository.UpdateUserAsync(user);
@@ -269,16 +269,16 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             if (updateUserRequest.updatePasswordScope)
             {
                 if (string.IsNullOrWhiteSpace(updateUserRequest.newPassword)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password cannot be empty");
-                if (user.userName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect username");
+                if (user.UserName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect username");
                 if (!string.IsNullOrEmpty(passwordNonce) && passwordNonce!=updateUserRequest.passwordConfirmationNonce) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect password confirmation nonce");
                 if (passwordLinkExpiresAt.HasValue && passwordLinkExpiresAt.Value < DateTime.UtcNow) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password confirmation link has expired");
                 
-                await _userRepository.UpdateUserPasswordAsync(user.userName, updateUserRequest.newPassword);
+                await _userRepository.UpdateUserPasswordAsync(user.UserName, updateUserRequest.newPassword);
             }
 
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserResponse()
             {
-                Username = user.userName,
+                Username = user.UserName,
                 ErrorMessage = null,
                 IsOk = true
             });
@@ -365,9 +365,9 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                         multipartSection.ContentType ?? "application/octet-stream")).Url;
 
                     // update record in DB
-                    user.profilePhotographSmall = avatarSizedBlobName;
-                    user.profilePhotographOriginal = originalBlobName;
-                    user.schemaVersionNumber = user.schemaVersionNumber > 2 ? user.schemaVersionNumber : 2; // increment version number
+                    user.ProfilePhotographSmall = avatarSizedBlobName;
+                    user.ProfilePhotographOriginal = originalBlobName;
+                    user.SchemaVersionNumber = user.SchemaVersionNumber > 2 ? user.SchemaVersionNumber : 2; // increment version number
                     await _userRepository.UpdateUserAsync(user);
                 }
                 // else: handle form fields if needed (e.g., section.AsFormData())
@@ -451,14 +451,14 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             Debug.Assert(_storageClient != null, nameof(_storageClient) + " != null");
             var storageFolder = await _storageClient.GetStorageFolderAsync(_storageClient.GetBlobName(BlobNames.AvatarImages));
             
-            await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.profilePhotographOriginal}");
-            await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.profilePhotographSmall}");
+            await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.ProfilePhotographOriginal}");
+            await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.ProfilePhotographSmall}");
             
             // update record in DB
-            user.profilePhotographSmall = null;
-            user.profilePhotographOriginal = null;
+            user.ProfilePhotographSmall = null;
+            user.ProfilePhotographOriginal = null;
             
-            user.schemaVersionNumber = user.schemaVersionNumber > 2 ? user.schemaVersionNumber : 2; // increment version number
+            user.SchemaVersionNumber = user.SchemaVersionNumber > 2 ? user.SchemaVersionNumber : 2; // increment version number
             await _userRepository.UpdateUserAsync(user);
             
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
@@ -488,24 +488,24 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         
             var newUser = new User()
             {
-                id = Guid.NewGuid().ToString("N"),
+                Id = Guid.NewGuid().ToString("N"),
                 emailAddress = createUserRequest.emailAddress,
-                userName = createUserRequest.userName,
-                roles = allRoles.Items.Where(q=>createUserRequest.addToRoles.Contains(q.RoleName)),
-                schemaVersionNumber = 6,
-                createdAt = DateTime.UtcNow,
-                updatedAt = DateTime.UtcNow,
-                theme = "light",
-                firstName = createUserRequest.firstName,
-                lastName = createUserRequest.lastName,
-                lastLoginAt = null,
-                lastPasswordChangeAt = null,
-                passwordConfirmationNonce = Guid.NewGuid().ToString("N"),
+                UserName = createUserRequest.userName,
+                Roles = allRoles.Items.Where(q=>createUserRequest.addToRoles.Contains(q.RoleName)),
+                SchemaVersionNumber = 6,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Theme = "light",
+                FirstName = createUserRequest.firstName,
+                LastName = createUserRequest.lastName,
+                LastLoginAt = null,
+                LastPasswordChangeAt = null,
+                PasswordConfirmationNonce = Guid.NewGuid().ToString("N"),
             };
 
             if (createUserRequest.passwordConfirmationLinkExpiryDate.HasValue)
             {
-                newUser.passwordLinkExpiresAt = createUserRequest.passwordConfirmationLinkExpiryDate.Value;    
+                newUser.PasswordLinkExpiresAt = createUserRequest.passwordConfirmationLinkExpiryDate.Value;    
             }
             
             await _userRepository.CreateUserAsync(newUser);
@@ -513,7 +513,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             if (!string.IsNullOrWhiteSpace(createUserRequest.password))
             {
                 await _userRepository.UpdateUserPasswordAsync(
-                    newUser.userName,
+                    newUser.UserName,
                     createUserRequest.password);
             }
 
@@ -529,17 +529,17 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 Hi,
 
 Please complete your programx.co.uk login by navigating to the following link:
-{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.userName}&n={newUser.passwordConfirmationNonce}
+{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.userName}&n={newUser.PasswordConfirmationNonce}
 
-This link is valid until {newUser.passwordLinkExpiresAt}.
+This link is valid until {newUser.PasswordLinkExpiresAt}.
 
 ",
                 Subject = "Complete your programx.co.uk login",
                 HtmlBody = @$"<h1>Please complete your programx.co.uk login</h1>
 <p>Hi,</p>
 <p>Please complete your programx.co.uk login by navigating to the following link:<br />
-<a href=""{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.userName}&n={newUser.passwordConfirmationNonce}"">Complete login by entering your password</a></p>
-<p>This link is valid until {newUser.passwordLinkExpiresAt}.</p>"
+<a href=""{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.userName}&n={newUser.PasswordConfirmationNonce}"">Complete login by entering your password</a></p>
+<p>This link is valid until {newUser.PasswordLinkExpiresAt}.</p>"
             };
             
             try
@@ -551,7 +551,7 @@ This link is valid until {newUser.passwordLinkExpiresAt}.
                 return await HttpResponseDataFactory.CreateForServerError(httpRequestData, $"Failed to send email: {invalidOperationException.Message}");
             }
 
-            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newUser, "user", newUser.id);    
+            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newUser, "user", newUser.Id);    
         });
      }
     

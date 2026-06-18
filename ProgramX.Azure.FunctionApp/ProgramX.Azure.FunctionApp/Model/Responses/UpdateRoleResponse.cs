@@ -5,7 +5,7 @@ namespace ProgramX.Azure.FunctionApp.Model.Responses;
 /// <summary>
 /// Represents the response to an update role request.
 /// </summary>
-public class UpdateRoleResponse : UpdateResponse
+public class UpdateRoleResponse
 {
     /// <summary>
     /// Name of the role.

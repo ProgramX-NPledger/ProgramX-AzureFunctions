@@ -22,7 +22,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
     public async Task GetRolesAsync_WithoutPagedCriteria_ShouldReturnAllRoles()
     {
         var roles = base.CreateTestUsers(5)
-            .SelectMany(q => q.roles)
+            .SelectMany(q => q.Roles)
             .DistinctBy(d => d.name).ToList();
 
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<Role>(roles);
@@ -43,7 +43,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
     public async Task GetRolesAsync_WithPagedCriteria_ShouldReturnThreeOfSixRolesOnPageOne()
     {
         var roles = base.CreateTestUsers(5)
-            .SelectMany(q => q.roles)
+            .SelectMany(q => q.Roles)
             .DistinctBy(d => d.name).ToList();
 
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<Role>(roles)
@@ -71,7 +71,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
     public async Task GetRolesAsync_WithPagedCriteria_ShouldReturnThreeOfSixRolesOnPageTwo()
     {
         var roles = base.CreateTestUsers(6)
-            .SelectMany(q => q.roles)
+            .SelectMany(q => q.Roles)
             .DistinctBy(d => d.name).ToList();
 
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<Role>(roles)
@@ -170,7 +170,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
     public async Task GetApplicationsAsync_WithoutPagedCriteria_ShouldReturnAllApplications()
     {
         var applications = base.CreateTestUsers(5)
-            .SelectMany(q => q.roles)
+            .SelectMany(q => q.Roles)
             .SelectMany(q => q.applications)
             .DistinctBy(d => d.name).ToList();
 
@@ -192,7 +192,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
     public async Task GetApplicationsAsync_WithPagedCriteria_ShouldReturnThreeOfSixRolesOnPageOne()
     {
         var applications = base.CreateTestUsers(5)
-            .SelectMany(q => q.roles)
+            .SelectMany(q => q.Roles)
             .SelectMany(q => q.applications)
             .DistinctBy(d => d.name).ToList();
 
@@ -222,7 +222,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
     public async Task GetApplicationsAsync_WithPagedCriteria_ShouldReturnThreeOfSixRolesOnPageTwo()
     {
         var applications = base.CreateTestUsers(6)
-            .SelectMany(q => q.roles)
+            .SelectMany(q => q.Roles)
             .SelectMany(q => q.applications)
             .DistinctBy(d => d.name).ToList();
 
@@ -272,17 +272,17 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
         {
-            FilterItems = (items) => items.Where(q=>q.id == users.First().id)      
+            FilterItems = (items) => items.Where(q=>q.Id == users.First().Id)      
         };
         var mockCosmosClient = mockCosmosClientFactory.Create();
 
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        var result = await target.GetUserByIdAsync(users.First().id);
+        var result = await target.GetUserByIdAsync(users.First().Id);
 
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.id, Is.EqualTo(users.First().id));
+        Assert.That(result.Id, Is.EqualTo(users.First().Id));
     }
     
     
@@ -295,7 +295,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
         {
-            FilterItems = (items) => items.Where(q=>q.id == nonExistentId)      
+            FilterItems = (items) => items.Where(q=>q.Id == nonExistentId)      
         };
         var mockCosmosClient = mockCosmosClientFactory.Create();
 
@@ -318,8 +318,8 @@ public class CosmosUserRepositoryTests : CosmosTestBase
             ConfigureContainerFunc = (container =>
             {
                 var mockFeedResponse = new Mock<FeedResponse<Role>>();
-                mockFeedResponse.SetupGet(x => x.Count).Returns(users.First().roles.Count());
-                mockFeedResponse.Setup(x => x.GetEnumerator()).Returns(users.First().roles.GetEnumerator());
+                mockFeedResponse.SetupGet(x => x.Count).Returns(users.First().Roles.Count());
+                mockFeedResponse.Setup(x => x.GetEnumerator()).Returns(users.First().Roles.GetEnumerator());
                 
                 var mockFeedIterator = new Mock<FeedIterator<Role>>();
                 mockFeedIterator.Setup(x => x.ReadNextAsync(It.IsAny<CancellationToken>()))
@@ -329,17 +329,17 @@ public class CosmosUserRepositoryTests : CosmosTestBase
                         It.IsAny<QueryRequestOptions>()))
                     .Returns(mockFeedIterator.Object);
             }),
-            FilterItems = (items) => items.Where(q=>q.roles.First().name == users.First().roles.First().name)            
+            FilterItems = (items) => items.Where(q=>q.Roles.First().name == users.First().Roles.First().name)            
         };
         var mockCosmosClient = mockCosmosClientFactory.Create();
 
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        var result = await target.GetRoleByNameAsync(users.First().roles.First().name);
+        var result = await target.GetRoleByNameAsync(users.First().Roles.First().name);
 
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.name, Is.EqualTo(users.First().roles.First().name));
+        Assert.That(result.name, Is.EqualTo(users.First().Roles.First().name));
     }
     
     
@@ -384,17 +384,17 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
         {
-            FilterItems = (items) => items.Where(q=>q.userName == users.First().userName)      
+            FilterItems = (items) => items.Where(q=>q.UserName == users.First().UserName)      
         };
         var mockCosmosClient = mockCosmosClientFactory.Create();
 
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        var result = await target.GetUserByIdAsync(users.First().userName);
+        var result = await target.GetUserByIdAsync(users.First().UserName);
 
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.id, Is.EqualTo(users.First().id));      
+        Assert.That(result.Id, Is.EqualTo(users.First().Id));      
     }
     
    [Test]
@@ -406,7 +406,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
         {
-            FilterItems = (items) => items.Where(q=>q.userName == nonExistentUserName)      
+            FilterItems = (items) => items.Where(q=>q.UserName == nonExistentUserName)      
         };
         var mockCosmosClient = mockCosmosClientFactory.Create();
 
@@ -452,18 +452,18 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        Assert.ThrowsAsync<RepositoryException>(async () => await target.DeleteUserByIdAsync(users.First().id));
+        Assert.ThrowsAsync<RepositoryException>(async () => await target.DeleteUserByIdAsync(users.First().Id));
     }
     
     [Test]
     public async Task DeleteUserByIdAsync_WithExistingId_ShouldSucceed()
     {
         var users = base.CreateTestUsers(5).ToList();
-        var userIdToDelete = users.First().id;
+        var userIdToDelete = users.First().Id;
         
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>()
         {
-            MutateItems = (items) => items.Where(q=>q.id != userIdToDelete),
+            MutateItems = (items) => items.Where(q=>q.Id != userIdToDelete),
             ConfigureContainerFunc = (container) =>
             {
                 var mockedItemResponse = new Mock<ItemResponse<UserPassword>>();
@@ -506,18 +506,18 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        Assert.ThrowsAsync<RepositoryException>(async () => await target.DeleteRoleByNameAsync(users.First().roles.First().name));
+        Assert.ThrowsAsync<RepositoryException>(async () => await target.DeleteRoleByNameAsync(users.First().Roles.First().name));
     }
     
     [Test]
     public async Task DeleteRoleByRoleNameAsync_WithExistingId_ShouldSucceed()
     {
         var users = base.CreateTestUsers(5).ToList();
-        var roleNameToDelete = users.First().roles.First().name;
+        var roleNameToDelete = users.First().Roles.First().name;
         
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>()
         {
-            MutateItems = (items) => items.Where(q=>q.id != roleNameToDelete),
+            MutateItems = (items) => items.Where(q=>q.Id != roleNameToDelete),
             ConfigureContainerFunc = (container) =>
             {
                 var mockedItemResponse = new Mock<ItemResponse<UserPassword>>();
@@ -544,7 +544,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
         {
-            FilterItems = (items) => items.Where(q=>q.id == users.First().id)      
+            FilterItems = (items) => items.Where(q=>q.Id == users.First().Id)      
         };
         var mockCosmosClient = mockCosmosClientFactory.Create();
 
@@ -562,17 +562,17 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
         {
-            FilterItems = (items) => items.Where(q=>q.id == users.First().id)      
+            FilterItems = (items) => items.Where(q=>q.Id == users.First().Id)      
         };
         var mockCosmosClient = mockCosmosClientFactory.Create();
 
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        var result = await target.GetUserByIdAsync(users.First().id);
+        var result = await target.GetUserByIdAsync(users.First().Id);
 
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.id, Is.EqualTo(users.First().id));
+        Assert.That(result.Id, Is.EqualTo(users.First().Id));
     }
     
     [Test]
@@ -584,7 +584,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
         {
-            FilterItems = (items) => items.Where(q=>q.id == nonExistentId)      
+            FilterItems = (items) => items.Where(q=>q.Id == nonExistentId)      
         };
         var mockCosmosClient = mockCosmosClientFactory.Create();
 
@@ -600,11 +600,11 @@ public class CosmosUserRepositoryTests : CosmosTestBase
     public async Task UpdateUserAsync_WithValidSecureUser_ShouldSucceed()
     {
         var users = base.CreateTestUsers(5).ToList();
-        var userIdToUpdate = users.First().id;
+        var userIdToUpdate = users.First().Id;
         
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>()
         {
-            MutateItems = (items) => items.Where(q=>q.id == userIdToUpdate),
+            MutateItems = (items) => items.Where(q=>q.Id == userIdToUpdate),
             ConfigureContainerFunc = (container) =>
             {
                 var mockedItemResponse = new Mock<ItemResponse<User>>();
@@ -620,18 +620,18 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        await target.UpdateUserAsync(users.Single(q=>q.id==userIdToUpdate));
+        await target.UpdateUserAsync(users.Single(q=>q.Id==userIdToUpdate));
     }
     
     [Test]
     public async Task UpdateUserAsync_WithErrorResponse_ShouldThrowException()
     {
         var users = base.CreateTestUsers(5).ToList();
-        var userIdToUpdate = users.First().id;
+        var userIdToUpdate = users.First().Id;
         
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>()
         {
-            MutateItems = (items) => items.Where(q=>q.id == userIdToUpdate),
+            MutateItems = (items) => items.Where(q=>q.Id == userIdToUpdate),
             ConfigureContainerFunc = (container) =>
             {
                 var mockedItemResponse = new Mock<ItemResponse<User>>();
@@ -648,18 +648,18 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
         Assert.ThrowsAsync<RepositoryException>(async () =>
-            await target.UpdateUserAsync(users.Single(q => q.id == userIdToUpdate)));
+            await target.UpdateUserAsync(users.Single(q => q.Id == userIdToUpdate)));
     }
     
     [Test]
     public async Task UpdateUserAsync_WithNonExistentUser_ShouldThrowException()
     {
         var users = base.CreateTestUsers(5).ToList();
-        var userIdToUpdate = users.First().id;
+        var userIdToUpdate = users.First().Id;
         
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>()
         {
-            MutateItems = (items) => items.Where(q=>q.id == userIdToUpdate),
+            MutateItems = (items) => items.Where(q=>q.Id == userIdToUpdate),
             ConfigureContainerFunc = (container) =>
             {
                 var mockedItemResponse = new Mock<ItemResponse<User>>();
@@ -676,7 +676,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
         Assert.ThrowsAsync<RepositoryException>(async () =>
-            await target.UpdateUserAsync(users.Single(q => q.id == userIdToUpdate)));
+            await target.UpdateUserAsync(users.Single(q => q.Id == userIdToUpdate)));
     }
     
     
@@ -684,11 +684,11 @@ public class CosmosUserRepositoryTests : CosmosTestBase
     public async Task UpdateRoleAsync_WithValidRole_ShouldSucceed()
     {
         var users = base.CreateTestUsers(1).ToList();
-        var roleNameToUpdate = users.First().roles.First().name;
+        var roleNameToUpdate = users.First().Roles.First().name;
         
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
         {
-            MutateItems = (items) => items.Where(q=>q.roles.Any(qq => qq.name==roleNameToUpdate)),
+            MutateItems = (items) => items.Where(q=>q.Roles.Any(qq => qq.name==roleNameToUpdate)),
             ConfigureContainerFunc = (container) =>
             {
                 var mockFeedResponse = new Mock<FeedResponse<Role>>();
@@ -715,23 +715,23 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        await target.UpdateRoleAsync(users.First().roles.Single().name,users.First().roles.Single(q=>q.name==roleNameToUpdate));
+        await target.UpdateRoleAsync(users.First().Roles.Single().name,users.First().Roles.Single(q=>q.name==roleNameToUpdate));
     }
     
     [Test]
     public async Task UpdateRoleAsync_WithErrorResponse_ShouldThrowException()
     {
         var users = base.CreateTestUsers(1).ToList();
-        var roleNameToUpdate = users.First().roles.First().name;
+        var roleNameToUpdate = users.First().Roles.First().name;
         
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
         {
-            MutateItems = (items) => items.Where(q=>q.id == roleNameToUpdate),
+            MutateItems = (items) => items.Where(q=>q.Id == roleNameToUpdate),
             ConfigureContainerFunc = (container) =>
             {
                 var mockFeedResponseOfRole = new Mock<FeedResponse<Role>>();
                 mockFeedResponseOfRole.SetupGet(x => x.Count).Returns(users.Count);
-                mockFeedResponseOfRole.Setup(x => x.GetEnumerator()).Returns(users.First().roles.GetEnumerator());
+                mockFeedResponseOfRole.Setup(x => x.GetEnumerator()).Returns(users.First().Roles.GetEnumerator());
                     
                 var mockFeedIteratorOfRole = new Mock<FeedIterator<Role>>();
                 mockFeedIteratorOfRole.SetupGet(x => x.HasMoreResults).Returns(false);
@@ -752,7 +752,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
         Assert.ThrowsAsync<RepositoryException>(async () =>
-            await target.UpdateRoleAsync(users.First().roles.Single().name,users.First().roles.Single(q=>q.name==roleNameToUpdate)));
+            await target.UpdateRoleAsync(users.First().Roles.Single().name,users.First().Roles.Single(q=>q.name==roleNameToUpdate)));
     }
     
     [Test]
@@ -781,7 +781,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
         Assert.ThrowsAsync<RepositoryException>(async () =>
-            await target.UpdateRoleAsync(nonExistentRoleName, users.First().roles.First()));
+            await target.UpdateRoleAsync(nonExistentRoleName, users.First().Roles.First()));
     }
     
     
@@ -854,7 +854,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
 
         var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users)
         {
-            FilterItems = (items) => items.Where(q=>q.id == users.First().id)      
+            FilterItems = (items) => items.Where(q=>q.Id == users.First().Id)      
         };
         var mockCosmosClient = mockCosmosClientFactory.Create();
 
@@ -874,8 +874,8 @@ public class CosmosUserRepositoryTests : CosmosTestBase
             ConfigureContainerFunc = (container =>
             {
                 var mockFeedResponse = new Mock<FeedResponse<Application>>();
-                mockFeedResponse.SetupGet(x => x.Count).Returns(users.First().roles.First().applications.Count);
-                mockFeedResponse.Setup(x => x.GetEnumerator()).Returns(users.First().roles.First().applications.GetEnumerator());
+                mockFeedResponse.SetupGet(x => x.Count).Returns(users.First().Roles.First().applications.Count);
+                mockFeedResponse.Setup(x => x.GetEnumerator()).Returns(users.First().Roles.First().applications.GetEnumerator());
                 
                 var mockFeedIterator = new Mock<FeedIterator<Application>>();
                 mockFeedIterator.Setup(x => x.ReadNextAsync(It.IsAny<CancellationToken>()))
@@ -885,7 +885,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
                         It.IsAny<QueryRequestOptions>()))
                     .Returns(mockFeedIterator.Object);
             }),
-            FilterItems = (items) => items.Where(q=>q.roles.First().name == users.First().roles.First().name)            
+            FilterItems = (items) => items.Where(q=>q.Roles.First().name == users.First().Roles.First().name)            
         };
        
         var mockCosmosClient = mockCosmosClientFactory.Create();
@@ -893,10 +893,10 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        var result = await target.GetApplicationByNameAsync(users.First().roles.First().applications.First().name);
+        var result = await target.GetApplicationByNameAsync(users.First().Roles.First().applications.First().name);
 
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.name, Is.EqualTo(users.First().roles.First().applications.First().name));
+        Assert.That(result.name, Is.EqualTo(users.First().Roles.First().applications.First().name));
     }
     
     [Test]
@@ -909,7 +909,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
             ConfigureContainerFunc = (container =>
             {
                 var mockFeedResponse = new Mock<FeedResponse<Application>>();
-                mockFeedResponse.SetupGet(x => x.Count).Returns(users.First().roles.First().applications.Count);
+                mockFeedResponse.SetupGet(x => x.Count).Returns(users.First().Roles.First().applications.Count);
                 mockFeedResponse.Setup(x => x.GetEnumerator()).Returns(new List<Application>().GetEnumerator());
                 
                 var mockFeedIterator = new Mock<FeedIterator<Application>>();
@@ -920,7 +920,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
                         It.IsAny<QueryRequestOptions>()))
                     .Returns(mockFeedIterator.Object);
             }),
-            FilterItems = (items) => items.Where(q=>q.roles.First().name == users.First().roles.First().name)            
+            FilterItems = (items) => items.Where(q=>q.Roles.First().name == users.First().Roles.First().name)            
         };
        
         var mockCosmosClient = mockCosmosClientFactory.Create();

@@ -13,15 +13,15 @@ public abstract class CosmosTestBase
         {
             users.Add(new User()
             {
-                id = Guid.NewGuid().ToString(),
-                userName = $"user{i}",
+                Id = Guid.NewGuid().ToString(),
+                UserName = $"user{i}",
                 emailAddress = $"",
-                createdAt = DateTime.UtcNow,
-                firstName = $"First Name {i}",
-                lastLoginAt = DateTime.UtcNow,
-                lastName = $"Last Name {i}",
-                updatedAt = DateTime.UtcNow,
-                roles = Enumerable.Range(1,numberOfRolesPerUser ?? numberOfItems)
+                CreatedAt = DateTime.UtcNow,
+                FirstName = $"First Name {i}",
+                LastLoginAt = DateTime.UtcNow,
+                LastName = $"Last Name {i}",
+                UpdatedAt = DateTime.UtcNow,
+                Roles = Enumerable.Range(1,numberOfRolesPerUser ?? numberOfItems)
                     .Select(x => new Role()
                     {
                         createdAt    = DateTime.UtcNow,

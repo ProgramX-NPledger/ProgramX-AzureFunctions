@@ -1,4 +1,5 @@
 using System.Text;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
@@ -11,6 +12,7 @@ using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.Exceptions;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
+using ProgramX.Azure.FunctionApp.Model.Responses.Dtos;
 
 namespace ProgramX.Azure.FunctionApp.HttpTriggers;
 
@@ -18,25 +20,28 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 {
     private readonly ILogger<RolesHttpTrigger> _logger;
     private readonly IRoleRepository _roleRepository;
+    private readonly IUserRepository _userRepository;
 
- 
+
     public RolesHttpTrigger(ILogger<RolesHttpTrigger> logger,
         IConfiguration configuration,
-        IRoleRepository roleRepository) : base(configuration,logger)
+        IRoleRepository roleRepository,
+        IUserRepository userRepository) : base(configuration,logger)
     {
         _logger = logger;
         _roleRepository = roleRepository;
+        _userRepository = userRepository;
     }
  
     
     [Function(nameof(GetRole))]
     public async Task<HttpResponseData> GetRole(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "role/{name?}")] HttpRequestData httpRequestData,
-        string? name)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "role/{roleName?}")] HttpRequestData httpRequestData,
+        string? roleName)
     {
          return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
-            if (string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(roleName))
             {
                 using (_logger.BeginScope("Listing Roles"))
                 {
@@ -66,6 +71,8 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                         ItemsPerPage = itemsPerPage,
                         Offset = offset
                     };
+                    // TODO filter by usedInApplications
+                    // TODO filter by usersInRole
 
                     _logger.LogInformation("Retrieving roles with criteria {criteria} paged by {pagedCriteria}", criteria, pagedCriteria);
                     var roles = await _roleRepository.GetRolesAsync(criteria, pagedCriteria);
@@ -84,38 +91,43 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                         itemsPerPage);
                     _logger.LogInformation("Calculated page urls {pageUrls}", pageUrls);
 
-                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role>((IPagedResult<Role>)roles,pageUrls));
+                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role,RoleDto>((IPagedResult<Role>)roles, pageUrls, r => new RoleDto()
+                    {
+                        RoleName = r.RoleName,
+                        Description = r.Description
+                    }));
                 }
             }
             else
             {
-                using (_logger.BeginScope("Retrieving Role {name}", name))
+                using (_logger.BeginScope("Retrieving Role {name}", roleName))
                 {
                     var roles = await _roleRepository.GetRolesAsync(new GetRolesCriteria()
                     {
-                        AnyOfRoleNames = [name]
+                        AnyOfRoleNames = [roleName]
                     });
                     if (!roles.Items.Any())
                     {
-                        _logger.LogWarning("Role {name} not found", name);
+                        _logger.LogWarning("Role {name} not found", roleName);
                         return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
                     }
 
                     _logger.LogInformation("Retrieved role {role}", roles.Items.First());
 
-                    // var allUsers = await _roleRepository.GetUsersAsync(new GetUsersCriteria());
-                    // var usersInRole = _roleRepository.GetUsersInRole(name, allUsers.Items);
-                    // var allApplications = await _roleRepository.GetApplicationsAsync(new GetApplicationsCriteria());
-                    
-                    // _logger.LogInformation("Retrieved users in role {usersInRole}", usersInRole);
-                    // _logger.LogInformation("Retrieved all applications {allApplications}", allApplications);
-                    
-                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
+                    var usersInRole = await _userRepository.GetUsersAsync(new GetUsersCriteria()
                     {
-                        role = roles.Items.First(),
-                        // allUsers = allUsers.Items,
-                        // usersInRole,
-                        // allApplications.Items
+                        WithRoles = [roleName]
+                    });
+=                    
+                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetRoleResponse()
+                    {
+                        Role = new RoleDto()
+                        {
+                            RoleName = roles.Items.First().RoleName,
+                            Description = roles.Items.First().Description
+                        },
+                        ApplicationsWithRole = [], // TODO: get applications
+                        UsersInRole = usersInRole.Items.Select(q => q.UserName)
                     });
                 }
 
@@ -131,10 +143,8 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     /// <returns></returns>
     /// <response code="201">Role created.</response>
     /// <response code="400">Invalid request body.</response>
-    /// <response code="409">Role already exists.</response>
-    /// <response code="500">Internal server error.</response>
+    /// <response code="429">Role already exists.</response>
     /// <response code="401">Unauthorized.</response>
-    /// <response code="403">Forbidden.</response>
     [Function(nameof(CreateRole))]
     public async Task<HttpResponseData> CreateRole(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "role")] HttpRequestData httpRequestData
@@ -152,39 +162,49 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                     return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
                 }
 
-                var existingRole = await _roleRepository.GetRoleByNameAsync(createRoleRequest.Name);
-                if (existingRole != null)
-                {
-                    _logger.LogWarning("Role {name} already exists", createRoleRequest.Name);
-                    return await HttpResponseDataFactory.CreateForConflict(httpRequestData, "Role already exists");
-                }
-            
-                var newRole = new Role()
-                {
-                    RoleName = createRoleRequest.Name,
-                    Description = createRoleRequest.Description,
-                };
-
+                // create the role
+                Role newRole;
                 try
                 {
-                    await _roleRepository.CreateRoleAsync(newRole);
-                    
-                    // TODO: Add to users
+                    newRole = await _roleRepository.CreateRoleAsync(createRoleRequest.Name, createRoleRequest.Description);
                 }
-                catch (RepositoryException e)
+                catch (ItemAlreadyExistsException)
                 {
-                    _logger.LogError(e, "Failed to create role {role}", newRole);
-                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, e.Message);           
+                    _logger.LogError("Role {role} already exists", createRoleRequest.Name);
+                    return await HttpResponseDataFactory.CreateForConflict(httpRequestData, "Role already exists");
+                }
+                catch (ItemCreationException)
+                {
+                    _logger.LogError("Failed to create role {role}", createRoleRequest.Name);
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Failed to create Role");           
                 }
 
-                _logger.LogInformation("Created role {role}", newRole);
+                // add users to role
+                List<string> failedUsers = new List<string>();
+                foreach (var user in createRoleRequest.AddToUsers)
+                {
+                    try
+                    {
+                        await _userRepository.AddRoleToUserAsync(newRole.RoleName, user);
+                    }
+                    catch (RepositoryException e)
+                    {
+                        _logger.LogError(e, "Failed to add User {user} to Role {role}", user, newRole.RoleName);
+                        failedUsers.Add(user);
+                    }
+                }
+                if (failedUsers.Any())
+                {
+                    _logger.LogError("Failed to add {usersCount} Users to Role {role}", failedUsers.Count, newRole.RoleName);
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
+                        "One or more Users were not added to the Role");
+                }
+                
+                _logger.LogInformation("Created role {role}, added {usersCount} Users", newRole.RoleName, createRoleRequest.AddToUsers.Count());
                 return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newRole, "role", newRole.RoleName);    
             }
-
         });
      }
-    
-    
     
     [Function(nameof(UpdateRole))]
     public async Task<HttpResponseData> UpdateRole(
@@ -206,48 +226,73 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                     return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid request body");
                 }
 
-                var role = await _roleRepository.GetRoleByNameAsync(roleName);
-                if (role == null)
+                try
+                {
+                    await _roleRepository.UpdateRoleAsync(roleName, updateRoleRequest.Description);
+                }
+                catch (ItemNotFoundException)
                 {
                     _logger.LogWarning("Role {roleName} not found", roleName);
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
                 }
-
-                if (role.RoleName != roleName)
+                catch (UpdateImmutablePropertyException)
                 {
-                    _logger.LogError("Attempt to change Role name prevented. Role Name is immutable.");
-                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Role Name is immutable");
+                    _logger.LogWarning("Cannot update immutable property");
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot update immutable property");
                 }
-                
-                role.Description = updateRoleRequest.description!;
-                
-                _logger.LogInformation("Updating role {role}", role);
-                await _roleRepository.UpdateRoleAsync(role);
+                catch (ItemUpdateException)
+                {
+                    _logger.LogError("Failed to update role {roleName}", roleName);
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Failed to update Role");           
+                }
 
                 if (updateRoleRequest.usersInRole != null)
                 {
-                    // TODO: update users in role
-                    // foreach (var userName in updateRoleRequest.usersInRole)
-                    // {
-                    //     var user = await _roleRepository.GetUserByUserNameAsync(userName);
-                    //     if (user == null) continue;
-                    //
-                    //     
-                    //     var userIsAdded = user.roles.All(q => q.name != role.name);
-                    //     if (userIsAdded)
-                    //     {
-                    //         _logger.LogInformation("Adding user {userName} to role {roleName}", userName, role.name);
-                    //         await _roleRepository.AddRoleToUserAsync(role, userName);
-                    //     }
-                    //     
-                    // }
+                    var usersWithRole = await _userRepository.GetUsersAsync(new GetUsersCriteria()
+                    {
+                        WithRoles = [roleName]
+                    });
+                    var usersToAdd = updateRoleRequest.usersInRole.Except(usersWithRole.Items.Select(q => q.UserName));
+                    var usersToRemove = usersWithRole.Items.Select(q => q.UserName).Except(updateRoleRequest.usersInRole);
+                    
+                    List<string> failedToAddUsers = new List<string>();
+                    List<string> failedToRemoveUsers = new List<string>();
+                    foreach (var user in usersToAdd)
+                    {
+                        try
+                        {
+                            await _userRepository.AddRoleToUserAsync(roleName, user);
+                        }
+                        catch (RepositoryException e)
+                        {
+                            _logger.LogError(e, "Failed to add User {user} to Role {role}", user, roleName);
+                            failedToAddUsers.Add(user);
+                        }
+                    }
+                    foreach (var user in usersToRemove)
+                    {
+                        try
+                        {
+                            await _userRepository.AddRoleToUserAsync(roleName, user);
+                        }
+                        catch (RepositoryException e)
+                        {
+                            _logger.LogError(e, "Failed to remove User {user} from Role {role}", user, roleName);
+                            failedToAddUsers.Add(user);
+                        }
+                    }
+                    if (failedToAddUsers.Any() || failedToRemoveUsers.Any())
+                    {
+                        if (failedToAddUsers.Any()) _logger.LogError("Failed to add {usersCount} Users to Role {role}", failedToAddUsers.Count, roleName);
+                        if (failedToRemoveUsers.Any()) _logger.LogError("Failed to remove {usersCount} Users from Role {role}", failedToRemoveUsers.Count, roleName);
+                        return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
+                            "One or more Users were not added to or removed from the Role");
+                    }
                 }
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateRoleResponse()
                 {
-                    Name = role.RoleName,
-                    ErrorMessage = null,
-                    IsOk = true
+                    Name = roleName,
                 });
             }
         });
@@ -265,13 +310,20 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
         {
             using (_logger.BeginScope("Deleting Role {roleName}", roleName))
             {
-                var role = await _roleRepository.GetRoleByNameAsync(roleName);
-                if (role == null)
+                try
+                {
+                    await _roleRepository.DeleteRoleByNameAsync(roleName);
+                }
+                catch (ItemNotFoundException)
                 {
                     _logger.LogWarning("Role {roleName} not found", roleName);
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Role");
                 }
-                await _roleRepository.DeleteRoleByNameAsync(roleName);
+                catch (ItemUpdateException)
+                {
+                    _logger.LogError("Failed to delete role {roleName}", roleName);
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Failed to delete Role");           
+                }
                 return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
             }
         });
