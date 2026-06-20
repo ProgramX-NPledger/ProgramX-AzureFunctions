@@ -230,7 +230,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 if (user.UserName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
                 if (!IsValidEmail(updateUserRequest.emailAddress!)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid email address");
                 
-                user.emailAddress=updateUserRequest.emailAddress!;
+                user.EmailAddress=updateUserRequest.emailAddress!;
                 user.FirstName=updateUserRequest.firstName!;
                 user.LastName=updateUserRequest.lastName!;
             }
@@ -489,7 +489,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             var newUser = new User()
             {
                 Id = Guid.NewGuid().ToString("N"),
-                emailAddress = createUserRequest.emailAddress,
+                EmailAddress = createUserRequest.emailAddress,
                 UserName = createUserRequest.userName,
                 Roles = allRoles.Items.Where(q=>createUserRequest.addToRoles.Contains(q.RoleName)),
                 SchemaVersionNumber = 6,

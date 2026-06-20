@@ -15,7 +15,6 @@ public interface IRoleRepository
     /// <param name="pagedCriteria">The <see cref="PagedCriteria"/> that determines paging requirements.
     /// Do not specify if paging is not required.</param>
     /// <returns>Matching items.</returns>
-    /// <remarks>Roles are not an outermost model, therefore they cannot be sorted.</remarks>   
     Task<IResult<Role>> GetRolesAsync(GetRolesCriteria criteria, PagedCriteria? pagedCriteria = null);
     
     /// <summary>

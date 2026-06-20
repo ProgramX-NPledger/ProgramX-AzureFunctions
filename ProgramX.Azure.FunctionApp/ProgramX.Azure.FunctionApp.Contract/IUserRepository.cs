@@ -21,15 +21,6 @@ public interface IUserRepository
     Task<IResult<User>> GetUsersAsync(GetUsersCriteria criteria, PagedCriteria? pagedCriteria = null);
     
     /// <summary>
-    /// Gets Applications from the repository.
-    /// </summary>
-    /// <param name="criteria">The <see cref="GetApplicationsCriteria"/> to determine which Applications to return.</param>
-    /// <param name="pagedCriteria">The <see cref="PagedCriteria"/> that determines paging requirements.
-    /// Do not specify if paging is not required.</param>
-    /// <returns>Matching items.</returns>
-    Task<IResult<Application>> GetApplicationsAsync(GetApplicationsCriteria criteria, PagedCriteria? pagedCriteria = null);
-
-    /// <summary>
     /// Given a role name and a list of users, returns the users that are in that role.
     /// </summary>
     /// <param name="roleName">Name of the Role.</param>
@@ -58,13 +49,6 @@ public interface IUserRepository
     Task DeleteUserByIdAsync(string id);
 
     /// <summary>
-    /// Gets an Application by its name. This will return a <see cref="Application"/>.
-    /// </summary>
-    /// <param name="name">The name of the application.</param>
-    /// <returns>The requested <see cref="Application"/>, or <c>null</c> if not found.</returns>
-    Task<Application?> GetApplicationByNameAsync(string name);
-    
-    /// <summary>
     /// Update the specified user.
     /// </summary>
     /// <param name="user">The <see cref="User"/> to update.</param>
@@ -75,40 +59,6 @@ public interface IUserRepository
     /// </summary>
     /// <param name="user">User to create.</param>
     Task CreateUserAsync(User user);
-
-    /// <summary>
-    /// Creates the specified Application and adds to the specified Roles.
-    /// </summary>
-    /// <param name="application">Application to create.</param>
-    /// <param name="withinRoles">List of Role names to add Application to.</param>
-    Task CreateApplicationAsync(Application application, IEnumerable<string> withinRoles);
-    
-    /// <summary>
-    /// Update the specified Application.
-    /// </summary>
-    /// <param name="applicationName">The Application Name of the Application to update.</param>   
-    /// <param name="application">The updated <see cref="Application"/>.</param>
-    Task UpdateApplicationAsync(string applicationName, Application application);
-    
-    /// <summary>
-    /// Deletes the Application with the given name.
-    /// </summary>
-    /// <param name="applicationName">The name of the Application to delete.</param>
-    Task DeleteApplicationByNameAsync(string applicationName);
-    
-    /// <summary>
-    /// Adds the specified Role to the specified User.
-    /// </summary>
-    /// <param name="roleName">The Role to add to the User.</param>
-    /// <param name="userName">The username of the User to add the Role to.</param>
-    Task AddUserToRole(Role roleName, string userName);
-    
-    /// <summary>
-    /// Removes the specified Role from the specified User.
-    /// </summary>
-    /// <param name="roleName">The name of the Role to remove from the User.</param>
-    /// <param name="userName">The username of the User to remove the Role from.</param>
-    Task RemoveUserFromRole(string roleName, string userName);
 
 
     /// <summary>
@@ -127,14 +77,24 @@ public interface IUserRepository
     /// <param name="userName">The username of the User to get the password for.</param>
     /// <returns>The password hash and salt for the specified user, or <c>null</c> if not found.</returns>
     Task<UserPassword?> GetUserPasswordByUserNameAsync(string userName);
-
     
     /// <summary>
-    /// Resets the application.
+    /// Adds a Role to a User.
     /// </summary>
-    Task ResetApplicationAsync();
+    /// <param name="roleName">Name of the Role.</param>
+    /// <param name="userName">Name of the User.</param>
+    /// <returns>The updated User.</returns>
+    Task<User> AddRoleToUserAsync(string roleName, string userName);
+
+    /// <summary>
+    /// Removes a Role from a User.
+    /// </summary>
+    /// <param name="roleName">Name of the Role.</param>
+    /// <param name="userName">Name of the User.</param>
+    /// <returns>The updated User.</returns>
+    Task<User> RemoveRoleFromUserAsync(string roleName, string userName);
     
-    
-    
-    
+
+
+
 }

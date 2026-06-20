@@ -118,7 +118,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                     {
                         WithRoles = [roleName]
                     });
-=                    
+
                     return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetRoleResponse()
                     {
                         Role = new RoleDto()

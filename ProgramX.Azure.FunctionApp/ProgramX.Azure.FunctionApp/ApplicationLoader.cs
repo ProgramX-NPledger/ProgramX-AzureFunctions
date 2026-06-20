@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using ProgramX.Azure.FunctionApp.Contract;
+using ProgramX.Azure.FunctionApp.Model.Exceptions;
 
 namespace ProgramX.Azure.FunctionApp;
 
@@ -31,6 +32,7 @@ public class ApplicationLoader
     /// <param name="applicationName">The name of the Application to load.</param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException">Thrown if an invalid operation was attempted.</exception>
+    /// <exception cref="ItemNotFoundException">Thrown if the application could not be found.</exception>
     public IApplication LoadApplication(string applicationName)
     {
         // create a tuple of (className, assemblyName, applicationName)
@@ -41,7 +43,7 @@ public class ApplicationLoader
         
         if (selectedApplication == null)
         {
-            throw new InvalidOperationException($"No application found with name {applicationName}");
+            throw new ItemNotFoundException($"No application found with name {applicationName}");
         }   
 
         if (selectedApplication.Length != 3)

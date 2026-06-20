@@ -114,7 +114,7 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
         existingRole.Description = description;
         
         var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-        var response = await container.ReplaceItemAsync(existingRole, existingRole.RoleName, new PartitionKey(role.RoleName));
+        var response = await container.ReplaceItemAsync(existingRole, existingRole.RoleName, new PartitionKey(roleName));
 
         if (response.StatusCode != HttpStatusCode.OK)
         {

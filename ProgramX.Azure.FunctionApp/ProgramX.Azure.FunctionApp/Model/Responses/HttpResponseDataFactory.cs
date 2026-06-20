@@ -174,8 +174,8 @@ Content-Type: text/html; charset=utf-8
     /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
     /// <param name="pagedResponse">The <see cref="PagedResponse{T}"/> to return to the client.</param>
     /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
-    public static async Task<HttpResponseData> CreateForSuccess<T>(HttpRequestData httpRequestData,
-        PagedResponse<T> pagedResponse)
+    public static async Task<HttpResponseData> CreateForSuccess<TPagedType, TDto>(HttpRequestData httpRequestData,
+        PagedResponse<TPagedType, TDto> pagedResponse)
     {
         var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.OK);
         if (!string.IsNullOrWhiteSpace(pagedResponse.ContinuationToken))

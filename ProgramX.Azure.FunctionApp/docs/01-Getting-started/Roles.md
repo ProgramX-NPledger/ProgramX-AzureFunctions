@@ -1,7 +1,7 @@
 # Roles
 
 Roles are used to group users together and assign permissions to them. Roles are handled by Applications
-and must be supported by the APplication for them to be effective as a means of authorization. Each Application
+and must be supported by the Application for them to be effective as a means of authorization. Each Application
 will have a list of Roles that are supported.
 
 ## Creating a Role
@@ -79,6 +79,13 @@ Where:
 ## Fetching Roles
 
 A flexible means of querying Roles is provided using the `GET api/v1/roles` endpoint.
+
+The endpoint will return a response indicating success or otherwise.
+
+| Response | Description                                                    |
+|----------|----------------------------------------------------------------|
+| 200      | OK.  |
+| 401      | Unauthorized.                                                  |
 
 The following query parameters are supported (all are optional):
 
