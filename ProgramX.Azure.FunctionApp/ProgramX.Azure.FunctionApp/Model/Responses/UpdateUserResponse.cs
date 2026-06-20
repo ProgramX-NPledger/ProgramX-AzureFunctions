@@ -5,7 +5,7 @@ namespace ProgramX.Azure.FunctionApp.Model.Responses;
 /// <summary>
 /// Represents the response to an update user request.
 /// </summary>
-public class UpdateUserResponse : UpdateResponse
+public class UpdateUserResponse 
 {
     /// <summary>
     /// Username of the user.

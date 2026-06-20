@@ -16,6 +16,7 @@ using ProgramX.Azure.FunctionApp.Model.Constants;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
+using ProgramX.Azure.FunctionApp.Model.Responses.Dtos;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
@@ -60,7 +61,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
                 var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
                 var withRoles = httpRequestData.Query["withRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["withRoles"]!).Split(new [] {','});
-                var hasAccessToApplications = httpRequestData.Query["hasAccessToApplications"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["hasAccessToApplications"]!).Split(new [] {','});
 
                 var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
                 var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ??
@@ -69,7 +69,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 
                 var users = await _userRepository.GetUsersAsync(new GetUsersCriteria()
                 {
-                    HasAccessToApplications = hasAccessToApplications,
                     WithRoles = withRoles,
                     ContainingText = containsText
                 }, new PagedCriteria()
@@ -85,28 +84,58 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     baseUrl,
                     containsText,
                     withRoles,
-                    hasAccessToApplications,
                     continuationToken, 
                     offset,
                     itemsPerPage);
                 
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<User>((IPagedResult<User>)users,pageUrls));
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<User,UserDto>((IPagedResult<User>)users,pageUrls,
+                    (user) =>
+                        new UserDto()
+                        {
+                            EmailAddress = user.EmailAddress,
+                            UserName = user.UserName,
+                            Roles = user.Roles,
+                            CreatedAt = user.CreatedAt,
+                            FirstName = user.FirstName,
+                            LastName = user.LastName,
+                            LastLoginAt = user.LastLoginAt,
+                            LastPasswordChangeAt = user.LastPasswordChangeAt,
+                            PasswordLinkExpiresAt = user.PasswordLinkExpiresAt,
+                            ProfilePhotographOriginal = user.ProfilePhotographOriginal,
+                            ProfilePhotographSmall = user.ProfilePhotographSmall,
+                            Theme = user.Theme,
+                            UpdatedAt = user.UpdatedAt
+                        }
+                    ));
             }
             else
             {
-                var user = await _userRepository.GetUserByIdAsync(id);
+                var user = await _userRepository.GetUserByUserNameAsync(id);
                 if (user==null)
                 {
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
                 }
-                
-                //List<Application> applications = user.roles.SelectMany(q=>q.applications).GroupBy(g=>g.name).Select(q=>q.First()).ToList();
-                
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
+
+                var userDto = new UserDto()
                 {
-                    user,
-                  //  applications,
-                    profilePhotoBase64 = string.Empty
+                    EmailAddress = user.EmailAddress,
+                    UserName = user.UserName,
+                    Roles = user.Roles,
+                    CreatedAt = user.CreatedAt,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    LastLoginAt = user.LastLoginAt,
+                    LastPasswordChangeAt = user.LastPasswordChangeAt,
+                    PasswordLinkExpiresAt = user.PasswordLinkExpiresAt,
+                    ProfilePhotographOriginal = user.ProfilePhotographOriginal,
+                    ProfilePhotographSmall = user.ProfilePhotographSmall,
+                    Theme = user.Theme,
+                    UpdatedAt = user.UpdatedAt
+                };
+                
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetUserResponse() 
+                {
+                    User = userDto
                 });
             }
         });
@@ -119,7 +148,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         string baseUrl, 
         string? containsText, 
         IEnumerable<string>? withRoles, 
-        IEnumerable<string>? hasAccessToApplications, 
         string? continuationToken,
         int offset=0, 
         int itemsPerPage=PagingConstants.ItemsPerPage)
@@ -131,7 +159,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         {
             pageUrls.Add(new UrlAccessiblePage()
             {
-                Url = BuildPageUrl(baseUrl, containsText, withRoles, hasAccessToApplications, continuationToken, (pageNumber * itemsPerPage)-itemsPerPage, itemsPerPage),
+                Url = BuildPageUrl(baseUrl, containsText, withRoles, continuationToken, (pageNumber * itemsPerPage)-itemsPerPage, itemsPerPage),
                 PageNumber = pageNumber,
                 IsCurrentPage = pageNumber == currentPageNumber,
             });
@@ -141,7 +169,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
     
     
-    private string BuildPageUrl(string baseUrl, string? containsText, IEnumerable<string>? withRoles, IEnumerable<string>? hasAccessToApplications, string? continuationToken, int? offset, int? itemsPerPage)
+    private string BuildPageUrl(string baseUrl, string? containsText, IEnumerable<string>? withRoles, string? continuationToken, int? offset, int? itemsPerPage)
     {
         var parametersDictionary = new Dictionary<string, string>();
         if (!string.IsNullOrWhiteSpace(containsText))
@@ -152,11 +180,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         if (withRoles != null && withRoles.Any())
         {
             parametersDictionary.Add("withRoles", Uri.EscapeDataString(string.Join(",", withRoles)));
-        }
-
-        if (hasAccessToApplications != null && hasAccessToApplications.Any())
-        {
-            parametersDictionary.Add("hasAccessToApplications", Uri.EscapeDataString(string.Join(",", hasAccessToApplications)));       
         }
         
         if (!string.IsNullOrWhiteSpace(continuationToken))
@@ -193,15 +216,15 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(DeleteUser))]
     public async Task<HttpResponseData> DeleteUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/{id}")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/{userName}")]
         HttpRequestData httpRequestData,
-        string id)
+        string userName)
     {
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var user = await _userRepository.GetUserByIdAsync(id);
+            var user = await _userRepository.GetUserByUserNameAsync(userName);
             if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-            await _userRepository.DeleteUserByIdAsync(id);
+            await _userRepository.DeleteUserByIdAsync(user.Id);
             return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
         });
     }
@@ -209,82 +232,117 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
     [Function(nameof(UpdateUser))]
     public async Task<HttpResponseData> UpdateUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{id}")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{userName}/profile")]
         HttpRequestData httpRequestData,
-        string id)
+        string userName)
     {
         var updateUserRequest =
             await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateUserRequest>(httpRequestData);
         if (updateUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
-        var isChangePasswordRequest=updateUserRequest.updatePasswordScope 
-                                    && updateUserRequest is { newPassword: not null, updateProfilePictureScope: false, updateProfileScope: false, updateRolesScope: false };
-        
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var user = await _userRepository.GetUserByIdAsync(id);
+            var user = await _userRepository.GetUserByUserNameAsync(userName);
             if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
             
-            if (updateUserRequest.updateProfileScope)
-            {
-                if (user.UserName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
-                if (!IsValidEmail(updateUserRequest.emailAddress!)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid email address");
-                
-                user.EmailAddress=updateUserRequest.emailAddress!;
-                user.FirstName=updateUserRequest.firstName!;
-                user.LastName=updateUserRequest.lastName!;
-            }
-
-            if (updateUserRequest.updateSettingsScope)
-            {
-                user.Theme = updateUserRequest.theme;
-                user.SchemaVersionNumber = user.SchemaVersionNumber >= 3 ? user.SchemaVersionNumber : 3; 
-            }
+            if (user.UserName!=usernameMakingTheChange) return await HttpResponseDataFactory.CreateForForbidden(httpRequestData, "It is only possible to update own user's details");
             
-            // TODO update roles
-            // if (updateUserRequest.updateRolesScope)
-            // {
-            //     var roles=await _userRepository.GetRolesAsync(new GetRolesCriteria());
-            //     user.roles = roles.Items.Where(q => updateUserRequest.roles.Contains(q.name)).OrderBy(q => q.name).ToList();
-            // }
-
-            if (updateUserRequest.updateProfilePictureScope)
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect endpoint, use /user/{id}/photo instead");
-            }
-
-            // store the nonce/etc. currently on the user before we reset it
-            var passwordNonce = updateUserRequest.updatePasswordScope ? user.PasswordConfirmationNonce : null;
-            var passwordLinkExpiresAt = updateUserRequest.updatePasswordScope ? user.PasswordLinkExpiresAt : null;
+            await _userRepository.UpdateUserAsync(userName, updateUserRequest.EmailAddress ?? user.EmailAddress, updateUserRequest.FirstName, updateUserRequest.LastName, updateUserRequest.Roles);
             
-            if (updateUserRequest.updatePasswordScope)
-            {
-                // user is changing their password so reset these
-                user.PasswordConfirmationNonce = null;
-                user.PasswordLinkExpiresAt = null;
-            }
-            
-            await _userRepository.UpdateUserAsync(user);
-            
-            if (updateUserRequest.updatePasswordScope)
-            {
-                if (string.IsNullOrWhiteSpace(updateUserRequest.newPassword)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password cannot be empty");
-                if (user.UserName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect username");
-                if (!string.IsNullOrEmpty(passwordNonce) && passwordNonce!=updateUserRequest.passwordConfirmationNonce) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect password confirmation nonce");
-                if (passwordLinkExpiresAt.HasValue && passwordLinkExpiresAt.Value < DateTime.UtcNow) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password confirmation link has expired");
-                
-                await _userRepository.UpdateUserPasswordAsync(user.UserName, updateUserRequest.newPassword);
-            }
-
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserResponse()
             {
-                Username = user.UserName,
-                ErrorMessage = null,
-                IsOk = true
+                Username = user.UserName
             });
-        },isChangePasswordRequest);
+        });
     }
     
+    // TODO: update password
+    //
+    // [Function(nameof(UpdateUserPassword))]
+    // public async Task<HttpResponseData> UpdateUserPassword(
+    //     [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{userName}/password")]
+    //     HttpRequestData httpRequestData,
+    //     string userName)
+    // {
+    //     var updateUserRequest =
+    //         await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateUserRequest>(httpRequestData);
+    //     if (updateUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
+    //
+    //     var isChangePasswordRequest=updateUserRequest.UpdatePasswordScope 
+    //                                 && updateUserRequest is { NewPassword: not null, UpdateProfilePictureScope: false, UpdateProfileScope: false, UpdateRolesScope: false };
+    //     
+    //     return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
+    //     {
+    //         var user = await _userRepository.GetUserByUserNameAsync(userName);
+    //         if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+    //         
+    //         if (user.UserName!=usernameMakingTheChange) return await HttpResponseDataFactory.CreateForForbidden(httpRequestData, "It is only possible to update own user's details");
+    //         
+    //         var newEmailAddress = updateUserRequest.UpdateProfileScope ? updateUserRequest.EmailAddress : user.EmailAddress;
+    //         var newFirstName = updateUserRequest.UpdateProfileScope ? updateUserRequest.FirstName : user.FirstName;
+    //         var newLastName = updateUserRequest.UpdateProfileScope ? updateUserRequest.LastName : user.LastName;
+    //         var newTheme = updateUserRequest.UpdateSettingsScope ? updateUserRequest.Theme : user.Theme;
+    //         var newRoles = updateUserRequest.UpdateRolesScope ? updateUserRequest.Roles : user.Roles;
+    //         
+    //         // if (updateUserRequest.UpdateProfileScope)
+    //         // {
+    //         //     if (user.UserName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
+    //         //     if (!IsValidEmail(updateUserRequest.emailAddress!)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid email address");
+    //         //     
+    //         //     user.EmailAddress=updateUserRequest.emailAddress!;
+    //         //     user.FirstName=updateUserRequest.firstName!;
+    //         //     user.LastName=updateUserRequest.lastName!;
+    //         // }
+    //
+    //         // if (updateUserRequest.updateSettingsScope)
+    //         // {
+    //         //     user.Theme = updateUserRequest.theme;
+    //         //     user.SchemaVersionNumber = user.SchemaVersionNumber >= 3 ? user.SchemaVersionNumber : 3; 
+    //         // }
+    //         
+    //         // TODO update roles
+    //         // if (updateUserRequest.updateRolesScope)
+    //         // {
+    //         //     var roles=await _userRepository.GetRolesAsync(new GetRolesCriteria());
+    //         //     user.roles = roles.Items.Where(q => updateUserRequest.roles.Contains(q.name)).OrderBy(q => q.name).ToList();
+    //         // }
+    //
+    //         if (updateUserRequest.UpdateProfilePictureScope)
+    //         {
+    //             return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect endpoint, use /user/{id}/photo instead");
+    //         }
+    //
+    //         // store the nonce/etc. currently on the user before we reset it
+    //         var passwordNonce = updateUserRequest.updatePasswordScope ? user.PasswordConfirmationNonce : null;
+    //         var passwordLinkExpiresAt = updateUserRequest.updatePasswordScope ? user.PasswordLinkExpiresAt : null;
+    //         
+    //         if (updateUserRequest.updatePasswordScope)
+    //         {
+    //             // user is changing their password so reset these
+    //             user.PasswordConfirmationNonce = null;
+    //             user.PasswordLinkExpiresAt = null;
+    //         }
+    //         
+    //         await _userRepository.UpdateUserAsync(user);
+    //         
+    //         if (updateUserRequest.updatePasswordScope)
+    //         {
+    //             if (string.IsNullOrWhiteSpace(updateUserRequest.newPassword)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password cannot be empty");
+    //             if (user.UserName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect username");
+    //             if (!string.IsNullOrEmpty(passwordNonce) && passwordNonce!=updateUserRequest.passwordConfirmationNonce) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect password confirmation nonce");
+    //             if (passwordLinkExpiresAt.HasValue && passwordLinkExpiresAt.Value < DateTime.UtcNow) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password confirmation link has expired");
+    //             
+    //             await _userRepository.UpdateUserPasswordAsync(user.UserName, updateUserRequest.newPassword);
+    //         }
+    //
+    //         return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserResponse()
+    //         {
+    //             Username = user.UserName,
+    //             ErrorMessage = null,
+    //             IsOk = true
+    //         });
+    //     },isChangePasswordRequest);
+    // }
     
     [Function(nameof(UpdateUserPhoto))]
     public async Task<HttpResponseData> UpdateUserPhoto(
@@ -486,7 +544,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
             var allRoles = await _roleRepository.GetRolesAsync(new GetRolesCriteria());
         
-            var newUser = new User()
+            var newUser = new UserDto()
             {
                 Id = Guid.NewGuid().ToString("N"),
                 EmailAddress = createUserRequest.emailAddress,

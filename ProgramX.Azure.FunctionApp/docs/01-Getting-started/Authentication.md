@@ -3,6 +3,8 @@
 Authorisation of calls is handled using a Bearer token, which is passed in the `Authorization` header. This token
 is provided using the `POST api/v1/login` endpoint.
 
+See [Security overview](../02-Platform/README.md#security-overview) for more information on the security model.
+
 ## Log in
 
 Log in to the API to retrieve the Bearer token. This token can then be used in subsequent requests to authenticate the user.

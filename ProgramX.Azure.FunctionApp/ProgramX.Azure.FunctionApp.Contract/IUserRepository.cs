@@ -51,16 +51,20 @@ public interface IUserRepository
     /// <summary>
     /// Update the specified user.
     /// </summary>
-    /// <param name="user">The <see cref="User"/> to update.</param>
-    Task UpdateUserAsync(User user);
+    /// <param name="userName">User name of User to update.</param>
+    /// <param name="emailAddress">Updated email address.</param>
+    /// <param name="firstName">Updated first name.</param>
+    /// <param name="lastName">Updated last name.</param>
+    /// <param name="roles">Updated roles.</param>
+    Task<User> UpdateUserAsync(string userName, string emailAddress, string? firstName, string? lastName,
+        IEnumerable<string> roles);
 
     /// <summary>
     /// Creates the specified user.
     /// </summary>
     /// <param name="user">User to create.</param>
     Task CreateUserAsync(User user);
-
-
+    
     /// <summary>
     /// Updates the password hash and salt for the specified user.
     /// </summary>

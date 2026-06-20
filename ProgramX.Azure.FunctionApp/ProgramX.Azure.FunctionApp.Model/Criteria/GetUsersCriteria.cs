@@ -26,11 +26,6 @@ public class GetUsersCriteria
     public IEnumerable<string>? WithRoles { get; set; }
     
     /// <summary>
-    /// A list of Application Names returned Users must have access to.
-    /// </summary>
-    public IEnumerable<string>? HasAccessToApplications { get; set; }
-
-    /// <summary>
     /// A list of User Names to retrieve.
     /// </summary>
     public IEnumerable<string>? UserNames { get; set; }

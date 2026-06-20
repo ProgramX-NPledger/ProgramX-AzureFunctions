@@ -215,4 +215,18 @@ Content-Type: text/html; charset=utf-8
         await httpResponseData.WriteStringAsync("Invalid Credentials or Unauthorised");
         return httpResponseData;
     }
+    
+    
+    /// <summary>
+    /// Creates a Forbidden response.
+    /// </summary>
+    /// <param name="httpRequestData">The <see cref="HttpRequestData"/> to create the response from.</param>
+    /// <param name="message">Message to send back to the client.</param>   
+    /// <returns>Generated <see cref="HttpResponseData"/>.</returns>
+    public static async Task<HttpResponseData> CreateForForbidden(HttpRequestData httpRequestData, string message)
+    {
+        var httpResponseData = httpRequestData.CreateResponse(System.Net.HttpStatusCode.Forbidden);
+        await httpResponseData.WriteStringAsync(message);
+        return httpResponseData;
+    }
 }

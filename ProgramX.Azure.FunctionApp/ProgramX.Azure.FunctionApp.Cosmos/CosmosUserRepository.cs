@@ -45,7 +45,6 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                 result = await cosmosReader.GetItemsAsync(queryDefinition);
             }
 
-            logger.LogDebug("Result: {result}", result);
             result.IsRequiredToBeOrderedByClient = false;
             return result;
         }
@@ -103,23 +102,40 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
 
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentException">Thrown if the user name is null or whitespace.</exception>
     /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
-    public async Task UpdateUserAsync(User user)
+    public async Task<User> UpdateUserAsync(string userName, string emailAddress, string? firstName, string? lastName, IEnumerable<string> roles)
     {
-        using (logger.BeginScope("UpdateUserAsync {user}", user))
-        {
-            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-            var response = await container.ReplaceItemAsync(user, user.Id, new PartitionKey(user.UserName));
+        if (string.IsNullOrWhiteSpace(userName)) throw new ArgumentException(nameof(userName));
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                logger.LogError(
-                    "Failed to update user with id {id} with status code {statusCode} and response {response}", user.Id,
-                    response.StatusCode, response);
-                throw new RepositoryException(OperationType.Update, typeof(User));
-            }
-            logger.LogDebug("Success");
+        var existingUser = await GetUserByUserNameAsync(userName);
+        if (existingUser == null)
+        {
+            throw new ItemNotFoundException(OperationType.Update, typeof(User), "User does not exist");
         }
+
+        // it is not possible to change the name of the user, because that is used as the partition key
+        if (existingUser.UserName != userName)
+        {
+            throw new UpdateImmutablePropertyException(OperationType.Update, typeof(User), "Attempt to change User name prevented. User Name is immutable.", "RoleName");           
+        }
+        
+        existingUser.EmailAddress = emailAddress;
+        existingUser.FirstName = firstName;
+        existingUser.LastName = lastName;
+        existingUser.Roles = roles.ToList();
+        existingUser.Theme = theme;
+        
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+        var response = await container.ReplaceItemAsync(existingUser, existingUser.UserName, new PartitionKey(userName));
+
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            throw new ItemUpdateException(typeof(Role), response.StatusCode);
+        }
+        
+        return existingUser;       
+        
     }
 
     /// <inheritdoc />
@@ -392,20 +408,6 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             sb.Append($" AND ({string.Join(" OR ", conditions)})");
         }
 
-        if (criteria.HasAccessToApplications != null && criteria.HasAccessToApplications.Any())
-        {
-            var conditions = new List<string>();
-            var applicationsList = criteria.HasAccessToApplications.ToList();
-        
-            for (int i = 0; i < applicationsList.Count; i++)
-            {
-                conditions.Add(@$"EXISTS(SELECT VALUE r FROM r IN c.roles JOIN a IN r.applications WHERE a.name = @appname{i})");
-                parameters.Add(($"@appname{i}", applicationsList[i]));
-            }
-        
-            sb.Append($" AND ({string.Join(" OR ", conditions)})");
-        }
-        
         if (criteria.UserNames != null && criteria.UserNames.Any())
         {
             var conditions = new List<string>();
