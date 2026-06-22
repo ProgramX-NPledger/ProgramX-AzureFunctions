@@ -142,22 +142,41 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <remarks>
     /// This will not set the user's password. Instead, this is performed when the user sets their password as a separate operation.
     /// </remarks>
-    public async Task CreateUserAsync(User user)
+    public async Task<User> CreateUserAsync(string userName, string emailAddress, string? firstName, string? lastName, IEnumerable<string> roles, DateTime passwordConfirmationLinkExpiryDate)
     {
-        using (logger.BeginScope("CreateUserAsync {user}", user))
+        var existingUser = await GetUserByUserNameAsync(userName);
+        if (existingUser != null) throw new ItemAlreadyExistsException(typeof(User), $"User with name {userName} already exists");
+        
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+        
+        var user = new User
         {
-            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-            var response = await container.CreateItemAsync(user, new PartitionKey(user.UserName));
+            Id = Guid.NewGuid().ToString(),
+            UserName = userName,
+            EmailAddress = emailAddress,
+            FirstName = firstName,
+            LastName = lastName,
+            Roles = roles,
+            CreatedAt = DateTime.UtcNow,
+            LastLoginAt = null,
+            LastPasswordChangeAt = null,
+            PasswordConfirmationNonce = Guid.NewGuid().ToString(),
+            PasswordLinkExpiresAt = passwordConfirmationLinkExpiryDate,
+            ProfilePhotographOriginal = null,
+            ProfilePhotographSmall = null,
+            SchemaVersionNumber = 6,
+            Theme = "light",
+            UpdatedAt = DateTime.Now
+        };
+        
+        var response = await container.CreateItemAsync(user, new PartitionKey(user.UserName));
 
-            if (response.StatusCode != HttpStatusCode.Created)
-            {
-                logger.LogError(
-                    "Failed to create user with id {id} with status code {statusCode} and response {response}", user.Id,
-                    response.StatusCode, response);
-                throw new RepositoryException(OperationType.Create, typeof(UserPassword));
-            }
-            logger.LogDebug("Success");
-        }    
+        if (response.StatusCode != HttpStatusCode.Created)
+        {
+            throw new ItemCreationException(typeof(User), response.StatusCode);
+        }
+
+        return user;
     }
 
     /// <inheritdoc/>

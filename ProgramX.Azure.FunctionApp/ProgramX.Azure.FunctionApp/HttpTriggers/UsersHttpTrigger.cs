@@ -575,61 +575,44 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                 await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateUserRequest>(httpRequestData);
             if (createUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
 
-            var allRoles = await _roleRepository.GetRolesAsync(new GetRolesCriteria());
-        
-            var newUser = new UserDto()
+            User user;
+            try
             {
-                EmailAddress = createUserRequest.emailAddress,
-                UserName = createUserRequest.userName,
-                Roles = allRoles.Items.Where(q=>createUserRequest.addToRoles.Contains(q.RoleName)),
-                SchemaVersionNumber = 6,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                Theme = "light",
-                FirstName = createUserRequest.firstName,
-                LastName = createUserRequest.lastName,
-                LastLoginAt = null,
-                LastPasswordChangeAt = null,
-                PasswordConfirmationNonce = Guid.NewGuid().ToString("N"),
-            };
-
-            if (createUserRequest.passwordConfirmationLinkExpiryDate.HasValue)
-            {
-                newUser.PasswordLinkExpiresAt = createUserRequest.passwordConfirmationLinkExpiryDate.Value;    
+                user = await _userRepository.CreateUserAsync(createUserRequest.UserName, createUserRequest.EmailAddress,
+                    createUserRequest.FirstName, createUserRequest.LastName, createUserRequest.AddToRoles,
+                    createUserRequest.PasswordConfirmationLinkExpiryDate ?? DateTime.Now.AddDays(30));
             }
-            
-            await _userRepository.CreateUserAsync(newUser);
-
-            if (!string.IsNullOrWhiteSpace(createUserRequest.password))
+            catch (ItemAlreadyExistsException)
             {
-                await _userRepository.UpdateUserPasswordAsync(
-                    newUser.UserName,
-                    createUserRequest.password);
+                return await HttpResponseDataFactory.CreateForConflict(httpRequestData, "User already exists");
+            }
+            catch (ItemCreationException)
+            {
+                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Failed to create user");
             }
 
-            
             var emailMessage = new EmailMessage()
             {
                 To =
                 [
-                    new EmailRecipient(createUserRequest.emailAddress, $"{createUserRequest.firstName} {createUserRequest.lastName}")
+                    new EmailRecipient(createUserRequest.EmailAddress, $"{createUserRequest.FirstName} {createUserRequest.LastName}")
                 ],
                 From = new EmailRecipient("DoNotReply@5e4bfc81-f032-4b41-b32b-584d6f5510d0.azurecomm.net", "Support"), // must be a verified sender on your ACS domain
                 PlainTextBody = @$"
 Hi,
 
 Please complete your programx.co.uk login by navigating to the following link:
-{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.userName}&n={newUser.PasswordConfirmationNonce}
+{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.UserName}&n={user.PasswordConfirmationNonce}
 
-This link is valid until {newUser.PasswordLinkExpiresAt}.
+This link is valid until {user.PasswordLinkExpiresAt}.
 
 ",
                 Subject = "Complete your programx.co.uk login",
                 HtmlBody = @$"<h1>Please complete your programx.co.uk login</h1>
 <p>Hi,</p>
 <p>Please complete your programx.co.uk login by navigating to the following link:<br />
-<a href=""{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.userName}&n={newUser.PasswordConfirmationNonce}"">Complete login by entering your password</a></p>
-<p>This link is valid until {newUser.PasswordLinkExpiresAt}.</p>"
+<a href=""{Configuration["ClientUrl"]}/confirm-password?t=new-user&u={createUserRequest.UserName}&n={user.PasswordConfirmationNonce}"">Complete login by entering your password</a></p>
+<p>This link is valid until {user.PasswordLinkExpiresAt}.</p>"
             };
             
             try
@@ -641,7 +624,7 @@ This link is valid until {newUser.PasswordLinkExpiresAt}.
                 return await HttpResponseDataFactory.CreateForServerError(httpRequestData, $"Failed to send email: {invalidOperationException.Message}");
             }
 
-            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newUser, "user", newUser.Id);    
+            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, user, "user", user.Id);    
         });
      }
     

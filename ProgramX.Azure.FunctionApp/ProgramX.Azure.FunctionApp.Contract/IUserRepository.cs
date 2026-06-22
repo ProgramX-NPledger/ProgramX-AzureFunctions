@@ -62,8 +62,13 @@ public interface IUserRepository
     /// <summary>
     /// Creates the specified user.
     /// </summary>
-    /// <param name="user">User to create.</param>
-    Task CreateUserAsync(User user);
+    /// <param name="userName">The username to identify the User.</param>
+    /// <param name="emailAddress">Email address of the User.</param>
+    /// <param name="roles">Roles to assign to the User.</param>
+    /// <param name="firstName">First name of the User.</param>
+    /// <param name="lastName">Last name of the User.</param>
+    /// <param name="passwordConfirmationLinkExpiryDate">Date/time of expiration of the password confirmation link.</param>
+    Task<User> CreateUserAsync(string userName, string emailAddress, string? firstName, string? lastName, IEnumerable<string> roles, DateTime passwordConfirmationLinkExpiryDate);
 
     /// <summary>
     /// Updates the password hash and salt for the specified user.

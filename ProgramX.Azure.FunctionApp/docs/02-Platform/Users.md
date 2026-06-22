@@ -7,28 +7,34 @@ Users are the primary means of authentication in the system. Users are granted a
 
 
 
-## XXXXX Creating a Role
+## Creating a User
 
-Creation of a Role is performed using the `POST api/v1/roles` endpoint with a payload which represents the Role.
+Creation of a User is performed using the `POST api/v1/users` endpoint with a payload which represents the User.
 
 ```json
 {
-  "name": "Name of the Role",
-  "description": "Description of the Role",
-  "addToUsers": [
-    "user-id-1",
-    "user-id-2"
+  "emailAddress": "email@example.com",
+  "userName": "my-username",
+  "fiestName": "John",
+  "lastName": "Doe",
+  "passwordConfirmationLinkExpiryDate": null,
+  "addToRoles": [
+    "role-id-1",
+    "role-id-2"
   ]
 }
 ```
 
 Where:
 
-| Property | Description                                                                      |
-| --- |----------------------------------------------------------------------------------|
-| `name` | The name of the Role                                                             |
-| `description` | A description of the Role. This may be `null`.                                   |
-| `addToUsers` | A list of usernames to add to the Role. Leave blank if no users should be added. |
+| Property                             | Description                                                                                                                    |
+|--------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| `emailAddress`                       | Email address of the User.                                                                                                     |
+| `userName`                           | User-name of the User.                                                                                                         |
+| `firstName`                          | The first-name of the User. May be `null`.                                                                                     |
+| `lastName`                           | The last-name of the User. May be `null`.                                                                                      |
+| `passwordConfirmationLinkExpiryDate` | Expiration of the password confirmation link required to complete registration. If this is `null`, the default period is used. |
+| `addToRoles`                         | A list of Role names to add to the User. Leave blank if no Roles should be added.                                              |
 
 The endpoint will return a response indicating success or otherwise.
 
@@ -37,10 +43,11 @@ The endpoint will return a response indicating success or otherwise.
 | 201      | Created. The `Location` HTTP Header will contain the URL required to retrieve the created item. The created object will be returned in the body payload. |
 | 400      | Bad Request. The reason will be returned.                                                                                                                |
 | 401      | Unauthorized.                                                                                                                                            |
-| 429      | Role with the same name already exists.                                                                                                                  |
+| 429      | User with the same name already exists.                                                                                                                  |
 
-
-
+Creating a new User will start the onboarding process for that User, which involves an email to be sent to the specified email address. 
+This email will contain a link which must be clicked to complete the registration process, which should be routed to a target page requesting
+the user's password for updating and completion of the onboarding process.
 
 ## Fetching a single User
 
