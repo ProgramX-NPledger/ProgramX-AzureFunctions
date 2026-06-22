@@ -243,16 +243,11 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var user = await _userRepository.GetUserByUserNameAsync(userName);
-            if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-            
-            if (user.UserName!=usernameMakingTheChange) return await HttpResponseDataFactory.CreateForForbidden(httpRequestData, "It is only possible to update own user's details");
-            
-            await _userRepository.UpdateUserAsync(userName, updateUserRequest.EmailAddress ?? user.EmailAddress, updateUserRequest.FirstName, updateUserRequest.LastName, updateUserRequest.Roles);
+            await _userRepository.UpdateUserAsync(userName, updateUserRequest.EmailAddress, updateUserRequest.FirstName, updateUserRequest.LastName, updateUserRequest.Roles);
             
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserResponse()
             {
-                Username = user.UserName
+                Username = userName
             });
         });
     }
@@ -293,89 +288,38 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         }, true);
     }
     
-    //
-    // [Function(nameof(UpdateUserPassword))]
-    // public async Task<HttpResponseData> UpdateUserSettings(
-    //     [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{userName}/settings")]
-    //     HttpRequestData httpRequestData,
-    //     string userName)
-    // {
-    //     var updateUserRequest =
-    //         await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateUserPasswordRequest>(httpRequestData);
-    //     if (updateUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
-    //
-    //     return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
-    //     {
-    //         var user = await _userRepository.GetUserByUserNameAsync(userName);
-    //         if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-    //         
-    //         if (user.UserName!=usernameMakingTheChange) return await HttpResponseDataFactory.CreateForForbidden(httpRequestData, "It is only possible to update own user's password");
-    //         
-    //         var newEmailAddress = updateUserRequest.UpdateProfileScope ? updateUserRequest.EmailAddress : user.EmailAddress;
-    //         var newFirstName = updateUserRequest.UpdateProfileScope ? updateUserRequest.FirstName : user.FirstName;
-    //         var newLastName = updateUserRequest.UpdateProfileScope ? updateUserRequest.LastName : user.LastName;
-    //         var newTheme = updateUserRequest.UpdateSettingsScope ? updateUserRequest.Theme : user.Theme;
-    //         var newRoles = updateUserRequest.UpdateRolesScope ? updateUserRequest.Roles : user.Roles;
-    //         
-    //         // if (updateUserRequest.UpdateProfileScope)
-    //         // {
-    //         //     if (user.UserName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Cannot change the username because it is used for the Partition Key");
-    //         //     if (!IsValidEmail(updateUserRequest.emailAddress!)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid email address");
-    //         //     
-    //         //     user.EmailAddress=updateUserRequest.emailAddress!;
-    //         //     user.FirstName=updateUserRequest.firstName!;
-    //         //     user.LastName=updateUserRequest.lastName!;
-    //         // }
-    //
-    //         // if (updateUserRequest.updateSettingsScope)
-    //         // {
-    //         //     user.Theme = updateUserRequest.theme;
-    //         //     user.SchemaVersionNumber = user.SchemaVersionNumber >= 3 ? user.SchemaVersionNumber : 3; 
-    //         // }
-    //         
-    //         // TODO update roles
-    //         // if (updateUserRequest.updateRolesScope)
-    //         // {
-    //         //     var roles=await _userRepository.GetRolesAsync(new GetRolesCriteria());
-    //         //     user.roles = roles.Items.Where(q => updateUserRequest.roles.Contains(q.name)).OrderBy(q => q.name).ToList();
-    //         // }
-    //
-    //         if (updateUserRequest.UpdateProfilePictureScope)
-    //         {
-    //             return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect endpoint, use /user/{id}/photo instead");
-    //         }
-    //
-    //         // store the nonce/etc. currently on the user before we reset it
-    //         var passwordNonce = updateUserRequest.updatePasswordScope ? user.PasswordConfirmationNonce : null;
-    //         var passwordLinkExpiresAt = updateUserRequest.updatePasswordScope ? user.PasswordLinkExpiresAt : null;
-    //         
-    //         if (updateUserRequest.updatePasswordScope)
-    //         {
-    //             // user is changing their password so reset these
-    //             user.PasswordConfirmationNonce = null;
-    //             user.PasswordLinkExpiresAt = null;
-    //         }
-    //         
-    //         await _userRepository.UpdateUserAsync(user);
-    //         
-    //         if (updateUserRequest.updatePasswordScope)
-    //         {
-    //             if (string.IsNullOrWhiteSpace(updateUserRequest.newPassword)) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password cannot be empty");
-    //             if (user.UserName!=updateUserRequest.userName) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect username");
-    //             if (!string.IsNullOrEmpty(passwordNonce) && passwordNonce!=updateUserRequest.passwordConfirmationNonce) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Incorrect password confirmation nonce");
-    //             if (passwordLinkExpiresAt.HasValue && passwordLinkExpiresAt.Value < DateTime.UtcNow) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Password confirmation link has expired");
-    //             
-    //             await _userRepository.UpdateUserPasswordAsync(user.UserName, updateUserRequest.newPassword);
-    //         }
-    //
-    //         return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserResponse()
-    //         {
-    //             Username = user.UserName,
-    //             ErrorMessage = null,
-    //             IsOk = true
-    //         });
-    //     },isChangePasswordRequest);
-    // }
+    
+    [Function(nameof(UpdateUserSettings))]
+    public async Task<HttpResponseData> UpdateUserSettings(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{userName}/settings")]
+        HttpRequestData httpRequestData,
+        string userName)
+    {
+        var updateUserRequest =
+            await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateUserSettingsRequest>(httpRequestData);
+        if (updateUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
+
+        return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
+        {
+            try
+            {
+                await _userRepository.UpdateUserSettingsAsync(userName, updateUserRequest.Theme);
+            }
+            catch (ItemNotFoundException)
+            {
+                return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+            }
+            catch (ItemUpdateException itemUpdateException)
+            {
+                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, itemUpdateException.Message);
+            }
+            
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserSettingsResponse()
+            {
+                Username = userName
+            });
+        });
+    }
     
     [Function(nameof(UpdateUserPhoto))]
     public async Task<HttpResponseData> UpdateUserPhoto(

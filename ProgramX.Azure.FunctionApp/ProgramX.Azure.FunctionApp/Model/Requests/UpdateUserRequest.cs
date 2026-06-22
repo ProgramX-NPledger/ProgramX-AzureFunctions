@@ -11,7 +11,7 @@ public class UpdateUserRequest
     /// The new email address of the user. To update this, the user must have the "updateProfileScope" property set.
     /// </summary>
     [JsonPropertyName("emailAddress")]
-    public string? EmailAddress { get; set; }
+    public required string EmailAddress { get; set; }
     
     /// <summary>
     /// The new first and last name of the user. To update these, the user must have the "updateProfileScope" property set.

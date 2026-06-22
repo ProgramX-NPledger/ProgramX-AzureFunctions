@@ -58,7 +58,14 @@ public interface IUserRepository
     /// <param name="roles">Updated roles.</param>
     Task<User> UpdateUserAsync(string userName, string emailAddress, string? firstName, string? lastName,
         IEnumerable<string> roles);
-
+    
+    /// <summary>
+    /// Update the settings for the specified user.
+    /// </summary>
+    /// <param name="userName">User name of User to update.</param>
+    /// <param name="theme">Name of the User's preferred theme. Specify <c>null</c> to use existing.</param>
+    Task<User> UpdateUserSettingsAsync(string userName, string? theme);
+    
     /// <summary>
     /// Creates the specified user.
     /// </summary>

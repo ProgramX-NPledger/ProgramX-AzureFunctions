@@ -138,6 +138,33 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentException">Thrown if the user name is null or whitespace.</exception>
+    /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
+    public async Task<User> UpdateUserSettingsAsync(string userName, string? theme)
+    {
+        if (string.IsNullOrWhiteSpace(userName)) throw new ArgumentException(nameof(userName));
+
+        var existingUser = await GetUserByUserNameAsync(userName);
+        if (existingUser == null)
+        {
+            throw new ItemNotFoundException(OperationType.Update, typeof(User), "User does not exist");
+        }
+        
+        existingUser.Theme = theme ?? existingUser.Theme;
+        
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+        var response = await container.ReplaceItemAsync(existingUser, existingUser.UserName, new PartitionKey(userName));
+
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            throw new ItemUpdateException(typeof(Role), response.StatusCode);
+        }
+        
+        return existingUser;       
+        
+    }
+    
+    /// <inheritdoc />
     /// <exception cref="RepositoryException">Thrown if the creation failed.</exception>
     /// <remarks>
     /// This will not set the user's password. Instead, this is performed when the user sets their password as a separate operation.

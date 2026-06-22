@@ -266,8 +266,42 @@ If a `200` response is returned, the payload will contain a status object that l
 ## XXXXUpdating a User's Profile Photograph
 
 
-## XXXXUpdating a User's Settings
+## Updating a User's Settings
 
+Updating a User is performed using the `PUT api/v1/users/{user-name}/settings` endpoint.
+
+The User to update is identified by the `{user-name}` parameter.
+
+A typical payload would look like:
+
+```json
+{
+  "theme": "light"
+}
+```
+
+Where:
+
+| Property    | Description                                                                 |
+|-------------|-----------------------------------------------------------------------------|
+| `theme`     | The User's preferred theme. Specify <c>null</c> to use the current setting. |
+
+The endpoint will return a response indicating success or otherwise.
+
+| Response | Description                                                           |
+|----------|-----------------------------------------------------------------------|
+| 200      | OK. A status object will be returned in the payload.                  |
+| 400      | Bad Request. A reason will be returned why the operation was invalid. |
+| 401      | Unauthorized.                                                         |
+| 404      | Not Found. The User does not exist.                                   |
+
+If a `200` response is returned, the payload will contain a status object that looks like:
+
+```json
+{
+  "userName": "UserName"
+}
+```
 
 ## Deleting a User
 
