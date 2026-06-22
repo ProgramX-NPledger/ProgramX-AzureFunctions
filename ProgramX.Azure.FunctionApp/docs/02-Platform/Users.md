@@ -217,8 +217,44 @@ If a `200` response is returned, the payload will contain a status object that l
 }
 ```
 
-## XXXXUpdating a User's Password
+## Updating a User's Password
 
+A password is updating using the `PUT api/v1/users/{user-name}/password` endpoint.
+
+The User to update is identified by the `{user-name}` parameter.
+
+A typical payload would look like:
+
+```json
+{
+  "newPassword": "N3wP@ssw0rd!",
+  "passwordConfirmationNonce": "(random-data)"
+}
+```
+
+Where:
+
+| Property                    | Description                                                                                                                           |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| `newPassword`               | The user's new password.                                                                                                              |
+| `passwordConfirmationNonce` | A random string which was generated as part of the password reset request. This must be provided to verify the request loop is valid. |
+
+The endpoint will return a response indicating success or otherwise.
+
+| Response | Description                                          |
+|----------|------------------------------------------------------|
+| 200      | OK. A status object will be returned in the payload. 
+| 400      | Bad request. A reason will be provided.              |
+| 401      | Unauthorized.                                        |
+| 404      | Not Found. The User does not exist.                  |
+
+If a `200` response is returned, the payload will contain a status object that looks like:
+
+```json
+{
+  "userName": "UserName"
+}
+```
 
 ## XXXXUpdating a User's Profile Photograph
 

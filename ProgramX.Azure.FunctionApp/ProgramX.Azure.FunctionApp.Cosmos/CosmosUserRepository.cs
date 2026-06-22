@@ -124,7 +124,6 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         existingUser.FirstName = firstName;
         existingUser.LastName = lastName;
         existingUser.Roles = roles.ToList();
-        existingUser.Theme = theme;
         
         var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         var response = await container.ReplaceItemAsync(existingUser, existingUser.UserName, new PartitionKey(userName));
@@ -160,7 +159,60 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
             logger.LogDebug("Success");
         }    
     }
-    
+
+    /// <inheritdoc/>
+    /// <exception cref="ItemNotFoundException">Thrown if the user does not exist.</exception>
+    /// <exception cref="InvalidPasswordUpdateException">Thrown if the password update is invalid.</exception>
+    /// <exception cref="ItemUpdateException">Thrown if the user password update fails.</exception>
+    /// <remarks>This assumes the provided password has passed password strength validation.</remarks>
+    public async Task<User> UpdateUserPasswordAsync(string userName, string newPassword, string passwordConfirmationNonce)
+    {
+        var userPasswordsContainer = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.UserPasswords);
+        var usersContainer = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+        
+        // verify the nonce, expiration
+        var user = await GetUserByUserNameAsync(userName);
+        if (user == null) throw new ItemNotFoundException(OperationType.Update, typeof(User), $"User {userName} not found");
+        if (user.PasswordConfirmationNonce != passwordConfirmationNonce) throw new InvalidPasswordUpdateException(InvalidPasswordUpdateReason.InvalidConfirmationNonce);
+        if (user.PasswordLinkExpiresAt < DateTime.UtcNow) throw new InvalidPasswordUpdateException(InvalidPasswordUpdateReason.PasswordResetLinkExpired);
+        
+        var userPassword = await GetUserPasswordByUserNameAsync(userName);
+        
+        ItemResponse<UserPassword> userPasswordResponse;
+        if (userPassword == null)
+        {
+            // password is new
+            
+            userPassword = CreateNewUserPassword(userName, newPassword);
+            userPasswordResponse = await userPasswordsContainer.CreateItemAsync(userPassword, new PartitionKey(userName));
+            if (userPasswordResponse.StatusCode != HttpStatusCode.Created)
+            {
+                throw new ItemUpdateException(typeof(UserPassword), userPasswordResponse.StatusCode);
+            }
+        }
+        else
+        {
+            userPasswordResponse = await userPasswordsContainer.ReplaceItemAsync(userPassword, userPassword.id, new PartitionKey(userPassword.userName));
+            if (userPasswordResponse.StatusCode != HttpStatusCode.OK)
+            {
+                throw new ItemUpdateException(typeof(UserPassword), userPasswordResponse.StatusCode);
+            }
+        }
+        
+        // user is changing their password so reset these
+        user.PasswordConfirmationNonce = null;
+        user.PasswordLinkExpiresAt = null;
+            
+        ItemResponse<User> userResponse;
+        userResponse = await usersContainer.ReplaceItemAsync(user, userName, new PartitionKey(user.UserName));
+        if (userResponse.StatusCode != HttpStatusCode.OK)
+        {
+            throw new ItemUpdateException(typeof(UserPassword), userResponse.StatusCode);
+        }
+
+        return user;
+    }
+
     /// <inheritdoc />
     /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
     public async Task<User> AddRoleToUserAsync(string roleName, string userName)
@@ -227,49 +279,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         }
     }
 
-    /// <inheritdoc />
-    /// <exception cref="RepositoryException">Thrown if the update fails.</exception>
-    public async Task UpdateUserPasswordAsync(string userName, string newPassword)
-    {
-        using (logger.BeginScope("UpdateUserPasswordAsync {userName}", userName))
-        {
-            var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.UserPasswords);
-
-            var userPassword = await GetUserPasswordByUserNameAsync(userName);
-            ItemResponse<UserPassword> response;
-            if (userPassword == null)
-            {
-                // password is new
-                
-                userPassword = CreateNewUserPassword(userName, newPassword);
-                response = await container.CreateItemAsync(userPassword, new PartitionKey(userName));
-                if (response.StatusCode != HttpStatusCode.Created)
-                {
-                    logger.LogError(
-                        "Failed to update UserPassword with id {id} with status code {statusCode} and response {response}", userPassword.id,
-                        response.StatusCode, response);
-                    throw new RepositoryException(OperationType.Update, typeof(User));
-                }
-            }
-            else
-            {
-                response = await container.ReplaceItemAsync(userPassword, userPassword.id, new PartitionKey(userPassword.userName));
-                if (response.StatusCode != HttpStatusCode.OK)
-                {
-                    logger.LogError(
-                        "Failed to update UserPassword with id {id} with status code {statusCode} and response {response}", userPassword.id,
-                        response.StatusCode, response);
-                    throw new RepositoryException(OperationType.Update, typeof(User));
-                }
-            }
-
-            if (response.StatusCode == HttpStatusCode.Created) logger.LogDebug("Created");
-            else if (response.StatusCode == HttpStatusCode.OK) logger.LogDebug("Success");
-        }
-        
-    }
-
-    private UserPassword? CreateNewUserPassword(string userName, string newPassword)
+    private UserPassword CreateNewUserPassword(string userName, string newPassword)
     {
         using var hmac = new HMACSHA512();
         var passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(newPassword));

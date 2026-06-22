@@ -28,6 +28,7 @@ public class AllRequiredRolesAcrossAllUsers : IApplicationHealthCheck
 
         var allUsersWithApplication = await _userRepository.GetUsersAsync(new GetUsersCriteria()
         {
+            // TODO: update for new pattern
             HasAccessToApplications = [_applicationMetaData.Name],
         });
 

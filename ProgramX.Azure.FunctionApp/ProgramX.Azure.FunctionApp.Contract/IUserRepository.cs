@@ -64,16 +64,19 @@ public interface IUserRepository
     /// </summary>
     /// <param name="user">User to create.</param>
     Task CreateUserAsync(User user);
-    
+
     /// <summary>
     /// Updates the password hash and salt for the specified user.
     /// </summary>
     /// <param name="userName">The username of the User to update the password for.</param>
     /// <param name="newPassword">The new password for the user.</param>
+    /// <param name="passwordConfirmationNonce">A nonce used to verify the password confirmation. This must have been stored alongside the User to allow the password
+    /// to be changes.</param>
+    /// <returns>The updated User.</returns>   
     /// <remarks>
     /// If the user has not previously set a password, a new salt will be generated and stored alongside the password hash.
     /// </remarks>
-    Task UpdateUserPasswordAsync(string userName, string newPassword);
+    Task<User> UpdateUserPasswordAsync(string userName, string newPassword, string passwordConfirmationNonce);
     
     /// <summary>
     /// Gets the password hash and salt for the specified user.

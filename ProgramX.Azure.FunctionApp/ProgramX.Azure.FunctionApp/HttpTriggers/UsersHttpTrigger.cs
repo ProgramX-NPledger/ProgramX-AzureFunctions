@@ -14,6 +14,7 @@ using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Constants;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
+using ProgramX.Azure.FunctionApp.Model.Exceptions;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using ProgramX.Azure.FunctionApp.Model.Responses.Dtos;
@@ -256,27 +257,59 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         });
     }
     
-    // TODO: update password
+    [Function(nameof(UpdateUserPassword))]
+    public async Task<HttpResponseData> UpdateUserPassword(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{userName}/password")]
+        HttpRequestData httpRequestData,
+        string userName)
+    {
+        var updateUserRequest =
+            await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateUserPasswordRequest>(httpRequestData);
+        if (updateUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
+    
+        return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
+        {
+            try
+            {
+                // validate password and strength
+                var passwordValidator = new PasswordValidator();
+                passwordValidator.AssertValidPassword(updateUserRequest.NewPassword);
+                
+                await _userRepository.UpdateUserPasswordAsync(userName, updateUserRequest.NewPassword, updateUserRequest.PasswordConfirmationNonce);
+            }
+            catch (ItemNotFoundException)
+            {
+                return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+            }
+            catch (InvalidPasswordUpdateException invalidPasswordUpdateException)
+            {
+                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, $"Invalid password update: {invalidPasswordUpdateException.Message}");
+            }
+            
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserPasswordResponse()
+            {
+                Username = userName
+            });
+        }, true);
+    }
+    
     //
     // [Function(nameof(UpdateUserPassword))]
-    // public async Task<HttpResponseData> UpdateUserPassword(
-    //     [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{userName}/password")]
+    // public async Task<HttpResponseData> UpdateUserSettings(
+    //     [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{userName}/settings")]
     //     HttpRequestData httpRequestData,
     //     string userName)
     // {
     //     var updateUserRequest =
-    //         await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateUserRequest>(httpRequestData);
+    //         await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateUserPasswordRequest>(httpRequestData);
     //     if (updateUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
     //
-    //     var isChangePasswordRequest=updateUserRequest.UpdatePasswordScope 
-    //                                 && updateUserRequest is { NewPassword: not null, UpdateProfilePictureScope: false, UpdateProfileScope: false, UpdateRolesScope: false };
-    //     
     //     return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
     //     {
     //         var user = await _userRepository.GetUserByUserNameAsync(userName);
     //         if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
     //         
-    //         if (user.UserName!=usernameMakingTheChange) return await HttpResponseDataFactory.CreateForForbidden(httpRequestData, "It is only possible to update own user's details");
+    //         if (user.UserName!=usernameMakingTheChange) return await HttpResponseDataFactory.CreateForForbidden(httpRequestData, "It is only possible to update own user's password");
     //         
     //         var newEmailAddress = updateUserRequest.UpdateProfileScope ? updateUserRequest.EmailAddress : user.EmailAddress;
     //         var newFirstName = updateUserRequest.UpdateProfileScope ? updateUserRequest.FirstName : user.FirstName;
@@ -546,7 +579,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         
             var newUser = new UserDto()
             {
-                Id = Guid.NewGuid().ToString("N"),
                 EmailAddress = createUserRequest.emailAddress,
                 UserName = createUserRequest.userName,
                 Roles = allRoles.Items.Where(q=>createUserRequest.addToRoles.Contains(q.RoleName)),
