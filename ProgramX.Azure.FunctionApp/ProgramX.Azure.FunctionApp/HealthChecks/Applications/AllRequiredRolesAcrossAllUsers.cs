@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.Extensions.Configuration;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
@@ -12,7 +13,7 @@ public class AllRequiredRolesAcrossAllUsers : IApplicationHealthCheck
 
     public AllRequiredRolesAcrossAllUsers(
         ApplicationMetaData applicationMetaData,
-        IUserRepository userRepository)
+        IUserRepository userRepository)  
     {
         _applicationMetaData = applicationMetaData;
         _userRepository = userRepository;
@@ -25,23 +26,21 @@ public class AllRequiredRolesAcrossAllUsers : IApplicationHealthCheck
             FriendlyName = "All Roles across all Users",
             HealthCheckName = nameof(AllRequiredRolesAcrossAllUsers),
         };
-
+        
         var allUsersWithApplication = await _userRepository.GetUsersAsync(new GetUsersCriteria()
         {
-            // TODO: update for new pattern
-            HasAccessToApplications = [_applicationMetaData.Name],
+            WithRoles = _applicationMetaData.RequiresRoleNames
         });
-
-        // TODO calculate missing roles
+        
         var missingRoles = new List<string>();
-        // foreach (var role in _applicationMetaData.RequiresRoleNames)
-        // {
-        //     if (!allUsersWithApplication.Items.Any(q => q.roles.Any(r => r.name == role)))
-        //     {
-        //         missingRoles.Add(role);
-        //     }
-        // }
-        //
+        foreach (var roleName in _applicationMetaData.RequiresRoleNames)
+        {
+            if (!allUsersWithApplication.Items.Any(q => q.Roles.Contains(roleName)))
+            {
+                missingRoles.Add(roleName);
+            }
+        }
+        
         if (!missingRoles.Any())
         {
             result.IsHealthy = true;
