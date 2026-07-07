@@ -3,7 +3,7 @@ namespace ProgramX.Azure.FunctionApp.Model.Criteria;
 /// <summary>
 /// Criteria for retrieving Applications.
 /// </summary>
-public class GetApplicationsCriteria
+public class GetAllApplicationsCriteria
 {
     /// <summary>
     /// The name of the Application to retrieve.
@@ -18,7 +18,7 @@ public class GetApplicationsCriteria
     /// <summary>
     /// A list of names of Roles that the Application is used in.
     /// </summary>
-    public IEnumerable<string>? WithinRoles { get; set; }
+    public IEnumerable<string>? HasAnyOfRoles { get; set; }
 
     /// <summary>
     /// A list of Application Names to retrieve.

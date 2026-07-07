@@ -28,12 +28,14 @@ public class ApplicationsHttpTrigger(
     IConfiguration configuration,
     IUserRepository userRepository,
     IRoleRepository roleRepository,
+    IApplicationProvider applicationProvider,
     IServiceProvider serviceProvider)
     : AuthorisedHttpTriggerBase(configuration,logger)
 {
     private readonly ILogger<ApplicationsHttpTrigger> _logger = logger;
+    private readonly IApplicationProvider _applicationProvider = applicationProvider;
 
-    
+
     [Function(nameof(GetApplication))]
     public async Task<HttpResponseData> GetApplication(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "application/{name?}")] HttpRequestData httpRequestData,
@@ -41,18 +43,15 @@ public class ApplicationsHttpTrigger(
     {
         return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
-            var applicationLoader = new ApplicationLoader(Configuration, serviceProvider);
             if (string.IsNullOrWhiteSpace(name))
             {
                 var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
                 var withinRoles = httpRequestData.Query["supportsRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["supportsRoles"]!).Split(
                     [',']);
                 
-                // load all applications
-                var allApplications = LoadAllApplications(applicationLoader);
-                
+                var allApplications = _applicationProvider.GetAllApplications(new GetAllApplicationsCriteria());
                 var filteredApplications = new List<IApplication>();
-                
+
                 // apply filters
                 if (!string.IsNullOrWhiteSpace(containsText))
                 {
@@ -62,6 +61,10 @@ public class ApplicationsHttpTrigger(
                         a.GetApplicationMetaData().FriendlyName.Contains(containsText, StringComparison.OrdinalIgnoreCase)
                                                   )
                     );
+                }
+                else
+                {
+                    filteredApplications.AddRange(allApplications);
                 }
                 
                 if (withinRoles != null && withinRoles.Any())
@@ -87,19 +90,11 @@ public class ApplicationsHttpTrigger(
             }
             else
             {
-                IApplication application;
-                try
-                {
-                    application = applicationLoader.LoadApplication(name);
-                }
-                catch (ItemNotFoundException)
+                IApplication? application;
+                application = _applicationProvider.GetApplication(name);
+                if (application == null)
                 {
                     return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Failed to load Application");
-                    return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to load Application");
                 }
                 
                 var applicationDto = new ApplicationDto()
@@ -119,63 +114,54 @@ public class ApplicationsHttpTrigger(
             }
         });
     }
-
-    private IEnumerable<IApplication> LoadAllApplications(ApplicationLoader applicationLoader)
-    {
-        var allApplicationNames = applicationLoader.GetApplicationNames();
-        var allApplications = new List<IApplication>();
-        foreach (var applicationName in allApplicationNames)
-            allApplications.Add(applicationLoader.LoadApplication(applicationName));
-        return allApplications;
-    }
-
-    
-    [Function(nameof(GetApplicationHealthCheck))]
-    public async Task<HttpResponseData> GetApplicationHealthCheck(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "application/{name}/health")] HttpRequestData httpRequestData, string name)
-    {
-        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
-        {
-            // TODO
-            // need to get all applications, including those not in a role to ensure that the application definitely exists
-            var applicationLoader = new ApplicationLoader(Configuration, serviceProvider);
-            IApplication application;
-            try
-            {
-                application = applicationLoader.LoadApplication(name);
-            }
-            catch (ItemNotFoundException)
-            {
-                return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Failed to load Application");
-                return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to load Application");
-            }
-
-            var healthCheckResults = new List<HealthCheckResult>();
-            var healthChecks = application.GetHealthChecks();
-            foreach (var healthCheck in healthChecks)
-            {
-                healthCheckResults.Add(await healthCheck.CheckHealthAsync());
-            }
-
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
-                new GetHealthCheckForApplicationResponse()
-                {
-                    Name = name,
-                    IsHealthy = healthCheckResults.All(q => q.IsHealthy),
-                    Message = healthCheckResults.All(q => q.IsHealthy) ? "The Application is healthy" : "The Application is unhealthy",
-                    TimeStamp = DateTime.UtcNow,
-                    Items = healthCheckResults
-                });
-
-         
-        });
-
-    }
-    
+    //
+    //
+    // [Function(nameof(GetApplicationHealthCheck))]
+    // public async Task<HttpResponseData> GetApplicationHealthCheck(
+    //     [HttpTrigger(AuthorizationLevel.Function, "get", Route = "application/{name}/health")] HttpRequestData httpRequestData, string name)
+    // {
+    //     return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
+    //     {
+    //         // TODO
+    //         // need to get all applications, including those not in a role to ensure that the application definitely exists
+    //         var applicationLoader = new _ApplicationLoader(Configuration, serviceProvider);
+    //         IApplication application;
+    //         try
+    //         {
+    //             application = applicationLoader.LoadApplication(name);
+    //         }
+    //         catch (ItemNotFoundException)
+    //         {
+    //             return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
+    //         }
+    //         catch (Exception e)
+    //         {
+    //             _logger.LogError(e, "Failed to load Application");
+    //             return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to load Application");
+    //         }
+    //
+    //         var healthCheckResults = new List<HealthCheckResult>();
+    //         var healthChecks = application.GetHealthChecks();
+    //         foreach (var healthCheck in healthChecks)
+    //         {
+    //             healthCheckResults.Add(await healthCheck.CheckHealthAsync());
+    //         }
+    //
+    //         return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+    //             new GetHealthCheckForApplicationResponse()
+    //             {
+    //                 Name = name,
+    //                 IsHealthy = healthCheckResults.All(q => q.IsHealthy),
+    //                 Message = healthCheckResults.All(q => q.IsHealthy) ? "The Application is healthy" : "The Application is unhealthy",
+    //                 TimeStamp = DateTime.UtcNow,
+    //                 Items = healthCheckResults
+    //             });
+    //
+    //      
+    //     });
+    //
+    // }
+    //
 //     
 //     [Function(nameof(FixApplication))]
 //     public async Task<HttpResponseData> FixApplication(

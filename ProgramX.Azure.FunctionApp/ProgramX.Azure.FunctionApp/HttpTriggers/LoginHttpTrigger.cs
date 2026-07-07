@@ -15,6 +15,7 @@ using ProgramX.Azure.FunctionApp.ApplicationDefinitions;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
+using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 
@@ -27,18 +28,21 @@ public class LoginHttpTrigger
     private readonly IServiceProvider _serviceProvider;
     private readonly JwtTokenIssuer _jwtTokenIssuer;
     private readonly IUserRepository _userRepository;
+    private readonly IApplicationProvider _applicationProvider;
 
     public LoginHttpTrigger(ILogger<LoginHttpTrigger> logger,
         IConfiguration configuration,
         IServiceProvider serviceProvider,
         JwtTokenIssuer jwtTokenIssuer,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        IApplicationProvider applicationProvider)
     {
         _logger = logger;
         _configuration = configuration;
         _serviceProvider = serviceProvider;
         _jwtTokenIssuer = jwtTokenIssuer;
         _userRepository = userRepository;
+        _applicationProvider = applicationProvider;
     }
 
     [Function(nameof(Login))]
@@ -77,11 +81,12 @@ public class LoginHttpTrigger
             throw new Exception("User not found");
         }
         
-        // TODO: get roles
-        
         string token = _jwtTokenIssuer.IssueTokenForUser(credentials,user.Roles);
- 
-        var applicationLoader = new ApplicationLoader(_configuration, _serviceProvider);
+
+        var permittedApplications = _applicationProvider.GetAllApplications(new GetAllApplicationsCriteria()
+        {
+            HasAnyOfRoles = user.Roles
+        });
         
         _logger.LogInformation("User {UserName} logged in", credentials.UserName);
         
@@ -92,7 +97,7 @@ public class LoginHttpTrigger
             UserName = user.UserName,
             EmailAddress = user.EmailAddress,
             MemberOfRoles = user.Roles,
-            CanUseApplications = [], // TODO populate applications roles have access to (as defined by application)
+            CanUseApplications = permittedApplications.Select(a => a.GetApplicationMetaData().Name),
             FirstName = user.FirstName,
             LastName = user.LastName,
             ProfilePhotographSmall = user.ProfilePhotographSmall,

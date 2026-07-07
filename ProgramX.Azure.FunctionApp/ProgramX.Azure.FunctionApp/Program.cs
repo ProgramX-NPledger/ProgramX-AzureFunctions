@@ -68,6 +68,7 @@ builder.Services
         return new CosmosIntegrationRepository(cosmosClient, serviceProvider.GetRequiredService<ILogger<CosmosIntegrationRepository>>());;
     })
     .AddSingleton<ISingletonMutex,SingletonMutex>()
+    .AddSingleton<IApplicationProvider, CachingApplicationProvider>()
     .AddTransient<IEmailSender, AzureCommunicationsServicesEmailSender>(serviceProvoder =>
     {
         var configuration = serviceProvoder.GetRequiredService<IConfiguration>();

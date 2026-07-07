@@ -180,7 +180,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        var result = await target.GetApplicationsAsync(new GetApplicationsCriteria());
+        var result = await target.GetApplicationsAsync(new GetAllApplicationsCriteria());
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Items, Is.Not.Null);
@@ -205,7 +205,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        var result = await target.GetApplicationsAsync(new GetApplicationsCriteria(),new PagedCriteria()
+        var result = await target.GetApplicationsAsync(new GetAllApplicationsCriteria(),new PagedCriteria()
             {
                 ItemsPerPage = 3,
                 Offset = 0,
@@ -235,7 +235,7 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
 
         var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        var result = await target.GetApplicationsAsync(new GetApplicationsCriteria(),new PagedCriteria()
+        var result = await target.GetApplicationsAsync(new GetAllApplicationsCriteria(),new PagedCriteria()
             {
                 ItemsPerPage = 3,
                 Offset = 3,
