@@ -49,7 +49,7 @@ public class HttpBodyUtilitiesTests
     {
         var serializedObject = new Role()
         {
-            name = "test"
+            RoleName = "test"
         };
         
         var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
@@ -62,7 +62,7 @@ public class HttpBodyUtilitiesTests
         var result = await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<Role>(testableHttpRequestData);
         
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.name, Is.EqualTo(serializedObject.name));
+        Assert.That(result.RoleName, Is.EqualTo(serializedObject.RoleName));
     }
     
     [Test]
