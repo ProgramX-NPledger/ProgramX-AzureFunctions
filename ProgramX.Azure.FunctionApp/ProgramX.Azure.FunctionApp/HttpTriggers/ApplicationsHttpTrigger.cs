@@ -68,6 +68,8 @@ public class ApplicationsHttpTrigger(
                 {
                     filteredApplications = filteredApplications.Where(a => withinRoles.Intersect(a.GetApplicationMetaData().RequiresRoleNames).Any()).ToList();
                 }
+                
+                // TODO Security hole: exposes existence of applications - should only do so for admin users
 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetApplicationsResponse()
                 {
