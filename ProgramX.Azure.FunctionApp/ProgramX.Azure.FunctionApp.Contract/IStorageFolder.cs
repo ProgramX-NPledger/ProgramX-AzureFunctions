@@ -26,6 +26,13 @@ public interface IStorageFolder
     Task DeleteFileAsync(string fileName);
 
     /// <summary>
+    /// Reads a file from the storage folder without buffering the full file in memory.
+    /// </summary>
+    /// <param name="fileName">Filename of file to read.</param>
+    /// <returns>A streamed file response.</returns>
+    Task<StorageFile> GetStorageFileAsync(string fileName);
+
+    /// <summary>
     /// Response from SaveFileAsync.
     /// </summary>
     struct SaveFileResult
@@ -40,4 +47,5 @@ public interface IStorageFolder
         /// </summary>
         public string ContentType { get; set; }
     }
+
 }
