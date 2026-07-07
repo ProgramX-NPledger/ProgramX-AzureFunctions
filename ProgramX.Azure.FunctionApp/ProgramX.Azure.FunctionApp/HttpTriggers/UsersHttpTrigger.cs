@@ -320,108 +320,108 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             });
         });
     }
-    
-    [Function(nameof(UpdateUserPhoto))]
-    public async Task<HttpResponseData> UpdateUserPhoto(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{id}/photo")]
-        HttpRequestData httpRequestData,
-        string id)
-    {
-        return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
-        {
-            if (!httpRequestData.Headers.TryGetValues("Content-Type", out var ctValues))
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing Content-Type header.");
-            }
-
-            var contentType = ctValues.FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(contentType) || !contentType.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase))
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Content-Type must be multipart/form-data.");
-            }
-
-            var mediaType = MediaTypeHeaderValue.Parse(contentType);
-            var boundary = HeaderUtilities.RemoveQuotes(mediaType.Boundary).Value;
-            if (string.IsNullOrEmpty(boundary))
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing multipart boundary.");
-            }
-
-            var user = await _userRepository.GetUserByIdAsync(id);
-            if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-
-            var storageFolder = await _storageClient!.GetStorageFolderAsync(_storageClient.GetBlobName(BlobNames.AvatarImages));
-
-            httpRequestData.Body.Position = 0;
-            var multipartReader = new MultipartReader(boundary, httpRequestData.Body);
-            MultipartSection? multipartSection;
-            try
-            {
-                multipartSection = await multipartReader.ReadNextSectionAsync();
-            }
-            catch (IOException)
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing multipart section.");
-            }
-
-            string thumbnailImageUri=string.Empty;
-            while (multipartSection != null)
-            {
-                if (ContentDispositionHeaderValue.TryParse(multipartSection.ContentDisposition, out var contentDisp)
-                    && contentDisp.DispositionType.Equals("form-data")
-                    && (!string.IsNullOrEmpty(contentDisp.FileName.Value) || !string.IsNullOrEmpty(contentDisp.FileNameStar.Value)))
-                {
-                    var originalName = contentDisp.FileName.Value ?? contentDisp.FileNameStar.Value ?? "file";
-                    var originalNameWithoutExtension = Path.GetFileNameWithoutExtension(originalName);
-                    var ext = Path.GetExtension(originalName);
-                    
-                    var originalBlobName = $"{originalNameWithoutExtension}-orig{ext}";
-                    var avatarSizedBlobName = $"{originalNameWithoutExtension}-32x32{ext}";
-                    
-                    var base64EncodedData = DataForMultipartSection(multipartSection);
-                    var rawData = Convert.FromBase64String(base64EncodedData);
-                    
-                    using var originalImageStream = new MemoryStream(rawData);
-                    
-                    await storageFolder.SaveFileAsync($"{usernameMakingTheChange}/{originalBlobName}", originalImageStream, multipartSection.ContentType ?? "application/octet-stream");;
-
-                    // having moved the cursor to the end of the stream, it is reset
-                    originalImageStream.Position = 0;
-                    
-                    // the stream is copied into an array, which can be seeked
-                    var resizedImage = await ResizeAsync(rawData, 32);
-                    
-                    // the array is set back into a stream
-                    var resizedImageStream = new MemoryStream(resizedImage);
-                    
-                    // upload to blob storage
-                    thumbnailImageUri = (await storageFolder.SaveFileAsync(
-                        $"{usernameMakingTheChange}/{avatarSizedBlobName}", resizedImageStream,
-                        multipartSection.ContentType ?? "application/octet-stream")).Url;
-
-                    // update record in DB
-                    user.ProfilePhotographSmall = avatarSizedBlobName;
-                    user.ProfilePhotographOriginal = originalBlobName;
-                    user.SchemaVersionNumber = user.SchemaVersionNumber > 2 ? user.SchemaVersionNumber : 2; // increment version number
-                    await _userRepository.UpdateUserAsync(user);
-                }
-                // else: handle form fields if needed (e.g., section.AsFormData())
-
-                multipartSection = await multipartReader.ReadNextSectionAsync();
-            }
-
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateProfilePhotoResponse()
-            {
-                photoUrl = thumbnailImageUri,
-                ErrorMessage = null,
-                IsOk = true,
-                BytesTransferred = 0,
-                HttpEventType = HttpEventType.Response,
-                TotalBytesToTransfer = 0
-            });
-            
-        });
-    }
+    //
+    // [Function(nameof(UpdateUserPhoto))]
+    // public async Task<HttpResponseData> UpdateUserPhoto(
+    //     [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{id}/photo")]
+    //     HttpRequestData httpRequestData,
+    //     string id)
+    // {
+    //     return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
+    //     {
+    //         if (!httpRequestData.Headers.TryGetValues("Content-Type", out var ctValues))
+    //         {
+    //             return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing Content-Type header.");
+    //         }
+    //
+    //         var contentType = ctValues.FirstOrDefault();
+    //         if (string.IsNullOrWhiteSpace(contentType) || !contentType.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase))
+    //         {
+    //             return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Content-Type must be multipart/form-data.");
+    //         }
+    //
+    //         var mediaType = MediaTypeHeaderValue.Parse(contentType);
+    //         var boundary = HeaderUtilities.RemoveQuotes(mediaType.Boundary).Value;
+    //         if (string.IsNullOrEmpty(boundary))
+    //         {
+    //             return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing multipart boundary.");
+    //         }
+    //
+    //         var user = await _userRepository.GetUserByIdAsync(id);
+    //         if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+    //
+    //         var storageFolder = await _storageClient!.GetStorageFolderAsync(_storageClient.GetBlobName(BlobNames.AvatarImages));
+    //
+    //         httpRequestData.Body.Position = 0;
+    //         var multipartReader = new MultipartReader(boundary, httpRequestData.Body);
+    //         MultipartSection? multipartSection;
+    //         try
+    //         {
+    //             multipartSection = await multipartReader.ReadNextSectionAsync();
+    //         }
+    //         catch (IOException)
+    //         {
+    //             return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing multipart section.");
+    //         }
+    //
+    //         string thumbnailImageUri=string.Empty;
+    //         while (multipartSection != null)
+    //         {
+    //             if (ContentDispositionHeaderValue.TryParse(multipartSection.ContentDisposition, out var contentDisp)
+    //                 && contentDisp.DispositionType.Equals("form-data")
+    //                 && (!string.IsNullOrEmpty(contentDisp.FileName.Value) || !string.IsNullOrEmpty(contentDisp.FileNameStar.Value)))
+    //             {
+    //                 var originalName = contentDisp.FileName.Value ?? contentDisp.FileNameStar.Value ?? "file";
+    //                 var originalNameWithoutExtension = Path.GetFileNameWithoutExtension(originalName);
+    //                 var ext = Path.GetExtension(originalName);
+    //                 
+    //                 var originalBlobName = $"{originalNameWithoutExtension}-orig{ext}";
+    //                 var avatarSizedBlobName = $"{originalNameWithoutExtension}-32x32{ext}";
+    //                 
+    //                 var base64EncodedData = DataForMultipartSection(multipartSection);
+    //                 var rawData = Convert.FromBase64String(base64EncodedData);
+    //                 
+    //                 using var originalImageStream = new MemoryStream(rawData);
+    //                 
+    //                 await storageFolder.SaveFileAsync($"{usernameMakingTheChange}/{originalBlobName}", originalImageStream, multipartSection.ContentType ?? "application/octet-stream");;
+    //
+    //                 // having moved the cursor to the end of the stream, it is reset
+    //                 originalImageStream.Position = 0;
+    //                 
+    //                 // the stream is copied into an array, which can be seeked
+    //                 var resizedImage = await ResizeAsync(rawData, 32);
+    //                 
+    //                 // the array is set back into a stream
+    //                 var resizedImageStream = new MemoryStream(resizedImage);
+    //                 
+    //                 // upload to blob storage
+    //                 thumbnailImageUri = (await storageFolder.SaveFileAsync(
+    //                     $"{usernameMakingTheChange}/{avatarSizedBlobName}", resizedImageStream,
+    //                     multipartSection.ContentType ?? "application/octet-stream")).Url;
+    //
+    //                 // update record in DB
+    //                 user.ProfilePhotographSmall = avatarSizedBlobName;
+    //                 user.ProfilePhotographOriginal = originalBlobName;
+    //                 user.SchemaVersionNumber = user.SchemaVersionNumber > 2 ? user.SchemaVersionNumber : 2; // increment version number
+    //                 await _userRepository.UpdateUserAsync(user);
+    //             }
+    //             // else: handle form fields if needed (e.g., section.AsFormData())
+    //
+    //             multipartSection = await multipartReader.ReadNextSectionAsync();
+    //         }
+    //
+    //         return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateProfilePhotoResponse()
+    //         {
+    //             photoUrl = thumbnailImageUri,
+    //             ErrorMessage = null,
+    //             IsOk = true,
+    //             BytesTransferred = 0,
+    //             HttpEventType = HttpEventType.Response,
+    //             TotalBytesToTransfer = 0
+    //         });
+    //         
+    //     });
+    // }
 
     private string DataForMultipartSection(MultipartSection multipartSection)
     {
@@ -471,43 +471,43 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         );
     }
     
-    
-    [Function(nameof(RemoveUserPhoto))]
-    public async Task<HttpResponseData> RemoveUserPhoto(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/{id}/photo")]
-        HttpRequestData httpRequestData,
-        string id)
-    {
-        return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
-        {
-            var user = await _userRepository.GetUserByIdAsync(id);
-            if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-
-            Debug.Assert(_storageClient != null, nameof(_storageClient) + " != null");
-            var storageFolder = await _storageClient.GetStorageFolderAsync(_storageClient.GetBlobName(BlobNames.AvatarImages));
-            
-            await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.ProfilePhotographOriginal}");
-            await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.ProfilePhotographSmall}");
-            
-            // update record in DB
-            user.ProfilePhotographSmall = null;
-            user.ProfilePhotographOriginal = null;
-            
-            user.SchemaVersionNumber = user.SchemaVersionNumber > 2 ? user.SchemaVersionNumber : 2; // increment version number
-            await _userRepository.UpdateUserAsync(user);
-            
-            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
-            {
-                ErrorMessage = null,
-                IsOk = true,
-                BytesTransferred = 0,
-                HttpEventType = HttpEventType.Response,
-                TotalBytesToTransfer = 0
-            });
-            
-        });
-    }
-    
+    //
+    // [Function(nameof(RemoveUserPhoto))]
+    // public async Task<HttpResponseData> RemoveUserPhoto(
+    //     [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/{id}/photo")]
+    //     HttpRequestData httpRequestData,
+    //     string id)
+    // {
+    //     return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
+    //     {
+    //         var user = await _userRepository.GetUserByIdAsync(id);
+    //         if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+    //
+    //         Debug.Assert(_storageClient != null, nameof(_storageClient) + " != null");
+    //         var storageFolder = await _storageClient.GetStorageFolderAsync(_storageClient.GetBlobName(BlobNames.AvatarImages));
+    //         
+    //         await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.ProfilePhotographOriginal}");
+    //         await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.ProfilePhotographSmall}");
+    //         
+    //         // update record in DB
+    //         user.ProfilePhotographSmall = null;
+    //         user.ProfilePhotographOriginal = null;
+    //         
+    //         user.SchemaVersionNumber = user.SchemaVersionNumber > 2 ? user.SchemaVersionNumber : 2; // increment version number
+    //         await _userRepository.UpdateUserAsync(user);
+    //         
+    //         return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
+    //         {
+    //             ErrorMessage = null,
+    //             IsOk = true,
+    //             BytesTransferred = 0,
+    //             HttpEventType = HttpEventType.Response,
+    //             TotalBytesToTransfer = 0
+    //         });
+    //         
+    //     });
+    // }
+    //
     [Function(nameof(CreateUser))]
     public async Task<HttpResponseData> CreateUser(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user")] HttpRequestData httpRequestData
