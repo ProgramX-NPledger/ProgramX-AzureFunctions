@@ -40,4 +40,19 @@ public class AzureBlobContainerClient : IStorageFolder
         var blob = _blobContainerClient.GetBlobClient(fileName);
         await blob.DeleteIfExistsAsync();
     }
+
+    public async Task<StorageFile> GetStorageFileAsync(string fileName)
+    {
+        // TODO: return null if not found
+        var blob = _blobContainerClient.GetBlobClient(fileName);
+        var properties = await blob.GetPropertiesAsync();
+        var content = await blob.OpenReadAsync();
+
+        return new StorageFile
+        {
+            Content = content,
+            ContentType = properties.Value.ContentType ?? "application/octet-stream",
+            FileName = fileName
+        };
+    }
 }
