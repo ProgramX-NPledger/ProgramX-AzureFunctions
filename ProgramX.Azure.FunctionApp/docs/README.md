@@ -6,6 +6,7 @@
    1. [Architecture](./01-Getting-started/Architecture.md)
    2. [Development principles](./Development-principles.md)
    3. [Authentication](./01-Getting-started/Authentication.md)
+   4. [File Storage](./File-Storage.md)
 2. [Platform](./02-Platform/README.md) 
    1. [Users](./02-Platform/Users.md)
    2. [Roles](./02-Platform/Roles.md)
