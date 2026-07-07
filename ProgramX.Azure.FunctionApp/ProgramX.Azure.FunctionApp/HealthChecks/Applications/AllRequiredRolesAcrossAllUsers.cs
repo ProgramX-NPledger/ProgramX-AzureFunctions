@@ -23,7 +23,7 @@ public class AllRequiredRolesAcrossAllUsers : IApplicationHealthCheck
     {
         var result = new HealthCheckResult
         {
-            FriendlyName = "All Roles across all Users",
+            FriendlyName = "Required Roles",
             HealthCheckName = nameof(AllRequiredRolesAcrossAllUsers),
         };
         

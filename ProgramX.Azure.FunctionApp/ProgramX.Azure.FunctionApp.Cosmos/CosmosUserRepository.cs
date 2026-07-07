@@ -457,7 +457,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         
             for (int i = 0; i < rolesList.Count; i++)
             {
-                conditions.Add($"EXISTS(SELECT VALUE r FROM r IN c.roles WHERE r.name = @role{i})");
+                conditions.Add($"ARRAY_CONTAINS(c.roles, @role{i})");
                 parameters.Add(($"@role{i}", rolesList[i]));
             }
         
