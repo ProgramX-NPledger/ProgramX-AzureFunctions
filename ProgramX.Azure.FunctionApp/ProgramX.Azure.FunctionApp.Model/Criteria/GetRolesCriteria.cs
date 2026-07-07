@@ -11,6 +11,7 @@ public class GetRolesCriteria
     /// </summary>
     public IEnumerable<string>? AnyOfRoleNames { get; set; }
     
+    
     /// <summary>
     /// Retrieve Roles that contain the specified text in their name or description.
     /// </summary>
