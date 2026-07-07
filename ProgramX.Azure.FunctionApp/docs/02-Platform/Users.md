@@ -263,8 +263,13 @@ If a `200` response is returned, the payload will contain a status object that l
 }
 ```
 
-## XXXXUpdating a User's Profile Photograph
+## Updating a User's Profile Photograph
 
+Updating a User's profile picture is performed using the `POST /api/v1/files/{filename.ext}?imageType=Avatar` endpoint.
+
+The filename of the image is stored with the User.
+
+See [Uploading a Photograph](../03-Media/Uploading-a-Photograph.md) for more information on how files are uploaded.
 
 ## Updating a User's Settings
 
