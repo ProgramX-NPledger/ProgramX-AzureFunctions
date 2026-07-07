@@ -38,7 +38,7 @@ public class ApplicationsHttpTrigger(
 
     [Function(nameof(GetApplication))]
     public async Task<HttpResponseData> GetApplication(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "application/{name?}")] HttpRequestData httpRequestData,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "applications/{name?}")] HttpRequestData httpRequestData,
         string? name)
     {
         return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
@@ -114,54 +114,43 @@ public class ApplicationsHttpTrigger(
             }
         });
     }
-    //
-    //
-    // [Function(nameof(GetApplicationHealthCheck))]
-    // public async Task<HttpResponseData> GetApplicationHealthCheck(
-    //     [HttpTrigger(AuthorizationLevel.Function, "get", Route = "application/{name}/health")] HttpRequestData httpRequestData, string name)
-    // {
-    //     return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
-    //     {
-    //         // TODO
-    //         // need to get all applications, including those not in a role to ensure that the application definitely exists
-    //         var applicationLoader = new _ApplicationLoader(Configuration, serviceProvider);
-    //         IApplication application;
-    //         try
-    //         {
-    //             application = applicationLoader.LoadApplication(name);
-    //         }
-    //         catch (ItemNotFoundException)
-    //         {
-    //             return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
-    //         }
-    //         catch (Exception e)
-    //         {
-    //             _logger.LogError(e, "Failed to load Application");
-    //             return await HttpResponseDataFactory.CreateForServerError(httpRequestData, "Failed to load Application");
-    //         }
-    //
-    //         var healthCheckResults = new List<HealthCheckResult>();
-    //         var healthChecks = application.GetHealthChecks();
-    //         foreach (var healthCheck in healthChecks)
-    //         {
-    //             healthCheckResults.Add(await healthCheck.CheckHealthAsync());
-    //         }
-    //
-    //         return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
-    //             new GetHealthCheckForApplicationResponse()
-    //             {
-    //                 Name = name,
-    //                 IsHealthy = healthCheckResults.All(q => q.IsHealthy),
-    //                 Message = healthCheckResults.All(q => q.IsHealthy) ? "The Application is healthy" : "The Application is unhealthy",
-    //                 TimeStamp = DateTime.UtcNow,
-    //                 Items = healthCheckResults
-    //             });
-    //
-    //      
-    //     });
-    //
-    // }
-    //
+    
+    
+    [Function(nameof(GetApplicationHealthCheck))]
+    public async Task<HttpResponseData> GetApplicationHealthCheck(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "applications/{name}/health")] HttpRequestData httpRequestData, string name)
+    {
+        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
+        {
+            // TODO: Potential security hole: may leak applications user does not have access to
+            var application = _applicationProvider.GetApplication(name);
+            if (application == null)
+            {
+                return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Application");
+            }
+    
+            var healthCheckResults = new List<HealthCheckResult>();
+            var healthChecks = application.GetHealthChecks();
+            foreach (var healthCheck in healthChecks)
+            {
+                healthCheckResults.Add(await healthCheck.CheckHealthAsync());
+            }
+    
+            return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                new GetHealthCheckForApplicationResponse()
+                {
+                    Name = name,
+                    IsHealthy = healthCheckResults.All(q => q.IsHealthy),
+                    Message = healthCheckResults.All(q => q.IsHealthy) ? "The Application is healthy" : "The Application is unhealthy",
+                    TimeStamp = DateTime.UtcNow,
+                    Items = healthCheckResults
+                });
+    
+         
+        });
+    
+    }
+    
 //     
 //     [Function(nameof(FixApplication))]
 //     public async Task<HttpResponseData> FixApplication(
