@@ -405,83 +405,83 @@ public class ScoutingActivitiesHttpTrigger : AuthorisedHttpTriggerBase
         });
     }
     
-    
-    [Function(nameof(GetScoutingActivities))]
-    public async Task<HttpResponseData> GetScoutingActivities(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/activities/{id?}")] HttpRequestData httpRequestData,
-        string? id)
-    {
-        return await RequiresAuthentication(httpRequestData, null, async (userName, _) =>
-        {
-            if (id == null)
-            {
-                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
-                var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
-                var anyOfActivityLocations = httpRequestData.Query["activityLocations"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["activityLocations"]!).Split([',']).Select(q=>ToEnum<ActivityLocation>(q));
-                var anyOfActivityFormats = httpRequestData.Query["activityFormats"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["activityFormats"]!).Split([',']).Select(q=>ToEnum<ActivityFormat>(q));
-                var anyOfActivityTypes = httpRequestData.Query["activityTypes"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["activityTypes"]!).Split([',']).Select(q=>ToEnum<ActivityType>(q));
-                var anyOfWinModes = httpRequestData.Query["winModes"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["winModes"]!).Split([',']).Select(q=>ToEnum<WinMode>(q));
-                var anyOfSections = httpRequestData.Query["sections"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sections"]!).Split([',']).Select(q=>ToEnum<Section>(q));
-                var anyOfOsmBadgeIds = httpRequestData.Query["osmBadgeIds"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["osmBadgeIds"]!).Split([',']).Select(q=>ToInt(q));
-
-                var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
-                var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ??
-                             0;
-                var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
-                
-                var scoutingActivities = await _scoutingRepository.GetScoutingActivitiesAsync(new GetScoutingActivitiesCriteria()
-                {
-                    AnyOfActivityLocations = anyOfActivityLocations,
-                    AnyOfActivityFormats = anyOfActivityFormats,
-                    AnyOfActivityTypes = anyOfActivityTypes,
-                    AnyOfWinModes = anyOfWinModes,                    
-                    AnyOfSections = anyOfSections,
-                    ContributesTowardsAnyOsmBadgeId = anyOfOsmBadgeIds,
-                    ContainingText = containsText,
-                }, new PagedCriteria()
-                {
-                    ItemsPerPage = itemsPerPage,
-                    Offset = offset
-                });
-                
-                var baseUrl =
-                    $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
-                
-                var pageUrls = CalculatePageUrls((IPagedResult<ScoutingActivity>)scoutingActivities,
-                    baseUrl,
-                    containsText,
-                    anyOfActivityLocations,
-                    anyOfActivityFormats,
-                    anyOfActivityTypes,
-                    anyOfWinModes,
-                    anyOfSections,
-                    anyOfOsmBadgeIds,
-                    continuationToken, 
-                    offset,
-                    itemsPerPage);
-                
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<ScoutingActivity>((IPagedResult<ScoutingActivity>)scoutingActivities,pageUrls));
-            }
-            else
-            {
-                var scoutingActivity = (await _scoutingRepository.GetScoutingActivitiesAsync(new GetScoutingActivitiesCriteria()
-                {
-                    Id = id
-                })).Items.FirstOrDefault();
-                if (scoutingActivity==null)
-                {
-                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, nameof(ScoutingActivity));
-                }
-                
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
-                {
-                    scoutingActivity = scoutingActivity
-                });
-            }
-        });
-    }
-    
-    
+    //
+    // [Function(nameof(GetScoutingActivities))]
+    // public async Task<HttpResponseData> GetScoutingActivities(
+    //     [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/activities/{id?}")] HttpRequestData httpRequestData,
+    //     string? id)
+    // {
+    //     return await RequiresAuthentication(httpRequestData, null, async (userName, _) =>
+    //     {
+    //         if (id == null)
+    //         {
+    //             var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
+    //             var containsText = httpRequestData.Query["containsText"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["containsText"]!);
+    //             var anyOfActivityLocations = httpRequestData.Query["activityLocations"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["activityLocations"]!).Split([',']).Select(q=>ToEnum<ActivityLocation>(q));
+    //             var anyOfActivityFormats = httpRequestData.Query["activityFormats"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["activityFormats"]!).Split([',']).Select(q=>ToEnum<ActivityFormat>(q));
+    //             var anyOfActivityTypes = httpRequestData.Query["activityTypes"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["activityTypes"]!).Split([',']).Select(q=>ToEnum<ActivityType>(q));
+    //             var anyOfWinModes = httpRequestData.Query["winModes"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["winModes"]!).Split([',']).Select(q=>ToEnum<WinMode>(q));
+    //             var anyOfSections = httpRequestData.Query["sections"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sections"]!).Split([',']).Select(q=>ToEnum<Section>(q));
+    //             var anyOfOsmBadgeIds = httpRequestData.Query["osmBadgeIds"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["osmBadgeIds"]!).Split([',']).Select(q=>ToInt(q));
+    //
+    //             var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
+    //             var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ??
+    //                          0;
+    //             var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
+    //             
+    //             var scoutingActivities = await _scoutingRepository.GetScoutingActivitiesAsync(new GetScoutingActivitiesCriteria()
+    //             {
+    //                 AnyOfActivityLocations = anyOfActivityLocations,
+    //                 AnyOfActivityFormats = anyOfActivityFormats,
+    //                 AnyOfActivityTypes = anyOfActivityTypes,
+    //                 AnyOfWinModes = anyOfWinModes,                    
+    //                 AnyOfSections = anyOfSections,
+    //                 ContributesTowardsAnyOsmBadgeId = anyOfOsmBadgeIds,
+    //                 ContainingText = containsText,
+    //             }, new PagedCriteria()
+    //             {
+    //                 ItemsPerPage = itemsPerPage,
+    //                 Offset = offset
+    //             });
+    //             
+    //             var baseUrl =
+    //                 $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
+    //             
+    //             var pageUrls = CalculatePageUrls((IPagedResult<ScoutingActivity>)scoutingActivities,
+    //                 baseUrl,
+    //                 containsText,
+    //                 anyOfActivityLocations,
+    //                 anyOfActivityFormats,
+    //                 anyOfActivityTypes,
+    //                 anyOfWinModes,
+    //                 anyOfSections,
+    //                 anyOfOsmBadgeIds,
+    //                 continuationToken, 
+    //                 offset,
+    //                 itemsPerPage);
+    //             
+    //             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<ScoutingActivity>((IPagedResult<ScoutingActivity>)scoutingActivities,pageUrls));
+    //         }
+    //         else
+    //         {
+    //             var scoutingActivity = (await _scoutingRepository.GetScoutingActivitiesAsync(new GetScoutingActivitiesCriteria()
+    //             {
+    //                 Id = id
+    //             })).Items.FirstOrDefault();
+    //             if (scoutingActivity==null)
+    //             {
+    //                 return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, nameof(ScoutingActivity));
+    //             }
+    //             
+    //             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
+    //             {
+    //                 scoutingActivity = scoutingActivity
+    //             });
+    //         }
+    //     });
+    // }
+    //
+    //
     
     private IEnumerable<UrlAccessiblePage> CalculatePageUrls(IPagedResult<ScoutingActivity> pagedResults, 
         string baseUrl, 

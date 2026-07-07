@@ -80,72 +80,72 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
      }
     
     
-    
-    
-    
-    [Function(nameof(GetScoutingScoreItemsAsync))]
-    public async Task<HttpResponseData> GetScoutingScoreItemsAsync(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/scoresledger/{id?}")] HttpRequestData httpRequestData,
-        string? id)
-    { 
-        return await RequiresAuthentication(httpRequestData, ["admin","scouts-reader"], async (_, _) =>
-        {
-            if (id == null)
-            {
-                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
-                var patrolName = httpRequestData.Query["patrolName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["patrolName"]!).Split(new [] {','});
-                var scoreName = httpRequestData.Query["scoreName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["scoreName"]!).Split(new [] {','});
-                var onOrAfter = httpRequestData.Query["onOrAfter"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrAfter"]!);
-                var onOrBefore = httpRequestData.Query["onOrBefore"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrBefore"]!);
-
-                var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
-                var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
-                var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
-
-                var criteria = new GetScoutingScoreItemsCriteria()
-                {
-                    PatrolNames = patrolName,
-                    ScoreNames = scoreName,
-                    OnOrAfter = string.IsNullOrWhiteSpace(onOrAfter) ? null : DateOnly.Parse(onOrAfter),
-                    OnOrBefore = string.IsNullOrWhiteSpace(onOrBefore) ? null : DateOnly.Parse(onOrBefore)
-                };
-                var scoutingScoreItems = await _scoutingRepository.GetScoutingScoreItemsAsync(criteria, new PagedCriteria()
-                {
-                    ItemsPerPage = itemsPerPage,
-                    Offset = offset
-                });
-                
-                var baseUrl =
-                    $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
-                
-                var pageUrls = CalculateScoutingScoreItemPageUrls((IPagedResult<ScoutingScoreItemDto>)scoutingScoreItems,
-                    baseUrl,
-                    criteria.PatrolNames,
-                    criteria.ScoreNames,
-                    criteria.OnOrAfter,
-                    criteria.OnOrBefore,
-                    continuationToken, 
-                    offset,
-                    itemsPerPage);
-                
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<ScoutingScoreItem>((IPagedResult<ScoutingScoreItem>)scoutingScoreItems,pageUrls));
-            }
-            else
-            {
-                var scoutingScoreItem = await _scoutingRepository.GetScoutingScoreItemByIdAsync(id);
-                if (scoutingScoreItem==null)
-                {
-                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "ScoutingScoreItem");
-                }
-                
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
-                {
-                    user = scoutingScoreItem
-                });
-            }
-            
-        });
-    }
+    //
+    //
+    //
+    // [Function(nameof(GetScoutingScoreItemsAsync))]
+    // public async Task<HttpResponseData> GetScoutingScoreItemsAsync(
+    //     [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/scoresledger/{id?}")] HttpRequestData httpRequestData,
+    //     string? id)
+    // { 
+    //     return await RequiresAuthentication(httpRequestData, ["admin","scouts-reader"], async (_, _) =>
+    //     {
+    //         if (id == null)
+    //         {
+    //             var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
+    //             var patrolName = httpRequestData.Query["patrolName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["patrolName"]!).Split(new [] {','});
+    //             var scoreName = httpRequestData.Query["scoreName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["scoreName"]!).Split(new [] {','});
+    //             var onOrAfter = httpRequestData.Query["onOrAfter"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrAfter"]!);
+    //             var onOrBefore = httpRequestData.Query["onOrBefore"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrBefore"]!);
+    //
+    //             var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
+    //             var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
+    //             var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
+    //
+    //             var criteria = new GetScoutingScoreItemsCriteria()
+    //             {
+    //                 PatrolNames = patrolName,
+    //                 ScoreNames = scoreName,
+    //                 OnOrAfter = string.IsNullOrWhiteSpace(onOrAfter) ? null : DateOnly.Parse(onOrAfter),
+    //                 OnOrBefore = string.IsNullOrWhiteSpace(onOrBefore) ? null : DateOnly.Parse(onOrBefore)
+    //             };
+    //             var scoutingScoreItems = await _scoutingRepository.GetScoutingScoreItemsAsync(criteria, new PagedCriteria()
+    //             {
+    //                 ItemsPerPage = itemsPerPage,
+    //                 Offset = offset
+    //             });
+    //             
+    //             var baseUrl =
+    //                 $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
+    //             
+    //             var pageUrls = CalculateScoutingScoreItemPageUrls((IPagedResult<ScoutingScoreItem>)scoutingScoreItems,
+    //                 baseUrl,
+    //                 criteria.PatrolNames,
+    //                 criteria.ScoreNames,
+    //                 criteria.OnOrAfter,
+    //                 criteria.OnOrBefore,
+    //                 continuationToken, 
+    //                 offset,
+    //                 itemsPerPage);
+    //             
+    //             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<ScoutingScoreItem>((IPagedResult<ScoutingScoreItem>)scoutingScoreItems,pageUrls));
+    //         }
+    //         else
+    //         {
+    //             var scoutingScoreItem = await _scoutingRepository.GetScoutingScoreItemByIdAsync(id);
+    //             if (scoutingScoreItem==null)
+    //             {
+    //                 return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "ScoutingScoreItem");
+    //             }
+    //             
+    //             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
+    //             {
+    //                 user = scoutingScoreItem
+    //             });
+    //         }
+    //         
+    //     });
+    // }
 
     
     
