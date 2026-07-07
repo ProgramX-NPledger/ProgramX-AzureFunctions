@@ -52,7 +52,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(GetUser))]
     public async Task<HttpResponseData> GetUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/{id?}")] HttpRequestData httpRequestData,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "users/{id?}")] HttpRequestData httpRequestData,
         string? id)
     {
         return await RequiresAuthentication(httpRequestData, null, async (userName, _) =>
@@ -217,7 +217,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(DeleteUser))]
     public async Task<HttpResponseData> DeleteUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/{userName}")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "users/{userName}")]
         HttpRequestData httpRequestData,
         string userName)
     {
@@ -233,7 +233,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
     [Function(nameof(UpdateUser))]
     public async Task<HttpResponseData> UpdateUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{userName}/profile")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "users/{userName}/profile")]
         HttpRequestData httpRequestData,
         string userName)
     {
@@ -254,7 +254,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(UpdateUserPassword))]
     public async Task<HttpResponseData> UpdateUserPassword(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{userName}/password")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "users/{userName}/password")]
         HttpRequestData httpRequestData,
         string userName)
     {
@@ -291,7 +291,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(UpdateUserSettings))]
     public async Task<HttpResponseData> UpdateUserSettings(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/{userName}/settings")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "users/{userName}/settings")]
         HttpRequestData httpRequestData,
         string userName)
     {
@@ -510,7 +510,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     //
     [Function(nameof(CreateUser))]
     public async Task<HttpResponseData> CreateUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user")] HttpRequestData httpRequestData
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "users")] HttpRequestData httpRequestData
     )
     {
         return await RequiresAuthentication(httpRequestData, ["admin"],  async (_, _) =>

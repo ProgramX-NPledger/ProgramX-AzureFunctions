@@ -23,6 +23,20 @@ public class CosmosPagedReader<T> : CosmosReader<T>
     }
 
     /// <summary>
+    /// Constructor to initialise the reader.
+    /// </summary>
+    /// <param name="client">CosmosDB client.</param>
+    /// <param name="databaseName">Name of the database. The database will be created if it doesn't already exist.</param>
+    /// <param name="containerName">Name of the container. The container will be created if it doesn't already exist.</param>
+    /// <param name="partitionKeyPath">Partition Key path used by CosmosDB for indexing.</param>
+    /// <param name="containerProperties">Optional container properties to use when the container is created.</param>
+    public CosmosPagedReader(CosmosClient client, string databaseName, string containerName, string partitionKeyPath, ContainerProperties? containerProperties) :
+        base(client, databaseName, containerName, partitionKeyPath, containerProperties)
+    {
+        _logger = new LoggerFactory().CreateLogger<CosmosPagedReader<T>>();
+    }
+
+    /// <summary>
     /// Returns a paged, strongly typed result from Cosmos DB using Continuation Tokens for forward-only efficiency.
     /// </summary>
     /// <param name="queryDefinition">The <seealso cref="QueryDefinition"/> representing the query to execute.</param>

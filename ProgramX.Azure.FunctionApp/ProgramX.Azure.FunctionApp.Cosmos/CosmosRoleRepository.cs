@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Collections.ObjectModel;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Contract;
@@ -26,12 +27,14 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
             
             CosmosReader<Role> cosmosReader;
             IResult<Role> result;
+            var containerProperties = CreateRolesContainerProperties();
             if (pagedCriteria != null)
             {
                 cosmosReader = new CosmosPagedReader<Role>(cosmosClient,
                     DatabaseNames.Core,
-                    ContainerNames.Users,
-                    ContainerNames.UserNamePartitionKey);
+                    ContainerNames.Roles,
+                    ContainerNames.RoleNamePartitionKey,
+                    containerProperties);
                 result = await ((CosmosPagedReader<Role>)cosmosReader).GetPagedItemsAsync(queryDefinition,
                     pagedCriteria.Offset,
                     pagedCriteria.ItemsPerPage);
@@ -40,8 +43,9 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
             {
                 cosmosReader = new CosmosReader<Role>(cosmosClient,
                     DatabaseNames.Core,
-                    ContainerNames.Users,
-                    ContainerNames.UserNamePartitionKey);
+                    ContainerNames.Roles,
+                    ContainerNames.RoleNamePartitionKey,
+                    containerProperties);
                 result = await cosmosReader.GetItemsAsync(queryDefinition);
             }
 
@@ -82,7 +86,7 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
         }
 
         var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Roles);
-        var response = await container.DeleteItemAsync<UserPassword>(roleName, new PartitionKey(roleName));
+        var response = await container.DeleteItemAsync<Role>(roleName, new PartitionKey(roleName));
 
         if (response.StatusCode != HttpStatusCode.NoContent)
         {
@@ -113,7 +117,7 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
         
         existingRole.Description = description;
         
-        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
+        var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Roles);
         var response = await container.ReplaceItemAsync(existingRole, existingRole.RoleName, new PartitionKey(roleName));
 
         if (response.StatusCode != HttpStatusCode.OK)
@@ -172,25 +176,22 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
         
         if (criteria.AnyOfRoleNames!=null && criteria.AnyOfRoleNames.Any())
         {
-            sb.Append(" AND (");
-
             var conditions = new List<string>();
             var rolesList = criteria.AnyOfRoleNames.ToList();
 
-            for (int i = 0; i < criteria.AnyOfRoleNames.Count(); i++)
+            for (int i = 0; i < rolesList.Count; i++)
             {
-                if (i > 0) conditions.Add(" OR ");
                 conditions.Add($"c.name = @role{i}");
                 parameters.Add(($"@role{i}", rolesList[i]));
             }
 
-            sb.Append(")");
+            sb.Append($" AND ({string.Join(" OR ", conditions)})");
         }
 
         if (!string.IsNullOrWhiteSpace(criteria.ContainingText))
         {
             sb.Append(@" AND (
-                            CONTAINS(UPPER(c.roleName), @containsText) OR 
+                            CONTAINS(UPPER(c.name), @containsText) OR 
                             CONTAINS(UPPER(c.description), @containsText)
                             )");
             parameters.Add(("@containsText", criteria.ContainingText.ToUpperInvariant()));
@@ -206,6 +207,30 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
         
         
         return queryDefinition;
+    }
+
+    private static ContainerProperties CreateRolesContainerProperties()
+    {
+        var containerProperties = new ContainerProperties(ContainerNames.Roles, ContainerNames.RoleNamePartitionKey)
+        {
+            IndexingPolicy = new IndexingPolicy()
+        };
+
+        containerProperties.IndexingPolicy.CompositeIndexes.Add(new Collection<CompositePath>
+        {
+            new()
+            {
+                Path = "/name",
+                Order = CompositePathSortOrder.Ascending
+            },
+            new()
+            {
+                Path = "/id",
+                Order = CompositePathSortOrder.Ascending
+            }
+        });
+
+        return containerProperties;
     }
     
     

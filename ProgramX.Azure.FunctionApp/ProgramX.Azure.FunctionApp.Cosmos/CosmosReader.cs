@@ -15,6 +15,7 @@ public class CosmosReader<T>
     private readonly string _databaseName;
     private readonly string _containerName;
     private readonly string _partitionKeyPath;
+    private readonly ContainerProperties? _containerProperties;
     private readonly ILogger<CosmosReader<T>> _logger;
     
     /// <summary>
@@ -25,11 +26,25 @@ public class CosmosReader<T>
     /// <param name="containerName">Name of the container. The container will be created if it doesn't already exist.</param>
     /// <param name="partitionKeyPath">Partition Key path used by CosmosDB for indexing.</param>
     public CosmosReader(CosmosClient client, string databaseName, string containerName, string partitionKeyPath)
+        : this(client, databaseName, containerName, partitionKeyPath, null)
+    {
+    }
+
+    /// <summary>
+    /// Constructor to initialise the reader.
+    /// </summary>
+    /// <param name="client">CosmosDB client.</param>
+    /// <param name="databaseName">Name of the database. The database will be created if it doesn't already exist.</param>
+    /// <param name="containerName">Name of the container. The container will be created if it doesn't already exist.</param>
+    /// <param name="partitionKeyPath">Partition Key path used by CosmosDB for indexing.</param>
+    /// <param name="containerProperties">Optional container properties to use when the container is created.</param>
+    public CosmosReader(CosmosClient client, string databaseName, string containerName, string partitionKeyPath, ContainerProperties? containerProperties)
     {
         _client = client;
         _databaseName = databaseName;
         _containerName = containerName;
         _partitionKeyPath = partitionKeyPath;
+        _containerProperties = containerProperties;
         if (!_partitionKeyPath.StartsWith("/")) _partitionKeyPath = "/" + _partitionKeyPath;
         _logger = new LoggerFactory().CreateLogger<CosmosReader<T>>();
     }
@@ -73,7 +88,13 @@ public class CosmosReader<T>
     {
         var databaseResponse = await _client.CreateDatabaseIfNotExistsAsync(_databaseName,ThroughputProperties.CreateManualThroughput(400),new RequestOptions(),CancellationToken.None);
         if (databaseResponse.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Database {_databaseName} created",[_databaseName]);
-        var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(_containerName, _partitionKeyPath,null,new RequestOptions(),CancellationToken.None);
+        var containerResponse = _containerProperties != null
+            ? await databaseResponse.Database.CreateContainerIfNotExistsAsync(
+                _containerProperties,
+                ThroughputProperties.CreateManualThroughput(400),
+                new RequestOptions(),
+                CancellationToken.None)
+            : await databaseResponse.Database.CreateContainerIfNotExistsAsync(_containerName, _partitionKeyPath,null,new RequestOptions(),CancellationToken.None);
         if (containerResponse.StatusCode==HttpStatusCode.Created) _logger.LogInformation("Container {containerName} created",[_containerName,_partitionKeyPath]);
         return containerResponse.Container;
     }
