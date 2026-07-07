@@ -3,6 +3,7 @@
 1. [Architecture](./Architecture.md)
 2. [Development principles](./Development-principles.md)
 3. [Authentication](./Authentication.md)
+4. [File Storage](./File-Storage.md)
 
 ## Introduction
 
