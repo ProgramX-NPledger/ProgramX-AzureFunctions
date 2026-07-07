@@ -169,7 +169,7 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
 
     private QueryDefinition BuildQueryDefinitionForGetRoles(GetRolesCriteria criteria)
     {
-        var sb = new StringBuilder(@"SELECT c.id, c.name, c.description, c.type, c.schemaVersionNumber, c.createdAt, c.updatedAt 
+        var sb = new StringBuilder(@"SELECT c.id, c.roleName, c.description, c.type, c.schemaVersionNumber, c.createdAt, c.updatedAt 
                                    FROM c 
                                    WHERE 1=1");
         var parameters = new List<(string name, object value)>();
@@ -181,7 +181,7 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
 
             for (int i = 0; i < rolesList.Count; i++)
             {
-                conditions.Add($"c.name = @role{i}");
+                conditions.Add($"c.roleName = @role{i}");
                 parameters.Add(($"@role{i}", rolesList[i]));
             }
 
