@@ -14,14 +14,6 @@ public class AzureStorageClient(BlobServiceClient blobServiceClient) : IStorageC
         return new AzureBlobContainerClient(avatarImagesBlockContainerClient);
     }
 
-    public string GetBlobName(BlobNames blobName)
-    {
-        switch (blobName)
-        {
-            case BlobNames.AvatarImages:
-                return Constants.BlobConstants.AvatarImagesBlobName;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(blobName), blobName, "Blob name not recognized");
-        }
-    }
+
+   
 }
