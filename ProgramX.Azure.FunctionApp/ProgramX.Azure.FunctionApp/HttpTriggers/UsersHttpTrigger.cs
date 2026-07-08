@@ -233,7 +233,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
 
     [Function(nameof(UpdateUser))]
     public async Task<HttpResponseData> UpdateUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "users/{userName}/profile")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "users/{userName}")]
         HttpRequestData httpRequestData,
         string userName)
     {

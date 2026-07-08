@@ -180,7 +180,7 @@ Where:
 
 ## Updating a User
 
-Updating a User is performed using the `PUT api/v1/users/{user-name}/profile` endpoint.
+Updating a User is performed using the `PUT api/v1/users/{user-name}` endpoint.
 
 The User to update is identified by the `{user-name}` parameter.
 
