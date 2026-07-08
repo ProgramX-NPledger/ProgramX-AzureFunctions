@@ -36,7 +36,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(GetRole))]
     public async Task<HttpResponseData> GetRole(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "role/{roleName?}")] HttpRequestData httpRequestData,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "roles/{roleName?}")] HttpRequestData httpRequestData,
         string? roleName)
     {
          return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
@@ -147,7 +147,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     /// <response code="401">Unauthorized.</response>
     [Function(nameof(CreateRole))]
     public async Task<HttpResponseData> CreateRole(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "role")] HttpRequestData httpRequestData
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "roles")] HttpRequestData httpRequestData
     )
     {
         return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
@@ -208,7 +208,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(UpdateRole))]
     public async Task<HttpResponseData> UpdateRole(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "role/{roleName}")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "roles/{roleName}")]
         HttpRequestData httpRequestData,
         string roleName)
     {
@@ -302,7 +302,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(DeleteRole))]
     public async Task<HttpResponseData> DeleteRole(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "role/{roleName}")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "roles/{roleName}")]
         HttpRequestData httpRequestData,
         string roleName)
     {
