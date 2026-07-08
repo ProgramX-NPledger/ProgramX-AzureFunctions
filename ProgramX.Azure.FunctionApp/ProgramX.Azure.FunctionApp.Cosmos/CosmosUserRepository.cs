@@ -126,7 +126,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         existingUser.Roles = roles.ToList();
         
         var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
-        var response = await container.ReplaceItemAsync(existingUser, existingUser.UserName, new PartitionKey(userName));
+        var response = await container.ReplaceItemAsync(existingUser, existingUser.Id, new PartitionKey(userName));
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
