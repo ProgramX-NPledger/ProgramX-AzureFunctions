@@ -9,4 +9,7 @@ public class RoleDto
     
     [JsonPropertyName("description")]
     public string? Description { get; set; }
+
+    [JsonPropertyName("usedInApplications")]
+    public IEnumerable<string>? UsedInApplications { get; set; }
 }

@@ -21,16 +21,20 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
     private readonly ILogger<RolesHttpTrigger> _logger;
     private readonly IRoleRepository _roleRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IApplicationProvider _applicationProvider;
 
 
     public RolesHttpTrigger(ILogger<RolesHttpTrigger> logger,
         IConfiguration configuration,
         IRoleRepository roleRepository,
-        IUserRepository userRepository) : base(configuration,logger)
+        IUserRepository userRepository,
+        IApplicationProvider applicationProvider
+        ) : base(configuration,logger)
     {
         _logger = logger;
         _roleRepository = roleRepository;
         _userRepository = userRepository;
+        _applicationProvider = applicationProvider;
     }
  
     
@@ -71,7 +75,10 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                         ItemsPerPage = itemsPerPage,
                         Offset = offset
                     };
-                    // TODO filter by usedInApplications
+                    
+                    var allApplications = _applicationProvider.GetAllApplications(new GetAllApplicationsCriteria())
+                        .Select(q => q.GetApplicationMetaData());
+                    
                     // TODO filter by usersInRole
 
                     _logger.LogInformation("Retrieving roles with criteria {criteria} paged by {pagedCriteria}", criteria, pagedCriteria);
@@ -90,12 +97,17 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                         offset,
                         itemsPerPage);
                     _logger.LogInformation("Calculated page urls {pageUrls}", pageUrls);
-
-                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role,RoleDto>((IPagedResult<Role>)roles, pageUrls, r => new RoleDto()
-                    {
-                        RoleName = r.RoleName,
-                        Description = r.Description
-                    }));
+                    
+                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<Role,RoleDto>((IPagedResult<Role>)roles,pageUrls,
+                        (role) =>
+                            new RoleDto()
+                            {
+                                RoleName = role.RoleName,
+                                Description = role.Description,
+                                UsedInApplications = allApplications.Where(a => a.RequiresRoleNames.Any(r => r == role.RoleName)).Select(a => a.Name)
+                            }
+                    ));
+                    
                 }
             }
             else
@@ -114,6 +126,10 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 
                     _logger.LogInformation("Retrieved role {role}", roles.Items.First());
 
+                    var applicationsWithRole = _applicationProvider.GetAllApplications(new GetAllApplicationsCriteria()
+                    {
+                        HasAnyOfRoles = [roleName]
+                    }).Select(q => q.GetApplicationMetaData());
                     var usersInRole = await _userRepository.GetUsersAsync(new GetUsersCriteria()
                     {
                         WithRoles = [roleName]
@@ -124,7 +140,8 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                         Role = new RoleDto()
                         {
                             RoleName = roles.Items.First().RoleName,
-                            Description = roles.Items.First().Description
+                            Description = roles.Items.First().Description,
+                            UsedInApplications = applicationsWithRole.Select(a => a.Name)
                         },
                         ApplicationsWithRole = [], // TODO: get applications
                         UsersInRole = usersInRole.Items.Select(q => q.UserName)
