@@ -87,21 +87,6 @@ public class CosmosUserRepositoryTests : CosmosTestBase
         Assert.That(result.IsRequiredToBeOrderedByClient, Is.False);
     }
 
-    [Test]
-    public void GetUsersInRole_ShouldReturnMatchingUsers()
-    {
-        var users = base.CreateTestUsers(5).ToList();
-        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<User>(users);
-        var mockCosmosClient = mockCosmosClientFactory.Create();
-
-        var mockLogger = new Mock<ILogger<CosmosUserRepository>>();
-
-        var target = new CosmosUserRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
-        var result = target.GetUsersInRole("role 1", users);
-
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Not.Empty);
-    }
 
     [Test]
     public async Task GetUserByIdAsync_WithExistingId_ShouldReturnUser()

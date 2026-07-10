@@ -51,12 +51,6 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     }
 
 
-    /// <inheritdoc />
-    public IEnumerable<User> GetUsersInRole(string roleName, IEnumerable<User> users)
-    {
-        // TODO return all users with role name in roles
-        return Enumerable.Empty<User>();
-    }
 
     /// <inheritdoc />
     public async Task<User?> GetUserByIdAsync(string id)

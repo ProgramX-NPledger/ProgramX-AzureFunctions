@@ -19,14 +19,6 @@ public interface IUserRepository
     /// <remarks>The return type is of <see cref="User"/>, which is a subset of <see cref="User"/>, excluding
     /// security data.</remarks>  
     Task<IResult<User>> GetUsersAsync(GetUsersCriteria criteria, PagedCriteria? pagedCriteria = null);
-    
-    /// <summary>
-    /// Given a role name and a list of users, returns the users that are in that role.
-    /// </summary>
-    /// <param name="roleName">Name of the Role.</param>
-    /// <param name="users">A list of Users to verify membership/</param>
-    /// <returns>Matching items.</returns>
-    IEnumerable<User> GetUsersInRole(string roleName, IEnumerable<User> users);
 
     /// <summary>
     /// Gets a User by their unique ID.
