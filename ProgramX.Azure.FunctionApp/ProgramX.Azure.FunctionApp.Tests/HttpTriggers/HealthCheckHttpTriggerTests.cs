@@ -103,6 +103,7 @@ public class HealthCheckHttpTriggerTests
             .Build();
         
         var knownType = "test";
+        
         // Act
         var result = await healthCheckHttpTrigger.GetHealthCheck(testableHttpRequestData, knownType);
         

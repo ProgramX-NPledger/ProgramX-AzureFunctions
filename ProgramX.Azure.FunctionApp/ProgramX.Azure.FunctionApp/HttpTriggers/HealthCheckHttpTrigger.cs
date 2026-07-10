@@ -8,6 +8,7 @@ using ProgramX.Azure.FunctionApp.AzureCommunications;
 using ProgramX.Azure.FunctionApp.AzureStorage;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Cosmos;
+using ProgramX.Azure.FunctionApp.HealthChecks.Services;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Responses;
@@ -135,6 +136,7 @@ public class HealthCheckHttpTrigger : AuthorisedHttpTriggerBase
             case "azure-storage": return new AzureStorageServiceHealthCheck(_loggerFactory);
             case "azure-cosmos-db": return new CosmosServiceHealthCheck(_loggerFactory);
             case "azure-email-communication-services": return new AzureCommunicationsServiceHealthCheck(_loggerFactory);
+            case "test": return new TestServiceHealthCheck(); // for unit tests
             default: return null;
         }
     }
