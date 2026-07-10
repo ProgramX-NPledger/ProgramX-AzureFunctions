@@ -43,8 +43,9 @@ public interface IRoleRepository
     /// </summary>
     /// <returns>The updated Role.</returns>
     /// <param name="roleName">Thename of the Role to update.</param>
-    /// <param name="description">The description of the Role to update.</param>   
-    Task<Role> UpdateRoleAsync(string roleName, string? description);
+    /// <param name="description">The description of the Role to update.</param>
+    /// <param name="usersInRole">If specified, the users to add or remove from the role.</param>
+    Task<Role> UpdateRoleAsync(string roleName, string? description, IEnumerable<string>? usersInRole);
 
 
 }

@@ -17,6 +17,6 @@ public class UpdateRoleRequest
     /// If set, contains usernames in the role. If <c>null</c> no changes to users are made.
     /// </summary>
     [JsonPropertyName("usersInRole")]
-    public string[]? usersInRole { get; set; }
+    public string[]? UsersInRole { get; set; }
     
 }

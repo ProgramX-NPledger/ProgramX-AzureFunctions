@@ -245,7 +245,7 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 
                 try
                 {
-                    await _roleRepository.UpdateRoleAsync(roleName, updateRoleRequest.Description);
+                    await _roleRepository.UpdateRoleAsync(roleName, updateRoleRequest.Description, updateRoleRequest.UsersInRole);
                 }
                 catch (ItemNotFoundException)
                 {
@@ -261,50 +261,6 @@ public class RolesHttpTrigger : AuthorisedHttpTriggerBase
                 {
                     _logger.LogError("Failed to update role {roleName}", roleName);
                     return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Failed to update Role");           
-                }
-
-                if (updateRoleRequest.usersInRole != null)
-                {
-                    var usersWithRole = await _userRepository.GetUsersAsync(new GetUsersCriteria()
-                    {
-                        WithRoles = [roleName]
-                    });
-                    var usersToAdd = updateRoleRequest.usersInRole.Except(usersWithRole.Items.Select(q => q.UserName));
-                    var usersToRemove = usersWithRole.Items.Select(q => q.UserName).Except(updateRoleRequest.usersInRole);
-                    
-                    List<string> failedToAddUsers = new List<string>();
-                    List<string> failedToRemoveUsers = new List<string>();
-                    foreach (var user in usersToAdd)
-                    {
-                        try
-                        {
-                            await _userRepository.AddRoleToUserAsync(roleName, user);
-                        }
-                        catch (RepositoryException e)
-                        {
-                            _logger.LogError(e, "Failed to add User {user} to Role {role}", user, roleName);
-                            failedToAddUsers.Add(user);
-                        }
-                    }
-                    foreach (var user in usersToRemove)
-                    {
-                        try
-                        {
-                            await _userRepository.AddRoleToUserAsync(roleName, user);
-                        }
-                        catch (RepositoryException e)
-                        {
-                            _logger.LogError(e, "Failed to remove User {user} from Role {role}", user, roleName);
-                            failedToAddUsers.Add(user);
-                        }
-                    }
-                    if (failedToAddUsers.Any() || failedToRemoveUsers.Any())
-                    {
-                        if (failedToAddUsers.Any()) _logger.LogError("Failed to add {usersCount} Users to Role {role}", failedToAddUsers.Count, roleName);
-                        if (failedToRemoveUsers.Any()) _logger.LogError("Failed to remove {usersCount} Users from Role {role}", failedToRemoveUsers.Count, roleName);
-                        return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,
-                            "One or more Users were not added to or removed from the Role");
-                    }
                 }
                 
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateRoleResponse()
