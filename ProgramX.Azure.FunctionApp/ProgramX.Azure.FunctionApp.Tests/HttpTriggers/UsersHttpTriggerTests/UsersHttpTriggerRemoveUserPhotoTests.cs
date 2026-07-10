@@ -1,185 +1,168 @@
-using System.Collections.Specialized;
 using System.Net;
-using System.Text;
 using FluentAssertions;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Functions.Worker.Http;
 using Moq;
-using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
+using ProgramX.Azure.FunctionApp.Model.Exceptions;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
-using ProgramX.Azure.FunctionApp.Tests.TestData;
-using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 
 [Category("Unit")]
 [Category("HttpTrigger")]
 [Category("UsersHttpTrigger")]
-[Category("UpdateUserPhoto")]
+[Category("UpdateUserSettings")]
 [TestFixture]
-public class UsersHttpTriggerRemoveUserPhotoTests : TestBase
+public class UsersHttpTriggerUpdateUserSettingsTests
 {
-    [SetUp]
-    public override void SetUp()
-    {
-        base.SetUp();
-
-    }
-    
-    
     [Test]
-    public async Task RemoveUserPhoto_WithNonExistentId_ShouldReturnNotFound()
+    public async Task UpdateUserSettings_WithValidRequest_ShouldReturnOk()
     {
         // Arrange
-        const string userId = "test-user-123";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-            .WithAuthentication()
-            .Returns(HttpStatusCode.NotFound)
-            .Build();
+        const string userName = "testuser";
+        var updateSettingsRequest = new UpdateUserSettingsRequest { Theme = "dark" };
 
-        var mockedCosmosDbClientFactory =
-            new MockedCosmosDbClientFactory<UserPassword>(new List<UserPassword>());
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
-        var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
-            .Build();
-        
-        // Act
-        var result = await usersHttpTrigger.RemoveUserPhoto(testableHttpRequestData, userId);
-        
-        // Assert
-        result.Should().NotBeNull();
-        result.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        
-    }
-    
-    
-    [Test]
-    public async Task RemoveUserPhoto_WithValidId_ShouldReturnSuccess()
-    {
-        // Arrange
-        const string userId = "test-user-123";
-        var existingUser = new User
-        {
-            Id = userId,
-            UserName = userId,
-            emailAddress = "old@emailAddress.com",
-            Roles = new List<Role>(),
-            ProfilePhotographOriginal = "somefile.png",
-            ProfilePhotographSmall = "somesmallfile.png",
-        };
-    
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
+            .WithPayload(updateSettingsRequest)
             .Returns(HttpStatusCode.OK)
             .Build();
-        
-        
+
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithStorageClient(mockStorageClient =>
-            {
-                var mockStorageFolder = new Mock<IStorageFolder>();
-                mockStorageFolder.Setup(x => x.DeleteFileAsync(It.IsAny<string>()));
-                mockStorageClient.Setup(x => x.GetStorageFolderAsync(It.IsAny<string>()))
-                    .ReturnsAsync(mockStorageFolder.Object);
-            })
             .WithIUserRepository(mockUserRepository =>
             {
-                mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
-                    .ReturnsAsync(existingUser);
-                mockUserRepository.Setup(x => x.UpdateUserAsync(It.IsAny<User>()));
+                mockUserRepository
+                    .Setup(x => x.UpdateUserSettingsAsync(It.IsAny<string>(), It.IsAny<string?>()))
+                    .ReturnsAsync(new User { Id = "1", UserName = "testuser", EmailAddress = "test@example.com", Roles = [] });
             })
             .Build();
-        
+
         // Act
-        var result = await usersHttpTrigger.RemoveUserPhoto(testableHttpRequestData, userId);
-        
+        var result = await usersHttpTrigger.UpdateUserSettings(testableHttpRequestData, userName);
+
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
-        
-        // Verify the response contains user and applications
-        var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().NotBeNull();
-        responseBody.Should().Contain("true");
     }
-    
-    
+
     [Test]
-    public async Task RemoveUserPhoto_WithoutAuthentication_ShouldReturnBadRequest()
+    public async Task UpdateUserSettings_WithNullBody_ShouldReturnBadRequest()
     {
         // Arrange
-        const string userId = "test-user-123";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .WithAuthentication()
+            .WithBody("null")
             .Returns(HttpStatusCode.BadRequest)
             .Build();
-        
-        var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
-            .Build();
-        
+
+        var usersHttpTrigger = new UsersHttpTriggerBuilder().Build();
+
         // Act
-        var result = await usersHttpTrigger.RemoveUserPhoto(testableHttpRequestData, userId);
-        
+        var result = await usersHttpTrigger.UpdateUserSettings(testableHttpRequestData, "testuser");
+
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        
     }
-    
-    
-    
+
     [Test]
-    public async Task RemoveUserPhoto_WithInvalidAuthentication_ShouldReturnUnauthorized()
+    public async Task UpdateUserSettings_WhenUserNotFound_ShouldReturnNotFound()
     {
         // Arrange
-        const string userId = "test-user-123";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var updateSettingsRequest = new UpdateUserSettingsRequest { Theme = "dark" };
+
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .WithAuthentication()
+            .WithPayload(updateSettingsRequest)
+            .Returns(HttpStatusCode.NotFound)
+            .Build();
+
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository
+                    .Setup(x => x.UpdateUserSettingsAsync(It.IsAny<string>(), It.IsAny<string?>()))
+                    .ThrowsAsync(new ItemNotFoundException());
+            })
+            .Build();
+
+        // Act
+        var result = await usersHttpTrigger.UpdateUserSettings(testableHttpRequestData, "non-existent");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task UpdateUserSettings_WhenUpdateFails_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var updateSettingsRequest = new UpdateUserSettingsRequest { Theme = "dark" };
+
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .WithAuthentication()
+            .WithPayload(updateSettingsRequest)
+            .Returns(HttpStatusCode.BadRequest)
+            .Build();
+
+        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository
+                    .Setup(x => x.UpdateUserSettingsAsync(It.IsAny<string>(), It.IsAny<string?>()))
+                    .ThrowsAsync(new ItemUpdateException());
+            })
+            .Build();
+
+        // Act
+        var result = await usersHttpTrigger.UpdateUserSettings(testableHttpRequestData, "testuser");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task UpdateUserSettings_WithoutAuthentication_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var updateSettingsRequest = new UpdateUserSettingsRequest { Theme = "dark" };
+
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .WithPayload(updateSettingsRequest)
+            .Returns(HttpStatusCode.BadRequest)
+            .Build();
+
+        var usersHttpTrigger = new UsersHttpTriggerBuilder().Build();
+
+        // Act
+        var result = await usersHttpTrigger.UpdateUserSettings(testableHttpRequestData, "testuser");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task UpdateUserSettings_WithInvalidAuthentication_ShouldReturnUnauthorized()
+    {
+        // Arrange
+        var updateSettingsRequest = new UpdateUserSettingsRequest { Theme = "dark" };
+
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithInvalidAuthentication()
+            .WithPayload(updateSettingsRequest)
             .Returns(HttpStatusCode.Unauthorized)
             .Build();
-        
-        var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithConfiguration(Configuration)
-            .Build();
-        
+
+        var usersHttpTrigger = new UsersHttpTriggerBuilder().Build();
+
         // Act
-        var result = await usersHttpTrigger.RemoveUserPhoto(testableHttpRequestData, userId);
-        
+        var result = await usersHttpTrigger.UpdateUserSettings(testableHttpRequestData, "testuser");
+
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-    
-    
-    private async Task<string> GetResponseBodyAsync(HttpResponseData response)
-    {
-        response.Body.Position = 0;
-        using var reader = new StreamReader(response.Body);
-        return await reader.ReadToEndAsync();
-    }
-    
-    
-    #region Helper Methods
-
-
-    private ItemResponse<T> CreateMockItemResponse<T>(HttpStatusCode statusCode)
-    {
-        var mockResponse = new Mock<ItemResponse<T>>();
-        mockResponse.Setup(x => x.StatusCode).Returns(statusCode);
-        return mockResponse.Object;
-    }
-
-    #endregion
 }

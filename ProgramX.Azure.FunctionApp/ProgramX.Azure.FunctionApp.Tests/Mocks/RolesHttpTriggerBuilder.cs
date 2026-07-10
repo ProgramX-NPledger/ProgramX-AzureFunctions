@@ -3,21 +3,37 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.HttpTriggers;
+using ProgramX.Azure.FunctionApp.Model;
+using ProgramX.Azure.FunctionApp.Model.Criteria;
 
 namespace ProgramX.Azure.FunctionApp.Tests.Mocks;
 
 public class RolesHttpTriggerBuilder
 {
     private Mock<ILogger<RolesHttpTrigger>>? _mockedLogger;
+    private Mock<IRoleRepository>? _mockedRoleRepository;
     private Mock<IUserRepository>? _mockedUserRepository;
+    private Mock<IApplicationProvider>? _mockedApplicationProvider;
     private IConfiguration? _configuration;
 
-    public RolesHttpTriggerBuilder WithIUserRepository(Action<Mock<IUserRepository>>? mockUserRepository)
+    public RolesHttpTriggerBuilder WithIRoleRepository(Action<Mock<IRoleRepository>>? configure)
     {
-        _mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
-        
-        if (mockUserRepository!=null) mockUserRepository(_mockedUserRepository!);
-        
+        _mockedRoleRepository = new Mock<IRoleRepository>();
+        configure?.Invoke(_mockedRoleRepository);
+        return this;
+    }
+
+    public RolesHttpTriggerBuilder WithIUserRepository(Action<Mock<IUserRepository>>? configure)
+    {
+        _mockedUserRepository = new Mock<IUserRepository>();
+        configure?.Invoke(_mockedUserRepository);
+        return this;
+    }
+
+    public RolesHttpTriggerBuilder WithIApplicationProvider(Action<Mock<IApplicationProvider>>? configure)
+    {
+        _mockedApplicationProvider = new Mock<IApplicationProvider>();
+        configure?.Invoke(_mockedApplicationProvider);
         return this;
     }
 
@@ -26,38 +42,52 @@ public class RolesHttpTriggerBuilder
         _mockedLogger = mockLogger;
         return this;
     }
-    
+
     public RolesHttpTriggerBuilder WithConfiguration(IConfiguration configuration)
     {
         _configuration = configuration;
         return this;
     }
-    
-
 
     public RolesHttpTrigger Build()
     {
         CreateDefaultMocksWhereNotSet();
-        
-        if (_mockedLogger == null ||_mockedUserRepository==null || _configuration == null)
-        {
-            throw new InvalidOperationException("All dependencies must be set before building");
-        }
 
         return new RolesHttpTrigger(
-            _mockedLogger.Object,
-            _configuration,
-            _mockedUserRepository.Object);
+            _mockedLogger!.Object,
+            _configuration!,
+            _mockedRoleRepository!.Object,
+            _mockedUserRepository!.Object,
+            _mockedApplicationProvider!.Object);
     }
 
     private void CreateDefaultMocksWhereNotSet()
     {
-        if (_mockedUserRepository == null)
+        if (_mockedRoleRepository == null)
         {
-            WithIUserRepository(null);
+            _mockedRoleRepository = new Mock<IRoleRepository>();
+            var emptyRolesResult = new Mock<IResult<Role>>();
+            emptyRolesResult.SetupGet(x => x.Items).Returns([]);
+            _mockedRoleRepository.Setup(x => x.GetRolesAsync(It.IsAny<GetRolesCriteria>(), It.IsAny<PagedCriteria>()))
+                .ReturnsAsync(emptyRolesResult.Object);
         }
 
-        // Mock for IStorageClient must be explicitly prepared
+        if (_mockedUserRepository == null)
+        {
+            _mockedUserRepository = new Mock<IUserRepository>();
+            var emptyUsersResult = new Mock<IResult<User>>();
+            emptyUsersResult.SetupGet(x => x.Items).Returns([]);
+            _mockedUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(), It.IsAny<PagedCriteria>()))
+                .ReturnsAsync(emptyUsersResult.Object);
+        }
+
+        if (_mockedApplicationProvider == null)
+        {
+            _mockedApplicationProvider = new Mock<IApplicationProvider>();
+            _mockedApplicationProvider
+                .Setup(x => x.GetAllApplications(It.IsAny<GetAllApplicationsCriteria>()))
+                .Returns([]);
+        }
 
         if (_configuration == null)
         {
@@ -65,11 +95,10 @@ public class RolesHttpTriggerBuilder
                 .AddJsonFile("appsettings.test.json")
                 .Build();
         }
-        
+
         if (_mockedLogger == null)
         {
             _mockedLogger = new Mock<ILogger<RolesHttpTrigger>>();
         }
-        
     }
 }

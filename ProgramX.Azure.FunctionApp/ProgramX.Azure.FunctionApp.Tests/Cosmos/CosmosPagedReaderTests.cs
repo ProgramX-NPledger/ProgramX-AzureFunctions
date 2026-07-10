@@ -229,18 +229,17 @@ public class CosmosPagedReaderTests : CosmosTestBase
         List<User> users = new();
         for (int i = 1; i <= numberOfItems; i++)
         {
-            users.Add(new User()
+            users.Add(new User
             {
                 Id = Guid.NewGuid().ToString(),
                 UserName = $"user{i}",
-                emailAddress = $"",
+                EmailAddress = $"user{i}@example.com",
                 CreatedAt = DateTime.UtcNow,
                 FirstName = $"First Name {i}",
                 LastLoginAt = DateTime.UtcNow,
                 LastName = $"Last Name {i}",
                 UpdatedAt = DateTime.UtcNow,
-                Roles = new List<Role>()
-                
+                Roles = []
             });
         }
 

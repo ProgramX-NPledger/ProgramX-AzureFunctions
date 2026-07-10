@@ -1,10 +1,8 @@
 using System.Net;
 using FluentAssertions;
-using Microsoft.Azure.Cosmos;
 using Moq;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
-using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 
@@ -16,36 +14,30 @@ namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 public class UsersHttpTriggerDeleteUserTests
 {
     [Test]
-    public async Task DeleteUser_WhenUserExists_ShouldDeleteSuccessfully()
+    public async Task DeleteUser_WhenUserExists_ShouldReturnNoContent()
     {
         // Arrange
-        const string userId = "test-user-id";
+        const string userName = "testuser";
 
-        var existingUser = new User
-        {
-            Id = userId,
-            UserName = "testuser",
-            emailAddress = "test@example.com",
-            Roles = new List<Role>()
-        };
-
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
             .Returns(HttpStatusCode.NoContent)
             .Build();
-        
+
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
-                    .ReturnsAsync(existingUser);
-                mockUserRepository.Setup(x => x.DeleteUserByIdAsync(It.IsAny<string>()));
+                mockUserRepository
+                    .Setup(x => x.GetUserByUserNameAsync(It.IsAny<string>()))
+                    .ReturnsAsync(new User { Id = "1", UserName = userName, EmailAddress = "test@example.com", Roles = [] });
+                mockUserRepository
+                    .Setup(x => x.DeleteUserByIdAsync(It.IsAny<string>()))
+                    .Returns(Task.CompletedTask);
             })
             .Build();
 
         // Act
-        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, userId);
+        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, userName);
 
         // Assert
         result.Should().NotBeNull();
@@ -56,22 +48,22 @@ public class UsersHttpTriggerDeleteUserTests
     public async Task DeleteUser_WhenUserDoesNotExist_ShouldReturnNotFound()
     {
         // Arrange
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
             .Returns(HttpStatusCode.NotFound)
             .Build();
-        
+
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
-                .WithIUserRepository(mockUserRepository =>
-                {
-                    mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
-                        .ReturnsAsync((User)null!);
-                })
-                .Build();
+            .WithIUserRepository(mockUserRepository =>
+            {
+                mockUserRepository
+                    .Setup(x => x.GetUserByUserNameAsync(It.IsAny<string>()))
+                    .ReturnsAsync((User?)null);
+            })
+            .Build();
 
         // Act
-        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, "does not exist");
+        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, "does-not-exist");
 
         // Assert
         result.Should().NotBeNull();
@@ -79,61 +71,39 @@ public class UsersHttpTriggerDeleteUserTests
     }
 
     [Test]
-    public async Task DeleteUser_WithoutAuthentication_ShouldReturnUnauthorized()
+    public async Task DeleteUser_WithoutAuthentication_ShouldReturnBadRequest()
     {
         // Arrange
-        const string userId = "test-user-id";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-            .Returns(HttpStatusCode.Unauthorized)
-            .Build();        
-        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<UserPassword>(new List<UserPassword>());
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
-        var usersHttpTrigger = new UsersHttpTriggerBuilder()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .Returns(HttpStatusCode.NoContent)
             .Build();
 
+        var usersHttpTrigger = new UsersHttpTriggerBuilder().Build();
+
         // Act
-        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, userId);
+        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, "testuser");
 
         // Assert
         result.Should().NotBeNull();
-        // no header is added so it is a bad request
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        
-        mockedCosmosDbClient.MockedContainer.Verify(x => x.DeleteItemAsync<UserPassword>(It.IsAny<string>(), new PartitionKey(It.IsAny<string>()), null, CancellationToken.None), Times.Never);
     }
-    
-    
+
     [Test]
     public async Task DeleteUser_WithInvalidAuthentication_ShouldReturnUnauthorized()
     {
         // Arrange
-        const string userId = "test-user-id";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithInvalidAuthentication()
             .Returns(HttpStatusCode.Unauthorized)
-            .Build();        
-        var mockedCosmosDbClientFactory = new MockedCosmosDbClientFactory<UserPassword>(new List<UserPassword>());
-        
-        var mockedCosmosDbClient = mockedCosmosDbClientFactory.Create();
-        
-        var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .Build();
 
+        var usersHttpTrigger = new UsersHttpTriggerBuilder().Build();
+
         // Act
-        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, userId);
+        var result = await usersHttpTrigger.DeleteUser(testableHttpRequestData, "testuser");
 
         // Assert
         result.Should().NotBeNull();
-        // no header is added so it is a bad request
         result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        
-        mockedCosmosDbClient.MockedContainer.Verify(x => x.DeleteItemAsync<UserPassword>(It.IsAny<string>(), new PartitionKey(It.IsAny<string>()), null, CancellationToken.None), Times.Never);
     }
-
 }

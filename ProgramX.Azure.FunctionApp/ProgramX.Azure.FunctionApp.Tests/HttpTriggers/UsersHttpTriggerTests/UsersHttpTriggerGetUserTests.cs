@@ -1,15 +1,12 @@
 using System.Collections.Specialized;
 using System.Net;
 using FluentAssertions;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker.Http;
 using Moq;
 using ProgramX.Azure.FunctionApp.Contract;
-using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
-using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 
@@ -21,375 +18,228 @@ namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 public class UsersHttpTriggerGetUserTests
 {
     [Test]
-    public async Task GetUser_WithValidId_ShouldReturnUserWithApplications()
+    public async Task GetUser_WithValidUserName_ShouldReturnUser()
     {
         // Arrange
-        const string userId = "test-user-123";
-        var adminRole = new Role
-        {
-            name = "Admin",
-            applications = new List<Application>
-            {
-                new Application { name = "Dashboard"           
-                },
-                new Application { name = "Reports"
-                }
-            }
-        };
+        const string userName = "testuser";
 
-        var expectedUser = new User
-        {
-            Id = userId,
-            UserName = "testuser",
-            emailAddress = "test@example.com",
-            FirstName = "Test",
-            LastName = "User",
-            Roles = new List<Role> { adminRole },
-        };
-
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
-            .Returns(HttpStatusCode.NoContent)
+            .Returns(HttpStatusCode.OK)
             .Build();
-        
+
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
-                    .ReturnsAsync(expectedUser);
+                mockUserRepository
+                    .Setup(x => x.GetUserByUserNameAsync(It.IsAny<string>()))
+                    .ReturnsAsync(new User
+                    {
+                        Id = "1",
+                        UserName = userName,
+                        EmailAddress = "test@example.com",
+                        FirstName = "Test",
+                        LastName = "User",
+                        Roles = [userName]
+                    });
             })
             .Build();
-        
+
         // Act
-        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, userName);
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Verify the response contains user and applications
-        var responseBody = await TestHelpers.HttpBodyUtilities.GetResponseBodyAsync(result);
-        responseBody.Should().Contain("testuser");
-        responseBody.Should().Contain("Dashboard");
-        responseBody.Should().Contain("Reports");
+        result.Body.Position = 0;
+        using var reader = new StreamReader(result.Body);
+        var body = await reader.ReadToEndAsync();
+        body.Should().Contain(userName);
     }
-    
+
     [Test]
-    public async Task GetUser_WithNonExistentId_ShouldReturnNotFound()
+    public async Task GetUser_WithNonExistentUserName_ShouldReturnNotFound()
     {
         // Arrange
-        const string userId = "non-existent-user";
+        const string userName = "non-existent";
 
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
-            .Returns(HttpStatusCode.NoContent)
+            .Returns(HttpStatusCode.NotFound)
             .Build();
-        
+
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
-                mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
-                    .ReturnsAsync(null as User);
+                mockUserRepository
+                    .Setup(x => x.GetUserByUserNameAsync(It.IsAny<string>()))
+                    .ReturnsAsync((User?)null);
             })
-            .Build();        
+            .Build();
+
         // Act
-        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
-    
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, userName);
+
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
-    
+
     [Test]
-    public async Task GetUser_WithoutAuthentication_ShouldReturnUnauthorized()
+    public async Task GetUser_WithoutAuthentication_ShouldReturnBadRequest()
     {
         // Arrange
-        const string userId = "test-user-123";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-            .Returns(HttpStatusCode.NoContent)
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .Returns(HttpStatusCode.OK)
             .Build();
-        
-        var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .Build();        
+
+        var usersHttpTrigger = new UsersHttpTriggerBuilder().Build();
+
         // Act
-        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, "some-user");
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
-    
-    
+
     [Test]
     public async Task GetUser_WithInvalidAuthentication_ShouldReturnUnauthorized()
     {
         // Arrange
-        const string userId = "test-user-123";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithInvalidAuthentication()
-            .Returns(HttpStatusCode.NoContent)
+            .Returns(HttpStatusCode.OK)
             .Build();
-        
-        var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .Build();        
+
+        var usersHttpTrigger = new UsersHttpTriggerBuilder().Build();
+
         // Act
-        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, userId);
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, "some-user");
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-    
-    
-    
+
     [Test]
     public async Task GetUser_WithoutId_ShouldReturnPagedUsers()
     {
         // Arrange
-        var users = new List<User>
-        {
-            new User
-            {
-                Id = "user1",
-                emailAddress = "user1@example.com",
-                UserName = "user1",
-                Roles = new List<Role>()
-            },
-            new User
-            {
-                Id = "user2",
-                emailAddress = "user2@example.com",
-                UserName = "user2",
-                Roles = new List<Role>()
-            }
-        };
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
             .Build();
-        
+
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
                 var mockResult = new Mock<IPagedResult<User>>();
-                mockResult.Setup(x => x.Items).Returns(users);
-                
-                mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
+                mockResult.SetupGet(x => x.Items).Returns([
+                    new User { Id = "1", UserName = "user1", EmailAddress = "user1@example.com", Roles = [] },
+                    new User { Id = "2", UserName = "user2", EmailAddress = "user2@example.com", Roles = [] }
+                ]);
+                mockResult.SetupGet(x => x.NumberOfPages).Returns(1);
+                mockUserRepository
+                    .Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(), It.IsAny<PagedCriteria>()))
                     .ReturnsAsync(mockResult.Object);
             })
             .Build();
-        
+
         // Act
-        var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, null);
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
-    
-        var responseBody = await TestHelpers.HttpBodyUtilities.GetResponseBodyAsync(result);
-        responseBody.Should().Contain("user1");
-        responseBody.Should().Contain("user2");
+
+        result.Body.Position = 0;
+        using var reader = new StreamReader(result.Body);
+        var body = await reader.ReadToEndAsync();
+        body.Should().Contain("user1");
+        body.Should().Contain("user2");
     }
-    
+
     [Test]
-    public async Task GetUser_WithContainsTextFilter_ShouldReturnFilteredUsers()
+    public async Task GetUser_WithContainsTextFilter_ShouldPassFilterToCriteria()
     {
         // Arrange
-        var users = new List<User>
-        {
-            new User
-            {
-                Id = "user1",
-                emailAddress = "user1@example.com",
-                UserName = "john",
-                Roles = new List<Role>()
-            },
-            new User
-            {
-                Id = "user2",
-                emailAddress = "user2@example.com",
-                UserName = "user2",
-                Roles = new List<Role>()
-            }
-        };
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
-            .WithQuery(new NameValueCollection()
-            {
-                {
-                    "containsText",
-                    "john"
-                }
-            })
+            .WithQuery(new NameValueCollection { { "containsText", "john" } })
             .Build();
-        
+
+        GetUsersCriteria? capturedCriteria = null;
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
                 var mockResult = new Mock<IPagedResult<User>>();
-                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.UserName.Contains("john")));;
-                
-                mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
+                mockResult.SetupGet(x => x.Items).Returns([
+                    new User { Id = "1", UserName = "john", EmailAddress = "john@example.com", Roles = [] }
+                ]);
+                mockResult.SetupGet(x => x.NumberOfPages).Returns(1);
+                mockUserRepository
+                    .Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(), It.IsAny<PagedCriteria>()))
+                    .Callback<GetUsersCriteria, PagedCriteria?>((c, _) => capturedCriteria = c)
                     .ReturnsAsync(mockResult.Object);
             })
             .Build();
 
         // Act
-        var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, null);
 
         // Assert
-        result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
-    
-        var responseBody = await TestHelpers.HttpBodyUtilities.GetResponseBodyAsync(result);
-        responseBody.Should().Contain("user1@example.com");
-        responseBody.Should().NotContain("user2@example.com");
+        capturedCriteria.Should().NotBeNull();
+        capturedCriteria!.ContainingText.Should().Be("john");
     }
-    
+
     [Test]
-    public async Task GetUser_WithRoleFilter_ShouldReturnUsersWithSpecificRoles()
+    public async Task GetUser_WithWithRolesFilter_ShouldPassRolesToCriteria()
     {
         // Arrange
-        var adminRole = new Role { name = "Admin" };
-        var guestRole = new Role { name = "Guest" };
-        
-        var users = new List<User>
-        {
-            new User
-            {
-                Id = "user1",
-                emailAddress = "user1@example.com",
-                UserName = "john",
-                Roles = new List<Role> { adminRole, guestRole }
-            },
-            new User
-            {
-                Id = "user2",
-                emailAddress = "user2@example.com",
-                UserName = "user2",
-                Roles = new List<Role> { guestRole }
-            }
-        };
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
-            .WithQuery(new NameValueCollection()
-            {
-                {
-                    "withRoles",
-                    "Admin"
-                }
-            })
+            .WithQuery(new NameValueCollection { { "withRoles", "admin,user" } })
             .Build();
-        
+
+        GetUsersCriteria? capturedCriteria = null;
         var usersHttpTrigger = new UsersHttpTriggerBuilder()
             .WithIUserRepository(mockUserRepository =>
             {
                 var mockResult = new Mock<IPagedResult<User>>();
-                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.Roles.Any(qq=>qq.name == "Admin")));;
-                
-                mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
+                mockResult.SetupGet(x => x.Items).Returns([]);
+                mockResult.SetupGet(x => x.NumberOfPages).Returns(1);
+                mockUserRepository
+                    .Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(), It.IsAny<PagedCriteria>()))
+                    .Callback<GetUsersCriteria, PagedCriteria?>((c, _) => capturedCriteria = c)
                     .ReturnsAsync(mockResult.Object);
             })
             .Build();
 
         // Act
-        var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, null);
 
         // Assert
-        result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
-    
-        var responseBody = await TestHelpers.HttpBodyUtilities.GetResponseBodyAsync(result);
-        responseBody.Should().Contain("user1");
-        responseBody.Should().NotContain("user2");
-        
+        capturedCriteria.Should().NotBeNull();
+        capturedCriteria!.WithRoles.Should().BeEquivalentTo(["admin", "user"]);
     }
-    
+
     [Test]
-    public async Task GetUser_WithApplicationFilter_ShouldReturnUsersWithAccessToSpecificApplications()
+    public async Task GetUser_WithoutAuthentication_AndNoId_ShouldReturnBadRequest()
     {
-         // Arrange
-         var application1 = new Application { name = "Dashboard"
-         };
-         var application2 = new Application { name = "Another App"
-         };
-         var application3 = new Application { name = "Not this App"
-         };
-         
-        var adminRole = new Role
-        {
-            name = "Admin",
-            applications = new List<Application> { application1, application2 }
-        };
-        var guestRole = new Role
-        {
-            name = "Guest",
-            applications = new List<Application> { application1, application3 }
-        };
-        
-        var users = new List<User>
-        {
-            new User
-            {
-                Id = "user1",
-                emailAddress = "user1@example.com",
-                UserName = "john",
-                Roles = new List<Role> { adminRole, guestRole }
-            },
-            new User
-            {
-                Id = "user2",
-                emailAddress = "user2@example.com",
-                UserName = "user2",
-                Roles = new List<Role> { guestRole }
-            }
-        };
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-            .WithAuthentication()
-            .WithQuery(new NameValueCollection()
-            {
-                {
-                    "hasAccessToApplications",
-                    "Another App"
-                }
-            })
+        // Arrange
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .Returns(HttpStatusCode.OK)
             .Build();
-        
-        var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
-            {
-                var mockResult = new Mock<IPagedResult<User>>();
-                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.Roles.Where((qq=>qq.applications.Any(qqq=>qqq.name == "Another App"))).Any()));;
-                
-                mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(mockResult.Object);
-            })
-            .Build();
+
+        var usersHttpTrigger = new UsersHttpTriggerBuilder().Build();
 
         // Act
-        var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
+        var result = await usersHttpTrigger.GetUser(testableHttpRequestData, null);
 
         // Assert
-        result.Should().NotBeNull();
-        result.StatusCode.Should().Be(HttpStatusCode.OK);
-    
-        var responseBody = await TestHelpers.HttpBodyUtilities.GetResponseBodyAsync(result);
-        responseBody.Should().Contain("Another App");
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
-    
-
-    
 }

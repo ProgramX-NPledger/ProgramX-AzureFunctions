@@ -18,87 +18,53 @@ namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.RolesHttpTriggerTests;
 public class RolesHttpTriggerGetRoleTests
 {
     [Test]
-    public async Task GetRole_WithValidId_ShouldReturnUserWithApplications()
+    public async Task GetRole_WithValidRoleName_ShouldReturnRoleWithUsersAndApplications()
     {
         // Arrange
         const string roleName = "test-role-123";
-        var adminRole = new Role
-        {
-            name = roleName,
-            description = "Admin role"
-        };
 
-        var expectedRole = new Role
-        {
-            name = roleName,
-            description = "Admin role"
-        };
-
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
             .Returns(HttpStatusCode.OK)
             .Build();
-        
+
         var rolesHttpTrigger = new RolesHttpTriggerBuilder()
+            .WithIRoleRepository(mockRoleRepository =>
+            {
+                var mockResult = new Mock<IResult<Role>>();
+                mockResult.SetupGet(x => x.Items).Returns([
+                    new Role { RoleName = roleName, Description = "Admin role" }
+                ]);
+                mockRoleRepository
+                    .Setup(x => x.GetRolesAsync(It.IsAny<GetRolesCriteria>(), It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(mockResult.Object);
+            })
             .WithIUserRepository(mockUserRepository =>
             {
-                var mockIResult = new Mock<IResult<User>>();
-                mockIResult.SetupGet(x => x.Items)
-                    .Returns(new List<User>
-                    {
-                        new User()
-                        {
-                            Id = Guid.NewGuid().ToString(),
-                            emailAddress = "hello@email.com",
-                            UserName = "hello",
-                            Roles = new List<Role>()
-                            {
-                                new Role()
-                                {
-                                    name = "Admin",
-                                    applications = new List<Application>()
-                                    {
-                                        new Application
-                                        {
-                                            name = "AnApp"
-                                        }
-                                    }
-                                }
-                            },
-                        },
-                        new User()
-                        {
-                            Id = Guid.NewGuid().ToString(),
-                            emailAddress = "hello@email.com",
-                            UserName = "hello2",
-                            Roles = new List<Role>()
-                            {
-                                new Role()
-                                {
-                                    name = "AnotherRole",
-                                    applications = new List<Application>()
-                                    {
-                                        new Application
-                                        {
-                                            name = "AnotherApp"
-                                        }
-                                    }
-                                }
-                            },
-                        }
-                    });
-                
-                mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(mockIResult.Object);
-                mockUserRepository.Setup(x => x.GetRoleByNameAsync(It.IsAny<string>()))
-                    .ReturnsAsync(expectedRole);
-                mockUserRepository.Setup(x =>
-                        x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(), It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(new Mock<IPagedResult<Application>>().Object);
+                var mockUsersResult = new Mock<IResult<User>>();
+                mockUsersResult.SetupGet(x => x.Items).Returns([
+                    new User { Id = "1", UserName = "john", EmailAddress = "john@test.com", Roles = [roleName] }
+                ]);
+                mockUserRepository
+                    .Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(), It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(mockUsersResult.Object);
+            })
+            .WithIApplicationProvider(mockAppProvider =>
+            {
+                var mockApp = new Mock<IApplication>();
+                mockApp.Setup(x => x.GetApplicationMetaData()).Returns(new ApplicationMetaData
+                {
+                    Name = "TestApp",
+                    FriendlyName = "Test App",
+                    TargetUrl = "https://testapp.com",
+                    RequiresRoleNames = [roleName]
+                });
+                mockAppProvider
+                    .Setup(x => x.GetAllApplications(It.IsAny<GetAllApplicationsCriteria>()))
+                    .Returns([mockApp.Object]);
             })
             .Build();
-        
+
         // Act
         var result = await rolesHttpTrigger.GetRole(testableHttpRequestData, roleName);
 
@@ -106,320 +72,168 @@ public class RolesHttpTriggerGetRoleTests
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Verify the response contains user and applications
         var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().Contain("AnApp");
-        responseBody.Should().Contain("hello");
+        responseBody.Should().Contain(roleName);
+        responseBody.Should().Contain("john");
     }
-    
+
     [Test]
-    public async Task GetRole_WithNonExistentId_ShouldReturnNotFound()
+    public async Task GetRole_WithNonExistentRoleName_ShouldReturnNotFound()
     {
         // Arrange
         const string roleName = "non-existent-role";
 
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
-            .Returns(HttpStatusCode.NoContent)
+            .Returns(HttpStatusCode.NotFound)
             .Build();
-        
+
         var rolesHttpTrigger = new RolesHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
+            .WithIRoleRepository(mockRoleRepository =>
             {
-                mockUserRepository.Setup(x => x.GetRolesAsync(It.IsAny<GetRolesCriteria>(),It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(new Mock<IPagedResult<Role>>().Object);
-                mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(new Mock<IPagedResult<User>>().Object);
-                mockUserRepository.Setup(x => x.GetRoleByNameAsync(It.IsAny<string>()))
-                    .ReturnsAsync(null as Role);
-                mockUserRepository.Setup(x => x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(), It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(new Mock<IPagedResult<Application>>().Object);
-                mockUserRepository.Setup(x => x.GetUsersInRole(It.IsAny<string>(), It.IsAny<IEnumerable<User>>())).Returns(new List<User>());
+                var mockResult = new Mock<IResult<Role>>();
+                mockResult.SetupGet(x => x.Items).Returns([]);
+                mockRoleRepository
+                    .Setup(x => x.GetRolesAsync(It.IsAny<GetRolesCriteria>(), It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(mockResult.Object);
             })
-            .Build();        
+            .Build();
+
         // Act
         var result = await rolesHttpTrigger.GetRole(testableHttpRequestData, roleName);
-    
+
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
-    
+
     [Test]
-    public async Task GetRole_WithoutAuthentication_ShouldReturnUnauthorized()
+    public async Task GetRole_WithoutAuthentication_ShouldReturnBadRequest()
     {
         // Arrange
-        const string roleName = "test-role-123";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-            .Returns(HttpStatusCode.NoContent)
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .Returns(HttpStatusCode.OK)
             .Build();
-        
-        var rolesHttpTrigger = new RolesHttpTriggerBuilder()
-            .Build();        
+
+        var rolesHttpTrigger = new RolesHttpTriggerBuilder().Build();
+
         // Act
-        var result = await rolesHttpTrigger.GetRole(testableHttpRequestData, roleName);
+        var result = await rolesHttpTrigger.GetRole(testableHttpRequestData, "some-role");
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
-    
-    
+
     [Test]
     public async Task GetRole_WithInvalidAuthentication_ShouldReturnUnauthorized()
     {
         // Arrange
-        const string roleName = "test-role-123";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithInvalidAuthentication()
-            .Returns(HttpStatusCode.NoContent)
+            .Returns(HttpStatusCode.OK)
             .Build();
-        
-        var rolesHttpTrigger = new RolesHttpTriggerBuilder()
-            .Build();        
+
+        var rolesHttpTrigger = new RolesHttpTriggerBuilder().Build();
+
         // Act
-        var result = await rolesHttpTrigger.GetRole(testableHttpRequestData, roleName);
+        var result = await rolesHttpTrigger.GetRole(testableHttpRequestData, "some-role");
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-    
-    
-    
+
     [Test]
-    public async Task GetRole_WithoutId_ShouldReturnPagedUsers()
+    public async Task GetRole_WithoutRoleName_ShouldReturnPagedRoles()
     {
         // Arrange
-        var roles = new List<Role>
-        {
-            new Role
-            {
-                name = "role1",
-                description = "Role 1"
-            },
-            new Role
-            {
-                name = "role2",
-                description = "Role 2"
-            }
-        };
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
             .Build();
-        
+
         var rolesHttpTrigger = new RolesHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
+            .WithIRoleRepository(mockRoleRepository =>
             {
-                var mockResult = new Mock<IPagedResult<Role>>();
-                mockResult.Setup(x => x.Items).Returns(roles);
-                
-                mockUserRepository.Setup(x => x.GetRolesAsync(It.IsAny<GetRolesCriteria>(),It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(mockResult.Object);
+                var mockPagedResult = new Mock<IPagedResult<Role>>();
+                mockPagedResult.SetupGet(x => x.Items).Returns([
+                    new Role { RoleName = "role1", Description = "Role 1" },
+                    new Role { RoleName = "role2", Description = "Role 2" }
+                ]);
+                mockPagedResult.SetupGet(x => x.NumberOfPages).Returns(1);
+                mockRoleRepository
+                    .Setup(x => x.GetRolesAsync(It.IsAny<GetRolesCriteria>(), It.IsAny<PagedCriteria>()))
+                    .ReturnsAsync(mockPagedResult.Object);
             })
             .Build();
-        
+
         // Act
-        var result = await rolesHttpTrigger.GetRole(testableHttpRequestData,null);
+        var result = await rolesHttpTrigger.GetRole(testableHttpRequestData, null);
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
-    
+
         var responseBody = await GetResponseBodyAsync(result);
         responseBody.Should().Contain("role1");
         responseBody.Should().Contain("role2");
     }
-    
+
     [Test]
-    public async Task GetRole_WithContainsTextFilter_ShouldReturnFilteredRoles()
+    public async Task GetRole_WithContainsTextFilter_ShouldPassFilterToCriteria()
     {
         // Arrange
-        var roles = new List<Role>
-        {
-            new Role
-            {
-                name = "role1",
-                description = "Role 1"
-            },
-            new Role
-            {
-                name = "john",
-                description = "Role 2"
-            }
-        };
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
-            .WithQuery(new NameValueCollection()
-            {
-                {
-                    "containsText",
-                    "john"
-                }
-            })
+            .WithQuery(new NameValueCollection { { "containsText", "admin" } })
             .Build();
-        
+
+        GetRolesCriteria? capturedCriteria = null;
         var rolesHttpTrigger = new RolesHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
+            .WithIRoleRepository(mockRoleRepository =>
             {
-                var mockResult = new Mock<IPagedResult<Role>>();
-                mockResult.Setup(x => x.Items).Returns(roles.Where(q=>q.name.Contains("john")));;
-                
-                mockUserRepository.Setup(x => x.GetRolesAsync(It.IsAny<GetRolesCriteria>(),It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(mockResult.Object);
+                var mockPagedResult = new Mock<IPagedResult<Role>>();
+                mockPagedResult.SetupGet(x => x.Items).Returns([
+                    new Role { RoleName = "admin-role", Description = "Admin" }
+                ]);
+                mockPagedResult.SetupGet(x => x.NumberOfPages).Returns(1);
+                mockRoleRepository
+                    .Setup(x => x.GetRolesAsync(It.IsAny<GetRolesCriteria>(), It.IsAny<PagedCriteria>()))
+                    .Callback<GetRolesCriteria, PagedCriteria?>((c, _) => capturedCriteria = c)
+                    .ReturnsAsync(mockPagedResult.Object);
             })
             .Build();
 
         // Act
-        var result = await rolesHttpTrigger.GetRole(testableHttpRequestData,null);
+        var result = await rolesHttpTrigger.GetRole(testableHttpRequestData, null);
 
         // Assert
-        result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
-    
-        var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().Contain("Role 2");
-        responseBody.Should().NotContain("Role 1");
+        capturedCriteria.Should().NotBeNull();
+        capturedCriteria!.ContainingText.Should().Be("admin");
     }
-    
+
     [Test]
-    public async Task GetRole_WithRoleFilter_ShouldReturnUsersWithSpecificRoles()
+    public async Task GetRole_WithoutAuthentication_AndNoRoleName_ShouldReturnBadRequest()
     {
         // Arrange
-        var adminRole = new Role { name = "Admin" };
-        var guestRole = new Role { name = "Guest" };
-        
-        var users = new List<User>
-        {
-            new User
-            {
-                Id = "user1",
-                emailAddress = "user1@example.com",
-                UserName = "john",
-                Roles = new List<Role> { adminRole, guestRole }
-            },
-            new User
-            {
-                Id = "user2",
-                emailAddress = "user2@example.com",
-                UserName = "user2",
-                Roles = new List<Role> { guestRole }
-            }
-        };
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-            .WithAuthentication()
-            .WithQuery(new NameValueCollection()
-            {
-                {
-                    "withRoles",
-                    "Admin"
-                }
-            })
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .Returns(HttpStatusCode.OK)
             .Build();
-        
-        var usersHttpTrigger = new UsersHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
-            {
-                var mockResult = new Mock<IPagedResult<User>>();
-                mockResult.Setup(x => x.Items).Returns(users.Where(q=>q.Roles.Any(qq=>qq.name == "Admin")));;
-                
-                mockUserRepository.Setup(x => x.GetUsersAsync(It.IsAny<GetUsersCriteria>(),It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(mockResult.Object);
-            })
-            .Build();
+
+        var rolesHttpTrigger = new RolesHttpTriggerBuilder().Build();
 
         // Act
-        var result = await usersHttpTrigger.GetUser(testableHttpRequestData,null);
+        var result = await rolesHttpTrigger.GetRole(testableHttpRequestData, null);
 
         // Assert
-        result.Should().NotBeNull();
-        result.StatusCode.Should().Be(HttpStatusCode.OK);
-    
-        var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().Contain("user1");
-        responseBody.Should().NotContain("user2");
-        
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
-    
-    [Test]
-    public async Task GetRole_WithApplicationFilter_ShouldReturnRolesWithAccessToSpecificApplications()
-    {
-        var roles = new List<Role>
-        {
-            new Role()
-            {
-                name = "role1",
-                applications = new List<Application>
-                {
-                    new Application { name = "UsedInThisApp"
-                    },
-                    new Application { name = "Another App"
-                    }
-                }
-            },
-            new Role()
-            {
-                name = "role2",
-                applications = new List<Application>
-                {
-                    new Application { name = "Dashboard"
-                    },
-                    new Application { name = "Not this App"
-                    }
-                }
-            }
-        };
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-            .WithAuthentication()
-            .WithQuery(new NameValueCollection()
-            {
-                {
-                    "usedInApplications",
-                    "UsedInThisApp"
-                }
-            })
-            .Build();
-        
-        var rolesHttpTrigger = new RolesHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
-            {
-                var mockResult = new Mock<IPagedResult<Role>>();
-                mockResult.Setup(x => x.Items).Returns(roles.Where(q=>q.applications.Any(qq=>qq.name=="UsedInThisApp")));
-                
-                mockUserRepository.Setup(x => x.GetRolesAsync(It.IsAny<GetRolesCriteria>(),It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(mockResult.Object);
-            })
-            .Build();
 
-        // Act
-        var result = await rolesHttpTrigger.GetRole(testableHttpRequestData,null);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.StatusCode.Should().Be(HttpStatusCode.OK);
-    
-        var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().Contain("UsedInThisApp");
-    }
-    
-    private async Task<string> GetResponseBodyAsync(HttpResponseData response)
+    private static async Task<string> GetResponseBodyAsync(HttpResponseData response)
     {
         response.Body.Position = 0;
         using var reader = new StreamReader(response.Body);
         return await reader.ReadToEndAsync();
     }
-    
 }

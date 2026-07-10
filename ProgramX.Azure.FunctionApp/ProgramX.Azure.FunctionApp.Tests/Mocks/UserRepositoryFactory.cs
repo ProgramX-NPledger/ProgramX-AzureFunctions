@@ -1,69 +1,25 @@
-using Microsoft.Azure.Cosmos;
-using Moq;
-using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
-using ProgramX.Azure.FunctionApp.Model.Criteria;
-using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Tests.Mocks;
 
 public class UserRepositoryFactory
 {
-    
-    public static Mock<IUserRepository> CreateUserRepository()
-    {
-        var testUsers = CreateTestUsers(10);
-        
-        var mockedRolesResult = new Mock<IResult<Role>>();
-        mockedRolesResult.SetupGet(x => x.IsRequiredToBeOrderedByClient)
-            .Returns(true);
-        mockedRolesResult.SetupGet(x => x.Items)
-            .Returns(testUsers.SelectMany(user => user.Roles).ToList());
-        
-        var mockedUserRepository = new Mock<IUserRepository>();
-        mockedUserRepository.Setup(x => x.GetRolesAsync(It.IsAny<GetRolesCriteria>(),It.IsAny<PagedCriteria>()))
-            .ReturnsAsync(mockedRolesResult.Object);
-        mockedUserRepository.Setup(x => x.CreateUserAsync(It.IsAny<User>()))
-            .Callback<User>(user =>
-            {
-                testUsers.Add(user);
-            });
-        
-        return mockedUserRepository;
-    }
-    
-    
-    protected static IList<User> CreateTestUsers(int numberOfItems, int? numberOfRolesPerUser = null, int? numberOfApplicationsPerRole = null)
+    protected static IList<User> CreateTestUsers(int numberOfItems, int? numberOfRolesPerUser = null)
     {
         List<User> users = new();
         for (int i = 1; i <= numberOfItems; i++)
         {
-            users.Add(new User()
+            users.Add(new User
             {
                 Id = Guid.NewGuid().ToString(),
                 UserName = $"user{i}",
-                emailAddress = $"",
+                EmailAddress = $"user{i}@example.com",
                 CreatedAt = DateTime.UtcNow,
                 FirstName = $"First Name {i}",
                 LastLoginAt = DateTime.UtcNow,
                 LastName = $"Last Name {i}",
                 UpdatedAt = DateTime.UtcNow,
-                Roles = Enumerable.Range(1,numberOfRolesPerUser ?? numberOfItems)
-                    .Select(x => new Role()
-                    {
-                        createdAt    = DateTime.UtcNow,
-                        applications = Enumerable.Range(1, numberOfApplicationsPerRole ?? numberOfItems)
-                            .Select(y => new Application
-                            {
-                                createdAt = DateTime.UtcNow,
-                                name = $"app {y}",
-                                updatedAt = DateTime.UtcNow,
-                                ordinal = y
-                            }),
-                        name = $"role {x}",
-                        updatedAt = DateTime.UtcNow,
-                        description = ">@role{x}",
-                    })
+                Roles = Enumerable.Range(1, numberOfRolesPerUser ?? 0).Select(x => $"role{x}")
             });
         }
 

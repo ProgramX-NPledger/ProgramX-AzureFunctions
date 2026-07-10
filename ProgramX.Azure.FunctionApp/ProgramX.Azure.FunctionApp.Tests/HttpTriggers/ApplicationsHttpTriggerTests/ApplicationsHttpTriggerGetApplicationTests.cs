@@ -18,388 +18,201 @@ namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.ApplicationsHttpTriggerT
 public class ApplicationsHttpTriggerGetApplicationTests
 {
     [Test]
-    public async Task GetApplication_WithValidName_ShouldSucceed()
+    public async Task GetApplication_WithValidName_ShouldReturnApplication()
     {
         // Arrange
-        var expectedApplication = new Application
-        {
-            name = "application"
-        };
+        const string appName = "TestApp";
 
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
-            .Returns(HttpStatusCode.NoContent)
+            .Returns(HttpStatusCode.OK)
             .Build();
-        
+
         var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
+            .WithIApplicationProvider(mockAppProvider =>
             {
-                mockUserRepository.Setup(x => x.GetApplicationByNameAsync(It.IsAny<string>()))
-                    .ReturnsAsync(expectedApplication);
+                var mockApp = new Mock<IApplication>();
+                mockApp.Setup(x => x.GetApplicationMetaData()).Returns(new ApplicationMetaData
+                {
+                    Name = appName,
+                    FriendlyName = "Test App",
+                    TargetUrl = "https://testapp.com",
+                    RequiresRoleNames = ["admin"]
+                });
+                mockAppProvider.Setup(x => x.GetApplication(It.IsAny<string>())).Returns(mockApp.Object);
             })
             .Build();
-        
+
         // Act
-        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData, expectedApplication.name);
+        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData, appName);
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Verify the response contains user and applications
-        var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().Contain(expectedApplication.name);
+        result.Body.Position = 0;
+        using var reader = new StreamReader(result.Body);
+        var body = await reader.ReadToEndAsync();
+        body.Should().Contain(appName);
     }
-    
+
     [Test]
-    public async Task GetApplication_WithNonExistentId_ShouldReturnNotFound()
+    public async Task GetApplication_WithNonExistentName_ShouldReturnNotFound()
     {
         // Arrange
-        const string applicationName = "non-existent-application";
-
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
-            .Returns(HttpStatusCode.NoContent)
+            .Returns(HttpStatusCode.NotFound)
             .Build();
-        
+
         var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
+            .WithIApplicationProvider(mockAppProvider =>
             {
-                mockUserRepository.Setup(x => x.GetApplicationByNameAsync(It.IsAny<string>()))
-                    .ReturnsAsync((Application)null!);
+                mockAppProvider.Setup(x => x.GetApplication(It.IsAny<string>())).Returns((IApplication?)null);
             })
             .Build();
-        
+
         // Act
-        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData, applicationName);
-    
+        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData, "non-existent");
+
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
-    
+
     [Test]
-    public async Task GetApplication_WithoutAuthentication_ShouldReturnUnauthorized()
+    public async Task GetApplication_WithoutAuthentication_ShouldReturnBadRequest()
     {
         // Arrange
-        const string applicationName = "test-application-123";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-            .Returns(HttpStatusCode.NoContent)
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .Returns(HttpStatusCode.OK)
             .Build();
-        
-        var applicationHttpTrigger = new ApplicationsHttpTriggerBuilder()
-            .Build();        
-        
+
+        var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder().Build();
+
         // Act
-        var result = await applicationHttpTrigger.GetApplication(testableHttpRequestData, applicationName);
+        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData, "some-app");
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
-    
-    
+
     [Test]
     public async Task GetApplication_WithInvalidAuthentication_ShouldReturnUnauthorized()
     {
         // Arrange
-        const string applicationName = "test-application-123";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithInvalidAuthentication()
-            .Returns(HttpStatusCode.NoContent)
+            .Returns(HttpStatusCode.OK)
             .Build();
-        
-        var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
-            .Build();        
-        
+
+        var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder().Build();
+
         // Act
-        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData, applicationName);
+        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData, "some-app");
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-    
-    
+
     [Test]
-    public async Task GetApplication_WithoutId_ShouldReturnPagedApplications()
+    public async Task GetApplication_WithoutName_ShouldReturnAllApplications()
     {
         // Arrange
-        var users = new List<User>
-        {
-            new User
-            {
-                Id = "user1",
-                emailAddress = "user1@example.com",
-                UserName = "user1",
-                Roles = new List<Role>
-                {
-                    new Role()
-                    {
-                        name = "Admin",
-                        applications = new List<Application>()
-                        {
-                            new Application
-                            {
-                                name = "Admin Application"
-                            }
-                        }
-                    }
-                }
-            },
-            new User
-            {
-                Id = "user2",
-                emailAddress = "user2@example.com",
-                UserName = "user2",
-                Roles = new List<Role>
-                {
-                    new Role()
-                    {
-                        name = "Admin",
-                        applications = new List<Application>()
-                        {
-                            new Application
-                            {
-                                name = "A different Application"
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
             .Build();
-        
+
         var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
+            .WithIApplicationProvider(mockAppProvider =>
             {
-                var mockResult = new Mock<IPagedResult<Application>>();
-                mockResult.SetupGet(x => x.Items)
-                    .Returns(
-                        users.SelectMany(q =>
-                            q.Roles.SelectMany(qq =>
-                                qq.applications
-                            )
-                        ));
-                
-                mockUserRepository.Setup(x => x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(),It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(mockResult.Object);
+                var mockApp1 = new Mock<IApplication>();
+                mockApp1.Setup(x => x.GetApplicationMetaData()).Returns(new ApplicationMetaData
+                {
+                    Name = "App1", FriendlyName = "Application 1", TargetUrl = "https://app1.com", RequiresRoleNames = []
+                });
+                var mockApp2 = new Mock<IApplication>();
+                mockApp2.Setup(x => x.GetApplicationMetaData()).Returns(new ApplicationMetaData
+                {
+                    Name = "App2", FriendlyName = "Application 2", TargetUrl = "https://app2.com", RequiresRoleNames = []
+                });
+                mockAppProvider
+                    .Setup(x => x.GetAllApplications(It.IsAny<GetAllApplicationsCriteria>()))
+                    .Returns([mockApp1.Object, mockApp2.Object]);
             })
             .Build();
-        
+
         // Act
-        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData,null);
+        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData, null);
 
         // Assert
         result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
-    
-        var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().Contain("Admin Application");
-        
+
+        result.Body.Position = 0;
+        using var reader = new StreamReader(result.Body);
+        var body = await reader.ReadToEndAsync();
+        body.Should().Contain("App1");
+        body.Should().Contain("App2");
     }
-    
+
     [Test]
     public async Task GetApplication_WithContainsTextFilter_ShouldReturnFilteredApplications()
     {
         // Arrange
-        var users = new List<User>
-        {
-            new User
-            {
-                Id = "user1",
-                emailAddress = "user1@example.com",
-                UserName = "john",
-                Roles = new List<Role>()
-                {
-                    new Role()
-                    {
-                        name = "Admin",
-                        applications = new List<Application>()
-                        {
-                            new Application
-                            {
-                                name = "Admin Application"
-                            }
-                        }
-                    }
-                }
-            },
-            new User
-            {
-                Id = "user2",
-                emailAddress = "user2@example.com",
-                UserName = "user2",
-                Roles = new List<Role>()
-                {
-                    new Role()
-                    {
-                        name = "Admin",
-                        applications = new List<Application>()
-                        {
-                            new Application
-                            {
-                                name = "john"
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
-            .WithQuery(new NameValueCollection()
-            {
-                {
-                    "containsText",
-                    "john"
-                }
-            })
+            .WithQuery(new NameValueCollection { { "containsText", "Admin" } })
             .Build();
-        
+
         var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
+            .WithIApplicationProvider(mockAppProvider =>
             {
-                var mockResult = new Mock<IPagedResult<Application>>();
-                mockResult.SetupGet(x => x.Items)
-                    .Returns(
-                        users.SelectMany(q =>
-                            q.Roles.SelectMany(qq =>
-                                qq.applications.Where(qqq =>
-                                    qqq.name.Contains("john")
-                                )
-                            )
-                        ));
-                
-                mockUserRepository.Setup(x => x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(),It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(mockResult.Object);
+                var mockApp1 = new Mock<IApplication>();
+                mockApp1.Setup(x => x.GetApplicationMetaData()).Returns(new ApplicationMetaData
+                {
+                    Name = "AdminApp", FriendlyName = "Admin Application", TargetUrl = "https://admin.com", RequiresRoleNames = []
+                });
+                var mockApp2 = new Mock<IApplication>();
+                mockApp2.Setup(x => x.GetApplicationMetaData()).Returns(new ApplicationMetaData
+                {
+                    Name = "UserApp", FriendlyName = "User Application", TargetUrl = "https://user.com", RequiresRoleNames = []
+                });
+                mockAppProvider
+                    .Setup(x => x.GetAllApplications(It.IsAny<GetAllApplicationsCriteria>()))
+                    .Returns([mockApp1.Object, mockApp2.Object]);
             })
             .Build();
 
         // Act
-        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData,null);
+        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData, null);
 
         // Assert
-        result.Should().NotBeNull();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
-    
-        var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().Contain("john");
-        responseBody.Should().NotContain("user2@example.com");
+
+        result.Body.Position = 0;
+        using var reader = new StreamReader(result.Body);
+        var body = await reader.ReadToEndAsync();
+        body.Should().Contain("AdminApp");
+        body.Should().NotContain("UserApp");
     }
-    
+
     [Test]
-    public async Task GetUser_WithRoleFilter_ShouldReturnUsersWithSpecificRoles()
+    public async Task GetApplication_WithoutAuthentication_AndNoName_ShouldReturnBadRequest()
     {
         // Arrange
-        var adminRole = new Role { name = "Admin" };
-        var guestRole = new Role { name = "Guest" };
-        
-        var users = new List<User>
-        {
-            new User
-            {
-                Id = "user1",
-                emailAddress = "user1@example.com",
-                UserName = "john",
-                Roles = new List<Role>()
-                {
-                    new Role()
-                    {
-                        name = "Role1",
-                        applications = new List<Application>()
-                        {
-                            new Application
-                            {
-                                name = "Admin Application"
-                            }
-                        }
-                    }
-                }
-            },
-            new User
-            {
-                Id = "user2",
-                emailAddress = "user2@example.com",
-                UserName = "user2",
-                Roles = new List<Role>()
-                {
-                    new Role()
-                    {
-                        name = "Role2",
-                        applications = new List<Application>()
-                        {
-                            new Application
-                            {
-                                name = "john"
-                            }
-                        }
-                    }
-                }
-            }
-        };
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-            .WithAuthentication()
-            .WithQuery(new NameValueCollection()
-            {
-                {
-                    "withRoles",
-                    "Role1"
-                }
-            })
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .Returns(HttpStatusCode.OK)
             .Build();
-        
-        var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
-            {
-                var mockResult = new Mock<IPagedResult<Application>>();
-                mockResult.SetupGet(x => x.Items)
-                    .Returns(
-                        users.SelectMany(q =>
-                            q.Roles.SelectMany(qq =>
-                                qq.applications.Where(qqq =>
-                                    qqq.name.Contains("Admin Application")
-                                )
-                            )
-                        ));
-                
-                mockUserRepository.Setup(x => x.GetApplicationsAsync(It.IsAny<GetApplicationsCriteria>(),It.IsAny<PagedCriteria>()))
-                    .ReturnsAsync(mockResult.Object);
-            })
-            .Build();
+
+        var applicationsHttpTrigger = new ApplicationsHttpTriggerBuilder().Build();
 
         // Act
-        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData,null);
+        var result = await applicationsHttpTrigger.GetApplication(testableHttpRequestData, null);
 
         // Assert
-        result.Should().NotBeNull();
-        result.StatusCode.Should().Be(HttpStatusCode.OK);
-    
-        var responseBody = await GetResponseBodyAsync(result);
-        responseBody.Should().Contain("Admin Application");
-        responseBody.Should().NotContain("john");
-        
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
-    
-    private async Task<string> GetResponseBodyAsync(HttpResponseData response)
-    {
-        response.Body.Position = 0;
-        using var reader = new StreamReader(response.Body);
-        return await reader.ReadToEndAsync();
-    }
-    
 }

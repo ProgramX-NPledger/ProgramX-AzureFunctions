@@ -18,7 +18,7 @@ public class ApplicationsHttpTriggerCtorTests
     public void Constructor_WithValidParameters_ShouldCreateInstance()
     {
         // Arrange, Act & Assert
-        var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
+        var mockedUserRepository = new Mock<IUserRepository>();
         var mockedLogger = new Mock<ILogger<ApplicationsHttpTrigger>>();
         var mockedConfiguration = new Mock<IConfiguration>();
         var mockedServiceProvider = new Mock<IServiceProvider>();

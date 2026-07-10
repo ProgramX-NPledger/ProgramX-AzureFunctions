@@ -1,12 +1,7 @@
-using Azure.Storage.Blobs;
 using FluentAssertions;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
-using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.HttpTriggers;
-using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
 
 namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.RolesHttpTriggerTests;
@@ -18,35 +13,46 @@ namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.RolesHttpTriggerTests;
 [TestFixture]
 public class RolesHttpTriggerCtorTests : TestBase
 {
-    private RolesHttpTrigger _rolesHttpTrigger = null!;
-    private Mock<ILogger<RolesHttpTrigger>> _mockSpecificLogger = null!;
-    private Mock<IStorageClient> _mockStorageClient = null!;
-    private Mock<HttpRequestData> _mockHttpRequestData = null!;
-
     [SetUp]
     public override void SetUp()
     {
         base.SetUp();
-        _mockSpecificLogger = new Mock<ILogger<RolesHttpTrigger>>();
-        _mockStorageClient = new Mock<IStorageClient>();
-        _mockHttpRequestData = new Mock<HttpRequestData>();
-        
-        var mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
-        
-        _rolesHttpTrigger = new RolesHttpTrigger(
-            _mockSpecificLogger.Object,
-            Configuration,
-            mockedUserRepository.Object
-            );
     }
-    
-    
 
     [Test]
     public void Constructor_WithValidParameters_ShouldCreateInstance()
     {
-        // Arrange, Act & Assert
-        _rolesHttpTrigger.Should().NotBeNull();
+        // Arrange, Act
+        var rolesHttpTrigger = new RolesHttpTriggerBuilder().Build();
+
+        // Assert
+        rolesHttpTrigger.Should().NotBeNull();
     }
 
+    [Test]
+    public void Constructor_WithCustomLogger_ShouldCreateInstance()
+    {
+        // Arrange
+        var mockLogger = new Mock<ILogger<RolesHttpTrigger>>();
+
+        // Act
+        var rolesHttpTrigger = new RolesHttpTriggerBuilder()
+            .WithLogger(mockLogger)
+            .Build();
+
+        // Assert
+        rolesHttpTrigger.Should().NotBeNull();
+    }
+
+    [Test]
+    public void Constructor_WithConfiguration_ShouldCreateInstance()
+    {
+        // Arrange, Act
+        var rolesHttpTrigger = new RolesHttpTriggerBuilder()
+            .WithConfiguration(Configuration)
+            .Build();
+
+        // Assert
+        rolesHttpTrigger.Should().NotBeNull();
+    }
 }

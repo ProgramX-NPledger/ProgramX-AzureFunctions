@@ -1,12 +1,10 @@
 using System.Net;
 using FluentAssertions;
-using Microsoft.Azure.Cosmos;
 using Moq;
-using ProgramX.Azure.FunctionApp.Model;
+using ProgramX.Azure.FunctionApp.Model.Exceptions;
 using ProgramX.Azure.FunctionApp.Tests.Mocks;
-using User = ProgramX.Azure.FunctionApp.Model.User;
 
-namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
+namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.RolesHttpTriggerTests;
 
 [Category("Unit")]
 [Category("HttpTrigger")]
@@ -16,29 +14,22 @@ namespace ProgramX.Azure.FunctionApp.Tests.HttpTriggers.UsersHttpTriggerTests;
 public class RolesHttpTriggerDeleteRoleTests
 {
     [Test]
-    public async Task DeleteUser_WhenUserExists_ShouldDeleteSuccessfully()
+    public async Task DeleteRole_WhenRoleExists_ShouldReturnNoContent()
     {
         // Arrange
-        const string roleName = "test-role-id";
+        const string roleName = "test-role";
 
-        var existingRole = new Role
-        {
-            name = roleName,
-            description = "test role description"
-        };
-
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
             .Returns(HttpStatusCode.NoContent)
             .Build();
-        
+
         var rolesHttpTrigger = new RolesHttpTriggerBuilder()
-            .WithIUserRepository(mockUserRepository =>
+            .WithIRoleRepository(mockRoleRepository =>
             {
-                mockUserRepository.Setup(x => x.GetRoleByNameAsync(It.IsAny<string>()))
-                    .ReturnsAsync(existingRole);
-                mockUserRepository.Setup(x => x.DeleteRoleByNameAsync(It.IsAny<string>()));
+                mockRoleRepository
+                    .Setup(x => x.DeleteRoleByNameAsync(It.IsAny<string>()))
+                    .Returns(Task.CompletedTask);
             })
             .Build();
 
@@ -54,22 +45,22 @@ public class RolesHttpTriggerDeleteRoleTests
     public async Task DeleteRole_WhenRoleDoesNotExist_ShouldReturnNotFound()
     {
         // Arrange
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithAuthentication()
             .Returns(HttpStatusCode.NotFound)
             .Build();
-        
+
         var rolesHttpTrigger = new RolesHttpTriggerBuilder()
-                .WithIUserRepository(mockUserRepository =>
-                {
-                    mockUserRepository.Setup(x => x.GetUserByIdAsync(It.IsAny<string>()))
-                        .ReturnsAsync((User)null!);
-                })
-                .Build();
+            .WithIRoleRepository(mockRoleRepository =>
+            {
+                mockRoleRepository
+                    .Setup(x => x.DeleteRoleByNameAsync(It.IsAny<string>()))
+                    .ThrowsAsync(new ItemNotFoundException());
+            })
+            .Build();
 
         // Act
-        var result = await rolesHttpTrigger.DeleteRole(testableHttpRequestData, "does not exist");
+        var result = await rolesHttpTrigger.DeleteRole(testableHttpRequestData, "does-not-exist");
 
         // Assert
         result.Should().NotBeNull();
@@ -77,51 +68,64 @@ public class RolesHttpTriggerDeleteRoleTests
     }
 
     [Test]
-    public async Task DeleteRole_WithoutAuthentication_ShouldReturnUnauthorized()
+    public async Task DeleteRole_WhenDeleteFails_ShouldReturnBadRequest()
     {
         // Arrange
-        const string userId = "test-role-id";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
-            .Returns(HttpStatusCode.Unauthorized)
-            .Build();        
-        
-        var roleshttpTrigger = new RolesHttpTriggerBuilder()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .WithAuthentication()
+            .Returns(HttpStatusCode.BadRequest)
+            .Build();
+
+        var rolesHttpTrigger = new RolesHttpTriggerBuilder()
+            .WithIRoleRepository(mockRoleRepository =>
+            {
+                mockRoleRepository
+                    .Setup(x => x.DeleteRoleByNameAsync(It.IsAny<string>()))
+                    .ThrowsAsync(new ItemUpdateException());
+            })
             .Build();
 
         // Act
-        var result = await roleshttpTrigger.DeleteRole(testableHttpRequestData, userId);
+        var result = await rolesHttpTrigger.DeleteRole(testableHttpRequestData, "test-role");
+
+        // Assert
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task DeleteRole_WithoutAuthentication_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
+            .Returns(HttpStatusCode.NoContent)
+            .Build();
+
+        var rolesHttpTrigger = new RolesHttpTriggerBuilder().Build();
+
+        // Act
+        var result = await rolesHttpTrigger.DeleteRole(testableHttpRequestData, "test-role");
 
         // Assert
         result.Should().NotBeNull();
-        // no header is added so it is a bad request
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
-    
-    
+
     [Test]
     public async Task DeleteRole_WithInvalidAuthentication_ShouldReturnUnauthorized()
     {
         // Arrange
-        const string roleName = "test-role-id";
-        
-        var testableHttpRequestDataFactory = new TestableHttpRequestDataFactory();
-        var testableHttpRequestData = testableHttpRequestDataFactory.Create()
+        var testableHttpRequestData = new TestableHttpRequestDataFactory().Create()
             .WithInvalidAuthentication()
             .Returns(HttpStatusCode.Unauthorized)
-            .Build();        
-        
-        var rolesHttpTrigger = new RolesHttpTriggerBuilder()
             .Build();
 
+        var rolesHttpTrigger = new RolesHttpTriggerBuilder().Build();
+
         // Act
-        var result = await rolesHttpTrigger.DeleteRole(testableHttpRequestData, roleName);
+        var result = await rolesHttpTrigger.DeleteRole(testableHttpRequestData, "test-role");
 
         // Assert
         result.Should().NotBeNull();
-        // no header is added so it is a bad request
         result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-
 }

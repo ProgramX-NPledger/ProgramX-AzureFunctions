@@ -10,14 +10,28 @@ public class ApplicationsHttpTriggerBuilder
 {
     private Mock<ILogger<ApplicationsHttpTrigger>>? _mockedLogger;
     private Mock<IUserRepository>? _mockedUserRepository;
+    private Mock<IRoleRepository>? _mockedRoleRepository;
+    private Mock<IApplicationProvider>? _mockedApplicationProvider;
     private IConfiguration? _configuration;
 
-    public ApplicationsHttpTriggerBuilder WithIUserRepository(Action<Mock<IUserRepository>>? mockUserRepository)
+    public ApplicationsHttpTriggerBuilder WithIUserRepository(Action<Mock<IUserRepository>>? configure)
     {
-        _mockedUserRepository = UserRepositoryFactory.CreateUserRepository();
-        
-        if (mockUserRepository!=null) mockUserRepository(_mockedUserRepository!);
-        
+        _mockedUserRepository = new Mock<IUserRepository>();
+        configure?.Invoke(_mockedUserRepository);
+        return this;
+    }
+
+    public ApplicationsHttpTriggerBuilder WithIRoleRepository(Action<Mock<IRoleRepository>>? configure)
+    {
+        _mockedRoleRepository = new Mock<IRoleRepository>();
+        configure?.Invoke(_mockedRoleRepository);
+        return this;
+    }
+
+    public ApplicationsHttpTriggerBuilder WithIApplicationProvider(Action<Mock<IApplicationProvider>>? configure)
+    {
+        _mockedApplicationProvider = new Mock<IApplicationProvider>();
+        configure?.Invoke(_mockedApplicationProvider);
         return this;
     }
 
@@ -26,51 +40,36 @@ public class ApplicationsHttpTriggerBuilder
         _mockedLogger = mockLogger;
         return this;
     }
-    
+
     public ApplicationsHttpTriggerBuilder WithConfiguration(IConfiguration configuration)
     {
         _configuration = configuration;
         return this;
     }
-    
-
 
     public ApplicationsHttpTrigger Build()
     {
         CreateDefaultMocksWhereNotSet();
-        
-        if (_mockedLogger == null || _mockedUserRepository==null || _configuration == null)
-        {
-            throw new InvalidOperationException("All dependencies must be set before building");
-        }
 
         var mockedServiceProvider = new Mock<IServiceProvider>();
-        
+
         return new ApplicationsHttpTrigger(
-            _mockedLogger.Object,
-            _configuration,
-            _mockedUserRepository.Object,
+            _mockedLogger!.Object,
+            _configuration!,
+            _mockedUserRepository!.Object,
+            _mockedRoleRepository!.Object,
+            _mockedApplicationProvider!.Object,
             mockedServiceProvider.Object);
     }
 
     private void CreateDefaultMocksWhereNotSet()
     {
-        if (_mockedUserRepository == null)
-        {
-            WithIUserRepository(null);
-        }
-
-        if (_configuration == null)
-        {
-            _configuration = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.test.json")
-                .Build();
-        }
-        
-        if (_mockedLogger == null)
-        {
-            _mockedLogger = new Mock<ILogger<ApplicationsHttpTrigger>>();
-        }
-        
+        _mockedUserRepository ??= new Mock<IUserRepository>();
+        _mockedRoleRepository ??= new Mock<IRoleRepository>();
+        _mockedApplicationProvider ??= new Mock<IApplicationProvider>();
+        _mockedLogger ??= new Mock<ILogger<ApplicationsHttpTrigger>>();
+        _configuration ??= new ConfigurationBuilder()
+            .AddJsonFile("appsettings.test.json")
+            .Build();
     }
 }
