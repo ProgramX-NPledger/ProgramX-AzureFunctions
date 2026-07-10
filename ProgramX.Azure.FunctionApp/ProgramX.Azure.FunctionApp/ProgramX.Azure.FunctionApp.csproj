@@ -41,7 +41,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="AzureStorage\" />
-    <Folder Include="HealthChecks\Services\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Model\Responses\FixApplicationByHealthCheckItemResponse.cs" />
