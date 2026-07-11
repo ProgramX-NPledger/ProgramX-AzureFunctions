@@ -41,7 +41,7 @@ public class ApplicationsHttpTrigger(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "applications/{name?}")] HttpRequestData httpRequestData,
         string? name)
     {
-        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
+        return await RequiresAuthentication(httpRequestData, null, async (_, memberOfRoles) =>
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -72,8 +72,9 @@ public class ApplicationsHttpTrigger(
                     filteredApplications = filteredApplications.Where(a => withinRoles.Intersect(a.GetApplicationMetaData().RequiresRoleNames).Any()).ToList();
                 }
                 
-                // TODO Security hole: exposes existence of applications - should only do so for admin users
-
+                // remove applications user does not have access to
+                filteredApplications = filteredApplications.Where(a => memberOfRoles.Intersect(a.GetApplicationMetaData().RequiresRoleNames).Any()).ToList();
+                
                 return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetApplicationsResponse()
                 {
                     Applications = filteredApplications.Select(a => new ApplicationDto()
