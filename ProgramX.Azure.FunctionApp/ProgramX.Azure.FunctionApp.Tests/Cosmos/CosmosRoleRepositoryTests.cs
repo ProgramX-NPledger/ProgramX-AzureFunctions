@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -54,6 +55,7 @@ public class CosmosRoleRepositoryTests : CosmosTestBase
             .ReturnsAsync(mockItemResponse.Object);
     }
 
+    
     private static void SetupUserQueryIterator(Mock<Container> container, IEnumerable<User> users)
     {
         var userList = users.ToList();
@@ -207,5 +209,66 @@ public class CosmosRoleRepositoryTests : CosmosTestBase
 
         Assert.ThrowsAsync<ItemUpdateException>(async () =>
             await target.UpdateRoleAsync(role.RoleName, "updated", ["user1"]));
+    }
+    
+    
+    [Test]
+    public async Task UpdateRoleAsync_WithUsersInRole_WhenAddedUser_ShouldSucceed()
+    {
+        var role = CreateTestRole();
+        var existingUsers = CreateTestUsers(1);
+        
+        var mockCosmosDbClientFactoryForRole = new MockedCosmosDbClientFactory<Role>([role])
+        {
+            FilterItems = items => items.Where(r => r.RoleName == role.RoleName),
+            ConfigureContainerFunc = container =>
+            {
+                SetupRoleReplace(container);
+                SetupUserReplace(container, HttpStatusCode.OK);
+                // users assigned to Role ALREADY
+                SetupUserQueryIterator(container, existingUsers);
+            }
+        };
+        var mockCosmosClientForRole = mockCosmosDbClientFactoryForRole.Create();
+        SetupContainerPropertiesOverload(mockCosmosClientForRole);
+        
+        
+        var mockLogger = new Mock<ILogger<CosmosRoleRepository>>();
+
+        var target = new CosmosRoleRepository(mockCosmosClientForRole.MockedCosmosClient.Object, mockLogger.Object);
+        var result = await target.UpdateRoleAsync(role.RoleName, "updated", ["user1", "newUser"]);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.RoleName, Is.EqualTo(role.RoleName));
+    }
+    
+    
+    [Test]
+    public async Task UpdateRoleAsync_WithUsersInRole_WhenRemovedUser_ShouldSucceed()
+    {
+        var role = CreateTestRole();
+        var existingUsers = CreateTestUsers(1);
+
+        var mockCosmosClientFactory = new MockedCosmosDbClientFactory<Role>([role])
+        {
+            FilterItems = items => items.Where(r => r.RoleName == role.RoleName),
+            ConfigureContainerFunc = container =>
+            {
+                SetupRoleReplace(container);
+                SetupUserReplace(container, HttpStatusCode.OK);
+                // users assigned to Role ALREADY
+                SetupUserQueryIterator(container, existingUsers);
+            }
+        };
+        var mockCosmosClient = mockCosmosClientFactory.Create();
+        SetupContainerPropertiesOverload(mockCosmosClient);
+        
+        var mockLogger = new Mock<ILogger<CosmosRoleRepository>>();
+
+        var target = new CosmosRoleRepository(mockCosmosClient.MockedCosmosClient.Object, mockLogger.Object);
+        var result = await target.UpdateRoleAsync(role.RoleName, "updated", []);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.RoleName, Is.EqualTo(role.RoleName));
     }
 }

@@ -142,7 +142,7 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
             {
                 try
                 {
-                    user.Roles = user.Roles.Union([roleName]);
+                    user.Roles = user.Roles.Append(roleName);
                     await UpdateUserAsync(user);
                 }
                 catch (Exception e)
@@ -211,7 +211,7 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
     
         for (int i = 0; i < usersNotInRoleAndWillGetIt.Length; i++)
         {
-            conditions.Add($"c.userName=@addUserName{i} AND NOT ARRAY_CONTAINS(c.roles, @role)");
+            conditions.Add($"(c.userName=@addUserName{i} AND NOT ARRAY_CONTAINS(c.roles, @role))");
             parameters.Add(($"@addUserName{i}", usersNotInRoleAndWillGetIt[i]));
         }
     
@@ -239,7 +239,7 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
         // users who are in the role and will have it removed
         for (int i = 0; i < usersAlreadyInRoleAndWillHaveItRemoved.Length; i++)
         {
-            conditions.Add($"c.userName=@removeUserName{i} AND NOT ARRAY_CONTAINS(c.roles, @role)");
+            conditions.Add($"(c.userName=@removeUserName{i} AND NOT ARRAY_CONTAINS(c.roles, @role))");
             parameters.Add(($"@removeUserName{i}", usersAlreadyInRoleAndWillHaveItRemoved[i]));
         }
     
