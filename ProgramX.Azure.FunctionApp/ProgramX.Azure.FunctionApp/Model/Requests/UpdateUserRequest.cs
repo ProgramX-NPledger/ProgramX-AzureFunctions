@@ -29,6 +29,6 @@ public class UpdateUserRequest
     /// The new roles of the user. To set new roles, the user must have the "updateRolesScope" property set.
     /// </summary>
     [JsonPropertyName("roles")] 
-    public IEnumerable<string> Roles { get; set; } = [];
+    public IEnumerable<string>? Roles { get; set; } = [];
 
 }

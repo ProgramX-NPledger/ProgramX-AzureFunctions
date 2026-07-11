@@ -47,9 +47,9 @@ public interface IUserRepository
     /// <param name="emailAddress">Updated email address.</param>
     /// <param name="firstName">Updated first name.</param>
     /// <param name="lastName">Updated last name.</param>
-    /// <param name="roles">Updated roles.</param>
+    /// <param name="roles">Updated roles or <c>null</c> is Roles should not be updated.</param>
     Task<User> UpdateUserAsync(string userName, string emailAddress, string? firstName, string? lastName,
-        IEnumerable<string> roles);
+        IEnumerable<string>? roles);
     
     /// <summary>
     /// Update the settings for the specified user.

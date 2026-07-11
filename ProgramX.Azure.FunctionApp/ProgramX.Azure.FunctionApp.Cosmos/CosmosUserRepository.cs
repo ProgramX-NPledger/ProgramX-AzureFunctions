@@ -98,7 +98,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <inheritdoc />
     /// <exception cref="ArgumentException">Thrown if the user name is null or whitespace.</exception>
     /// <exception cref="RepositoryException">Thrown if the update failed.</exception>
-    public async Task<User> UpdateUserAsync(string userName, string emailAddress, string? firstName, string? lastName, IEnumerable<string> roles)
+    public async Task<User> UpdateUserAsync(string userName, string emailAddress, string? firstName, string? lastName, IEnumerable<string>? roles)
     {
         if (string.IsNullOrWhiteSpace(userName)) throw new ArgumentException(nameof(userName));
 
@@ -117,8 +117,10 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         existingUser.EmailAddress = emailAddress;
         existingUser.FirstName = firstName;
         existingUser.LastName = lastName;
-        existingUser.Roles = roles.ToList();
-        
+        if (roles != null)
+        {
+            existingUser.Roles = roles.ToList();
+        }
         var container = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
         var response = await container.ReplaceItemAsync(existingUser, existingUser.Id, new PartitionKey(userName));
 
