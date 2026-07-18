@@ -39,5 +39,6 @@ public enum InvalidPasswordUpdateReason
 {
     InvalidConfirmationNonce,
     WeakPassword,
-    PasswordResetLinkExpired
+    PasswordResetLinkExpired,
+    CurrentPasswordInvalid
 }

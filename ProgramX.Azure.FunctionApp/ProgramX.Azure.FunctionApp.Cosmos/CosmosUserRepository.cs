@@ -207,7 +207,7 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
     /// <exception cref="InvalidPasswordUpdateException">Thrown if the password update is invalid.</exception>
     /// <exception cref="ItemUpdateException">Thrown if the user password update fails.</exception>
     /// <remarks>This assumes the provided password has passed password strength validation.</remarks>
-    public async Task<User> UpdateUserPasswordAsync(string userName, string newPassword, string passwordConfirmationNonce)
+    public async Task<User> UpdateUserPasswordAsync(string userName, string currentPassword, string newPassword, string passwordConfirmationNonce)
     {
         var userPasswordsContainer = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.UserPasswords);
         var usersContainer = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.Users);
@@ -223,18 +223,23 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         ItemResponse<UserPassword> userPasswordResponse;
         if (userPassword == null)
         {
-            // password is new
-            
-            userPassword = CreateNewUserPassword(userName, newPassword);
-            userPasswordResponse = await userPasswordsContainer.CreateItemAsync(userPassword, new PartitionKey(userName));
-            if (userPasswordResponse.StatusCode != HttpStatusCode.Created)
-            {
-                throw new ItemUpdateException(typeof(UserPassword), userPasswordResponse.StatusCode);
-            }
+            throw new ItemUpdateException(typeof(UserPassword), "Password is legacy and does not have a UserPassword record which may be updated.");
         }
         else
         {
-            userPasswordResponse = await userPasswordsContainer.ReplaceItemAsync(userPassword, userPassword.id, new PartitionKey(userPassword.userName));
+            // the password is being updated, the current password will be in the UserPassword record
+            var isCurrentPasswordValid = PasswordVerification.PasswordsMatch(currentPassword, userPassword.PasswordHash,
+                userPassword.PasswordSalt);
+            if (!isCurrentPasswordValid)
+            {
+                throw new InvalidPasswordUpdateException(InvalidPasswordUpdateReason.CurrentPasswordInvalid);
+            }
+
+            var newUserPassword = CreateNewUserPassword(userName, newPassword);
+            userPassword.PasswordHash = newUserPassword.PasswordHash;
+            userPassword.PasswordSalt = newUserPassword.PasswordSalt;
+            
+            userPasswordResponse = await userPasswordsContainer.ReplaceItemAsync(userPassword, userPassword.Id, new PartitionKey(userPassword.UserName));
             if (userPasswordResponse.StatusCode != HttpStatusCode.OK)
             {
                 throw new ItemUpdateException(typeof(UserPassword), userPasswordResponse.StatusCode);
@@ -244,9 +249,11 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         // user is changing their password so reset these
         user.PasswordConfirmationNonce = null;
         user.PasswordLinkExpiresAt = null;
-            
+        user.LastPasswordChangeAtUtc = DateTime.UtcNow;
+        user.SchemaVersionNumber = user.SchemaVersionNumber < 2 ? 2 : user.SchemaVersionNumber;
+        
         ItemResponse<User> userResponse;
-        userResponse = await usersContainer.ReplaceItemAsync(user, userName, new PartitionKey(user.UserName));
+        userResponse = await usersContainer.ReplaceItemAsync(user, user.Id, new PartitionKey(user.UserName));
         if (userResponse.StatusCode != HttpStatusCode.OK)
         {
             throw new ItemUpdateException(typeof(UserPassword), userResponse.StatusCode);
@@ -328,10 +335,10 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
         var passwordSalt = hmac.Key;                
         var userPassword = new UserPassword()
         {
-            userName = userName,
-            id = Guid.NewGuid().ToString(),
-            passwordHash = passwordHash,
-            passwordSalt = passwordSalt,
+            UserName = userName,
+            Id = Guid.NewGuid().ToString(),
+            PasswordHash = passwordHash,
+            PasswordSalt = passwordSalt,
         };
         return userPassword;
     }
@@ -394,10 +401,10 @@ public class CosmosUserRepository(CosmosClient cosmosClient, ILogger<CosmosUserR
                 var userPasswordsContainer = cosmosClient.GetContainer(DatabaseNames.Core, ContainerNames.UserPasswords);
                 var userPasswordsResponse = await userPasswordsContainer.CreateItemAsync(new UserPassword()
                 {
-                    id = Guid.NewGuid().ToString(),
-                    userName = userName,
-                    passwordHash = userPasswordHashAsString!,
-                    passwordSalt = userPasswordSaltAsString!
+                    Id = Guid.NewGuid().ToString(),
+                    UserName = userName,
+                    PasswordHash = userPasswordHashAsString!,
+                    PasswordSalt = userPasswordSaltAsString!
                 }, new PartitionKey(userName));
                 if (userPasswordsResponse.StatusCode != HttpStatusCode.Created)
                 {

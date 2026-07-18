@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.ApplicationDefinitions;
 using ProgramX.Azure.FunctionApp.Contract;
+using ProgramX.Azure.FunctionApp.Cosmos;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
@@ -63,16 +64,13 @@ public class LoginHttpTrigger
             return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
         }
 
-        using var hmac = new HMACSHA512(userPassword.passwordSalt);
-        var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(credentials.Password));
-
-        for (var i = 0; i < computedHash.Length; i++)
-            if (computedHash[i] != userPassword.passwordHash[i])
-            {
-                _logger.LogError("Password for user {UserName} is incorrect", credentials.UserName);
-                return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
-            }
-
+        var isPasswordMatch = PasswordVerification.PasswordsMatch(credentials.Password, userPassword.PasswordHash, userPassword.PasswordSalt);
+        if (!isPasswordMatch)
+        {
+            _logger.LogError("Password for user {UserName} is incorrect", credentials.UserName);
+            return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
+        }
+        
         // password okay, get user to create JWT token
         var user = await _userRepository.GetUserByUserNameAsync(credentials.UserName);
         if (user==null)

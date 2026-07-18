@@ -45,7 +45,7 @@ public class PasswordValidator
         var invalidCharactersCount = password.Where(c => !legalCharacters.Contains(c)).Count();
         if (invalidCharactersCount > 0) passwordStrengthViolations.Add($"Password must contain only legal characters.");
         
-        throw new InvalidPasswordUpdateException(InvalidPasswordUpdateReason.WeakPassword, string.Join(", ", passwordStrengthViolations));
+        if (passwordStrengthViolations.Count > 0) throw new InvalidPasswordUpdateException(InvalidPasswordUpdateReason.WeakPassword, string.Join(", ", passwordStrengthViolations));
         
     }
 }

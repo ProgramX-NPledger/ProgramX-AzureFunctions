@@ -86,7 +86,13 @@ public class User
     /// <summary>
     /// Time stamp of the last password change.
     /// </summary>
+    [Obsolete("Use LastPasswordChangeAtUtc instead.")]
     public DateTime? LastPasswordChangeAt { get; set; }
+    
+    /// <summary>
+    /// Time stamp of the last password change.
+    /// </summary>
+    public DateTime? LastPasswordChangeAtUtc { get; set; }
     
     /// <summary>
     /// When the password reset link expires, if any.

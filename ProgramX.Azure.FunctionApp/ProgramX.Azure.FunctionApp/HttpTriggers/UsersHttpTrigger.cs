@@ -214,7 +214,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
     
     
     
-    
     [Function(nameof(DeleteUser))]
     public async Task<HttpResponseData> DeleteUser(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "users/{userName}")]
@@ -262,15 +261,17 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<UpdateUserPasswordRequest>(httpRequestData);
         if (updateUserRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
     
-        return await RequiresAuthentication(httpRequestData, null,  async (_, _) =>
+        return await RequiresAuthentication(httpRequestData, null,  async (userNameMakingRequest, _) =>
         {
+            if (userNameMakingRequest != userName) return await HttpResponseDataFactory.CreateForForbidden(httpRequestData, "Only the user is permitted to update their own password");
+            
             try
             {
                 // validate password and strength
                 var passwordValidator = new PasswordValidator();
                 passwordValidator.AssertValidPassword(updateUserRequest.NewPassword);
                 
-                await _userRepository.UpdateUserPasswordAsync(userName, updateUserRequest.NewPassword, updateUserRequest.PasswordConfirmationNonce);
+                await _userRepository.UpdateUserPasswordAsync(userName, updateUserRequest.CurrentPassword, updateUserRequest.NewPassword, updateUserRequest.PasswordConfirmationNonce);
             }
             catch (ItemNotFoundException)
             {
@@ -278,14 +279,26 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
             catch (InvalidPasswordUpdateException invalidPasswordUpdateException)
             {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, $"Invalid password update: {invalidPasswordUpdateException.Message}");
+                switch (invalidPasswordUpdateException.Reason)
+                {
+                    case InvalidPasswordUpdateReason.CurrentPasswordInvalid:
+                        return await HttpResponseDataFactory.CreateForUnauthorised(httpRequestData);
+                        break;
+                    case InvalidPasswordUpdateReason.WeakPassword:
+                        return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, $"Invalid password update: {invalidPasswordUpdateException.Message}");
+                        break;
+                    default:
+                        return await HttpResponseDataFactory.CreateForServerError(httpRequestData, $"Invalid password update: {invalidPasswordUpdateException.Message}");
+                        break;
+                }
+                
             }
             
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateUserPasswordResponse()
             {
                 Username = userName
             });
-        }, true);
+        });
     }
     
     

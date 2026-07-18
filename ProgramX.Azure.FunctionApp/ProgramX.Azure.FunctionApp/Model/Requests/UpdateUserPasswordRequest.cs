@@ -7,8 +7,11 @@ namespace ProgramX.Azure.FunctionApp.Model.Requests;
 /// </summary>
 public class UpdateUserPasswordRequest
 {
-  
-    
+    /// <summary>
+    /// The user's current password.
+    /// </summary>
+    [JsonPropertyName("currentPassword")]
+    public string CurrentPassword { get; set; }
 
     /// <summary>
     /// The new password of the user. To set a new password, the user must have the "updatePasswordScope" property set.
