@@ -34,6 +34,7 @@ public class FilesHttpTrigger : AuthorisedHttpTriggerBase
     private readonly IEmailSender _emailSender;
     private readonly IUserRepository _userRepository;
     private readonly IRoleRepository _roleRepository;
+    private readonly MultiPartContentHandler _multiPartContentHandler;
 
 
     public FilesHttpTrigger(ILogger<UsersHttpTrigger> logger,
@@ -41,20 +42,22 @@ public class FilesHttpTrigger : AuthorisedHttpTriggerBase
         IConfiguration configuration,
         IEmailSender emailSender,
         IUserRepository userRepository,
-        IRoleRepository roleRepository) : base(configuration, logger)
+        IRoleRepository roleRepository,
+        MultiPartContentHandler multiPartContentHandler) : base(configuration, logger)
     {
         _logger = logger;
         _storageClient = storageClient;
         _emailSender = emailSender;
         _userRepository = userRepository;
         _roleRepository = roleRepository;
+        _multiPartContentHandler = multiPartContentHandler;
     }
 
 
     
     [Function(nameof(GetFile))]
     public async Task<HttpResponseData> GetFile(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "file/{imageType}/{fileName}")] HttpRequestData httpRequestData,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "files/{imageType}/{fileName}")] HttpRequestData httpRequestData,
         string imageType,
         string fileName,
         int? w,
@@ -115,136 +118,51 @@ public class FilesHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(DeleteFile))]
     public async Task<HttpResponseData> DeleteFile(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/{userName}")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "files/{fileName}")]
         HttpRequestData httpRequestData,
-        string userName)
+        string fileName)
     {
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            var user = await _userRepository.GetUserByUserNameAsync(userName);
-            if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-            await _userRepository.DeleteUserByIdAsync(user.Id);
+            // TODO Delete file
+            // var user = await _userRepository.GetUserByUserNameAsync(userName);
+            // if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+            // await _userRepository.DeleteUserByIdAsync(user.Id);
             return HttpResponseDataFactory.CreateForSuccessNoContent(httpRequestData);
         });
     }
     
     [Function(nameof(CreateFile))]
     public async Task<HttpResponseData> CreateFile(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "file/{imageType}/{fileName}")]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "files/{filePurpose}/{fileName}")]
         HttpRequestData httpRequestData,
-        string imageType,
         string fileName,
+        string filePurpose,
         string? mustHaveAnyOfRoles)
     {
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
-            if (!httpRequestData.Headers.TryGetValues("Content-Type", out var ctValues))
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing Content-Type header.");
-            }
-
-            var contentType = ctValues.FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(contentType) || !contentType.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase))
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Content-Type must be multipart/form-data.");
-            }
-
-            var mediaType = MediaTypeHeaderValue.Parse(contentType);
-            var boundary = HeaderUtilities.RemoveQuotes(mediaType.Boundary).Value;
-            if (string.IsNullOrEmpty(boundary))
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing multipart boundary.");
-            }
-
-            if (!IsValidImageType(imageType))
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Invalid image type.");
-            }
-
-            var storageFolder = await _storageClient!.GetStorageFolderAsync(imageType);
-
-            httpRequestData.Body.Position = 0;
-            var multipartReader = new MultipartReader(boundary, httpRequestData.Body);
-            MultipartSection? multipartSection;
+            var readRequiresRoles = mustHaveAnyOfRoles?.Split(',') ?? [];
+            IEnumerable<SavedFile> savedFiles;
             try
             {
-                multipartSection = await multipartReader.ReadNextSectionAsync();
+                savedFiles =
+                    (await _multiPartContentHandler.UploadIncomingMultiPartContent(httpRequestData, filePurpose,
+                        readRequiresRoles)).ToArray();
             }
-            catch (IOException)
+            catch (Exception e)
             {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Missing multipart section.");
+                Console.WriteLine(e);
+                throw;
             }
-
-            var fileNames = new List<string>();
-            while (multipartSection != null)
-            {
-                if (ContentDispositionHeaderValue.TryParse(multipartSection.ContentDisposition, out var contentDisp)
-                    && contentDisp.DispositionType.Equals("form-data")
-                    && (!string.IsNullOrEmpty(contentDisp.FileName.Value) || !string.IsNullOrEmpty(contentDisp.FileNameStar.Value)))
-                {
-                    var originalName = contentDisp.FileName.Value ?? contentDisp.FileNameStar.Value ?? "file";
-                    var ext = Path.GetExtension(originalName);
-
-                    string blobFolder = originalName;
-                    
-                    string originalFileName = $"{blobFolder}/original{ext}";
-                    
-                    var base64EncodedData = DataForMultipartSection(multipartSection);
-                    var rawData = Convert.FromBase64String(base64EncodedData);
-                    
-                    using var originalImageStream = new MemoryStream(rawData);
-                    await storageFolder.SaveFileAsync($"{imageType}/{originalFileName}", originalImageStream, multipartSection.ContentType ?? "application/octet-stream");;
-
-                    // create an index entry file
-                    var blobIndexEntry = new BlobIndexEntry();
-                    if (!string.IsNullOrEmpty(mustHaveAnyOfRoles))
-                    {
-                        var roles = mustHaveAnyOfRoles.Split(',');
-                        blobIndexEntry.ReadRequiresRoles = roles;
-                    }
-                    else
-                    {
-                        blobIndexEntry.ReadRequiresRoles = new string[] { };
-                    }
-                    
-                    var json = JsonSerializer.Serialize(blobIndexEntry, new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                    });
-
-                    var jsonBytes = Encoding.ASCII.GetBytes(json);
-                    using var blobIndexEntryMemoryStream = new MemoryStream(jsonBytes);
-                    await storageFolder.SaveFileAsync($"{blobFolder}/blobIndexEntry.json", blobIndexEntryMemoryStream, "application/json");
-
-                    fileNames.Add(originalFileName);
-                }
-
-                multipartSection = await multipartReader.ReadNextSectionAsync();
-            }
-
+            
             return await HttpResponseDataFactory.CreateForCreated(httpRequestData, new CreateFileResponse()
             {
-                FileNames = fileNames
-            },"file", fileNames.First());
+                FileNames = savedFiles.Select(q => q.FileName)
+            },"file", savedFiles.Select(q => q.FileName).First());
         });
     }
-
-    private bool IsValidImageType(string imageType)
-    {
-        var validImageTypes = new string[] { nameof(BlobNames.AvatarImages) };
-        return validImageTypes.Contains(imageType, StringComparer.OrdinalIgnoreCase);
-    }
-
-    private string DataForMultipartSection(MultipartSection multipartSection)
-    {
-        // Reset position to the beginning if possible
-        if (multipartSection.Body.CanSeek)
-            multipartSection.Body.Position = 0;
-
-        using var reader = new StreamReader(multipartSection.Body, Encoding.UTF8);
-        return reader.ReadToEnd();
-    }
-
+    
     public static async Task<byte[]> ResizeAsync(byte[] input, int targetWidth, int? targetHeight = null)
     {
         using var inStream = new MemoryStream(input);

@@ -1,3 +1,4 @@
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using ProgramX.Azure.FunctionApp.Contract;
@@ -25,14 +26,25 @@ public class AzureBlobContainerClient : IStorageFolder
             ContentType = contentType
         };
 
-        // Stream directly to Blob Storage (no buffering in memory)
-        await blob.UploadAsync(stream, new BlobUploadOptions { HttpHeaders = headers });
-
-        return new IStorageFolder.SaveFileResult()
+        try
         {
-            ContentType = contentType,
-            Url = blob.Uri.ToString()
-        };
+            // Stream directly to Blob Storage (no buffering in memory)
+            await blob.UploadAsync(stream, new BlobUploadOptions { HttpHeaders = headers });
+            
+            return new IStorageFolder.SaveFileResult()
+            {
+                ContentType = contentType,
+                Url = blob.Uri.ToString()
+            };
+        }
+        catch (RequestFailedException requestFailedException)
+        {
+            Console.WriteLine(requestFailedException);
+            throw;
+        }
+
+
+
     }
     
     public async Task DeleteFileAsync(string fileName)

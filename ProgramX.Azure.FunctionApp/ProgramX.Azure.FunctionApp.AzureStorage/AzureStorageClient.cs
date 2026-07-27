@@ -8,10 +8,9 @@ public class AzureStorageClient(BlobServiceClient blobServiceClient) : IStorageC
 {
     public async Task<IStorageFolder> GetStorageFolderAsync(string folderName)
     {
-        var avatarImagesBlockContainerClient = blobServiceClient.GetBlobContainerClient(folderName);
-        await avatarImagesBlockContainerClient.CreateIfNotExistsAsync();
+        var blobContainerClient = blobServiceClient.GetBlobContainerClient(folderName);
 
-        return new AzureBlobContainerClient(avatarImagesBlockContainerClient);
+        return new AzureBlobContainerClient(blobContainerClient);
     }
 
 

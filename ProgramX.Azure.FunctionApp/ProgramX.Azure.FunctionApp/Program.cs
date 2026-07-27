@@ -69,6 +69,7 @@ builder.Services
     })
     .AddSingleton<ISingletonMutex,SingletonMutex>()
     .AddSingleton<IApplicationProvider, CachingApplicationProvider>()
+    .AddTransient<MultiPartContentHandler, MultiPartContentHandler>()
     .AddTransient<IEmailSender, AzureCommunicationsServicesEmailSender>(serviceProvoder =>
     {
         var configuration = serviceProvoder.GetRequiredService<IConfiguration>();

@@ -40,9 +40,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="AzureStorage\" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Remove="Model\Responses\FixApplicationByHealthCheckItemResponse.cs" />
     <Compile Remove="Model\Responses\FixApplicationByHealthCheckResponse.cs" />
   </ItemGroup>
