@@ -45,11 +45,6 @@ public class User
     public string? LastName { get; set; }
     
     /// <summary>
-    /// Filename of the profile photograph for the User with smaller dimensions.
-    /// </summary>
-    public string? ProfilePhotographSmall { get; set; }
-    
-    /// <summary>
     /// Filename of the profile photograph for the User with original dimensions.
     /// </summary>
     public string? ProfilePhotographOriginal { get; set; }

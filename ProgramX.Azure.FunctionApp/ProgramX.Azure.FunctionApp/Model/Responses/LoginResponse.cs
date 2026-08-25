@@ -31,7 +31,7 @@ public class LoginResponse
     [JsonPropertyName("initials")]
     public string? Initials { get; set; }
     
-    [JsonPropertyName("profilePhotographSmall")]
-    public string? ProfilePhotographSmall { get; set; }
+    [JsonPropertyName("profilePhotographFileName")]
+    public string? ProfilePhotographFileName { get; set; }
     
 }

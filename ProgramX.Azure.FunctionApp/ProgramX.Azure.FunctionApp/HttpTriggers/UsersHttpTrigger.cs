@@ -106,7 +106,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                             LastPasswordChangeAt = user.LastPasswordChangeAt,
                             PasswordLinkExpiresAt = user.PasswordLinkExpiresAt,
                             ProfilePhotographOriginal = user.ProfilePhotographOriginal,
-                            ProfilePhotographSmall = user.ProfilePhotographSmall,
                             Theme = user.Theme,
                             UpdatedAt = user.UpdatedAt
                         }
@@ -131,8 +130,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     LastLoginAt = user.LastLoginAt,
                     LastPasswordChangeAt = user.LastPasswordChangeAt,
                     PasswordLinkExpiresAt = user.PasswordLinkExpiresAt,
-                    ProfilePhotographOriginal = user.ProfilePhotographOriginal,
-                    ProfilePhotographSmall = user.ProfilePhotographSmall,
+                    ProfilePhotographOriginal = user.ProfilePhotographOriginal, 
                     Theme = user.Theme,
                     UpdatedAt = user.UpdatedAt
                 };
@@ -349,7 +347,7 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             IEnumerable<SavedFile> savedFiles;
             try
             {
-                savedFiles = (await _multiPartContentHandler.UploadIncomingMultiPartContent(httpRequestData, BlobNames.AvatarImages.ToString(), readRequiresRoles)).ToArray();
+                savedFiles = (await _multiPartContentHandler.UploadIncomingMultiPartContent(httpRequestData, nameof(BlobNames.AvatarImages).ToLower(), readRequiresRoles)).ToArray();
             }
             catch (Exception e)
             {
@@ -358,11 +356,20 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             }
             
             // write to user record
-            
+            // there should only be one image
+            if (savedFiles.Count() != 1)
+            {
+                return await HttpResponseDataFactory.CreateForServerError(httpRequestData,
+                    $"Expected exactly one save file, but got {savedFiles.Count()}");
+            }
+
+            await _userRepository.UpdateUserPhotoAsync(userName, savedFiles.First().FileName);
             
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateProfilePhotoResponse()
             {
-                
+                PhotoUrl = savedFiles.First().FileName,
+                HttpEventType = 4, // response
+                BytesTransferred = savedFiles.First().FileSize
             });
             
         });
@@ -416,43 +423,43 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         );
     }
     
-    //
-    // [Function(nameof(RemoveUserPhoto))]
-    // public async Task<HttpResponseData> RemoveUserPhoto(
-    //     [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/{id}/photo")]
-    //     HttpRequestData httpRequestData,
-    //     string id)
-    // {
-    //     return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
-    //     {
-    //         var user = await _userRepository.GetUserByIdAsync(id);
-    //         if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
-    //
-    //         Debug.Assert(_storageClient != null, nameof(_storageClient) + " != null");
-    //         var storageFolder = await _storageClient.GetStorageFolderAsync(_storageClient.GetBlobName(BlobNames.AvatarImages));
-    //         
-    //         await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.ProfilePhotographOriginal}");
-    //         await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.ProfilePhotographSmall}");
-    //         
-    //         // update record in DB
-    //         user.ProfilePhotographSmall = null;
-    //         user.ProfilePhotographOriginal = null;
-    //         
-    //         user.SchemaVersionNumber = user.SchemaVersionNumber > 2 ? user.SchemaVersionNumber : 2; // increment version number
-    //         await _userRepository.UpdateUserAsync(user);
-    //         
-    //         return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
-    //         {
-    //             ErrorMessage = null,
-    //             IsOk = true,
-    //             BytesTransferred = 0,
-    //             HttpEventType = HttpEventType.Response,
-    //             TotalBytesToTransfer = 0
-    //         });
-    //         
-    //     });
-    // }
-    //
+    
+    [Function(nameof(RemoveUserPhoto))]
+    public async Task<HttpResponseData> RemoveUserPhoto(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/{id}/photo")]
+        HttpRequestData httpRequestData,
+        string id)
+    {
+        return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
+        {
+            // var user = await _userRepository.GetUserByIdAsync(id);
+            // if (user == null) return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "User");
+            //
+            // Debug.Assert(_storageClient != null, nameof(_storageClient) + " != null");
+            // var storageFolder = await _storageClient.GetStorageFolderAsync(_storageClient.GetBlobName(BlobNames.AvatarImages));
+            //
+            // await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.ProfilePhotographOriginal}");
+            // await storageFolder.DeleteFileAsync($"{usernameMakingTheChange}/{user.ProfilePhotographSmall}");
+            //
+            // // update record in DB
+            // user.ProfilePhotographSmall = null;
+            // user.ProfilePhotographOriginal = null;
+            //
+            // user.SchemaVersionNumber = user.SchemaVersionNumber > 2 ? user.SchemaVersionNumber : 2; // increment version number
+            // await _userRepository.UpdateUserAsync(user);
+            //
+            // return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateResponse()
+            // {
+            //     ErrorMessage = null,
+            //     IsOk = true,
+            //     BytesTransferred = 0,
+            //     HttpEventType = HttpEventType.Response,
+            //     TotalBytesToTransfer = 0
+            // });
+            return null;
+        });
+    }
+    
     [Function(nameof(CreateUser))]
     public async Task<HttpResponseData> CreateUser(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "users")] HttpRequestData httpRequestData

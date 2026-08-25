@@ -3,7 +3,7 @@
 ###
 # @name Login
 POST {{host}} /api/v1/login
-#Content-Type: application/json
+Content-Type: application/json
 
 {
     "userName": "admin",

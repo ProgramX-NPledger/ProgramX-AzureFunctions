@@ -95,5 +95,13 @@ public interface IUserRepository
     Task<User> UpdateUserAsync(string userName, string emailAddress, string? firstName, string? lastName,
         IEnumerable<string>? roles);
 
+    /// <summary>
+    /// Update a User's profile photo.
+    /// </summary>
+    /// <param name="userName">The username of the User to update.</param>
+    /// <param name="fileName">The new profile photo filename for the User. If this is <c>null</c>, the profile photo will be removed.</param>
+    /// <returns>The updated User.</returns>
+    Task<User> UpdateUserPhotoAsync(string userName, string? fileName);
+    
 
 }

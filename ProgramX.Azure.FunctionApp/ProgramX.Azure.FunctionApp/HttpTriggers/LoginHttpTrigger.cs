@@ -98,9 +98,9 @@ public class LoginHttpTrigger
             CanUseApplications = permittedApplications.Select(a => a.GetApplicationMetaData().Name),
             FirstName = user.FirstName,
             LastName = user.LastName,
-            ProfilePhotographSmall = user.ProfilePhotographSmall,
             ProfilePhotoBase64 = string.Empty,
             Initials = GetInitials(user.FirstName, user.LastName),
+            ProfilePhotographFileName = user.ProfilePhotographOriginal
         });
         return httpResponse;
     }

@@ -15,6 +15,11 @@ public interface IStorageClient
     
 }
 
+// container name restrictions:
+// * Be lowercase
+// * Be 3–63 characters
+// * Contain only letters, numbers, and hyphens
+// * Not start or end with a hyphen
 public enum BlobNames
 {
     AvatarImages

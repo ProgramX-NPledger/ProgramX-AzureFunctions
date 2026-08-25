@@ -57,7 +57,7 @@ public class FilesHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(GetFile))]
     public async Task<HttpResponseData> GetFile(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "files/{imageType}/{fileName}")] HttpRequestData httpRequestData,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "files/{fileName}")] HttpRequestData httpRequestData,
         string imageType,
         string fileName,
         int? w,

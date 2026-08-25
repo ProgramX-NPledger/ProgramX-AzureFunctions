@@ -65,7 +65,8 @@ public class UsersHttpTriggerBuilder
             _configuration!,
             _mockedEmailSender!.Object,
             _mockedUserRepository!.Object,
-            _mockedRoleRepository!.Object);
+            _mockedRoleRepository!.Object,
+            null);
     }
 
     private void CreateDefaultMocksWhereNotSet()

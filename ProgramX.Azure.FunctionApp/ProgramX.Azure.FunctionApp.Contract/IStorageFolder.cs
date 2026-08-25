@@ -46,6 +46,10 @@ public interface IStorageFolder
         /// The MIME Content Type of the file.
         /// </summary>
         public string ContentType { get; set; }
+
+        public bool ContainerWasCreated { get; set; }
+
+        public bool OriginalWasOverwritten { get; set; }
     }
 
 }

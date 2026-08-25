@@ -33,7 +33,6 @@ public class MultiPartContentHandler
         await httpRequestData.Body.CopyToAsync(bodyStream);
         bodyStream.Position = 0;
         
-
         var multipartReader = CreateMultipartReader(bodyStream, multiPartContentBoundary);
         
         MultipartSection? multipartSection;
@@ -57,42 +56,32 @@ public class MultiPartContentHandler
             {
                 var savedFile = new SavedFile();
                 
+                // files must be saved with unique names to avoid collisions
+                
                 var originalName = contentDisp.FileName.Value ?? contentDisp.FileNameStar.Value ?? "file"; // eg. file.jpg
                 savedFile.FileName = originalName;
                 var ext = Path.GetExtension(originalName); // eg. .jpg
 
-                string blobFolder = originalName;
+                string blobFolder = $"{Guid.NewGuid():N}{ext}"; // eg abc123.jpg
                 
-                string originalFileName = $"{blobFolder}/original{ext}"; // eg. file.jpg/original.jpg
+                string safeFileName =$"{blobFolder}/{originalName}"; // eg. abc123.jpg/original.jpg
                 
                 using var rawStream = new MemoryStream();
                 await multipartSection.Body.CopyToAsync(rawStream);
                 rawStream.Position = 0;
                 
-                // var uploadedData = GetDataForMultipartSection(multipartSection);
-                //
-                // byte[] rawData = [];
-                // try
-                // {
-                //     rawData = Convert.FromBase64String(base64EncodedData);
-                // }
-                // catch (FormatException e)
-                // {
-                //     // invalid Base64
-                //     savedFile.Status = SavedFileStatus.InvalidBase64;
-                // }
-                
                 if (savedFile.Status == SavedFileStatus.IsProcessing)
                 {
-                    //using var originalImageStream = new MemoryStream(rawData);
-                    await storageFolder.SaveFileAsync($"{filePurpose}/{originalFileName}", rawStream,
+                    await storageFolder.SaveFileAsync($"{safeFileName}", rawStream,
                         multipartSection.ContentType ?? "application/octet-stream");
-                    ;
 
                     // create an index entry file
                     var blobIndexEntry = new BlobIndexEntry()
                     {
-                        ReadRequiresRoles = readRequiresRoles?.ToArray() ?? []
+                        ReadRequiresRoles = readRequiresRoles?.ToArray() ?? [],
+                        OriginalFileName = originalName,
+                        StoredFileName = safeFileName,
+                        ContainerName = filePurpose,
                     };
 
                     var json = JsonSerializer.Serialize(blobIndexEntry, new JsonSerializerOptions
@@ -102,8 +91,13 @@ public class MultiPartContentHandler
 
                     var jsonBytes = Encoding.ASCII.GetBytes(json);
                     using var blobIndexEntryMemoryStream = new MemoryStream(jsonBytes);
-                    await storageFolder.SaveFileAsync($"{blobFolder}/blobIndexEntry.json", blobIndexEntryMemoryStream,
+                    var blobIndexFileName = Path.Join(blobFolder,"blobIndexEntry.json");
+                    await storageFolder.SaveFileAsync(blobIndexFileName, blobIndexEntryMemoryStream,
                         "application/json");
+                    
+                    savedFile.Status = SavedFileStatus.Ok;
+                    savedFile.FileName = $"{filePurpose}/{safeFileName}";
+                    savedFile.FileSize = rawStream.Length;
                 }
 
                 savedFiles.Add(savedFile);

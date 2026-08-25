@@ -43,11 +43,6 @@ public class UserDto
     [JsonPropertyName("lastName")]
     public string? LastName { get; set; }
     
-    /// <summary>
-    /// Filename of the profile photograph for the User with smaller dimensions.
-    /// </summary>
-    [JsonPropertyName("profilePhotographSmall")]
-    public string? ProfilePhotographSmall { get; set; }
     
     /// <summary>
     /// Filename of the profile photograph for the User with original dimensions.

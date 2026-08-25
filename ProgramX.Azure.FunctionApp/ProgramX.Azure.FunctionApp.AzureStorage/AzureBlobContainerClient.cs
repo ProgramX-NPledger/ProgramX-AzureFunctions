@@ -19,27 +19,84 @@ public class AzureBlobContainerClient : IStorageFolder
 
     public async Task<IStorageFolder.SaveFileResult> SaveFileAsync(string fileName, Stream stream, string contentType = "application/octet-stream")
     {
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            throw new ArgumentException("File name is required.", nameof(fileName));
+        }
+
+        if (stream == null)
+        {
+            throw new ArgumentNullException(nameof(stream));
+        }
+
+        if (stream.CanSeek)
+        {
+            stream.Position = 0;
+        }
+        
         var blob = _blobContainerClient.GetBlobClient(fileName);
 
         var headers = new BlobHttpHeaders
         {
-            ContentType = contentType
+            ContentType = string.IsNullOrWhiteSpace(contentType)
+                ? "application/octet-stream"
+                : contentType
         };
 
+        var savedFileResult = new IStorageFolder.SaveFileResult();
+        
+        try
+        {
+            if (!await _blobContainerClient.ExistsAsync())
+            {
+                var blobContainerInfo = await _blobContainerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+                var createIfNotExistsResponse = blobContainerInfo.GetRawResponse();
+                savedFileResult.ContainerWasCreated = createIfNotExistsResponse.Status == 201;
+            }
+        }
+        catch (Exception  e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        
         try
         {
             // Stream directly to Blob Storage (no buffering in memory)
-            await blob.UploadAsync(stream, new BlobUploadOptions { HttpHeaders = headers });
-            
-            return new IStorageFolder.SaveFileResult()
+            await blob.UploadAsync(stream, new BlobUploadOptions { HttpHeaders = headers, Conditions = null });
+
+            savedFileResult.ContentType = contentType;
+            savedFileResult.Url = blob.Uri.ToString();
+            return savedFileResult;
+        }
+        catch (RequestFailedException requestFailedException) when (requestFailedException.Status == 409)
+        {
+            if (stream.CanSeek)
             {
-                ContentType = contentType,
-                Url = blob.Uri.ToString()
-            };
+                stream.Position = 0;
+            }
+
+            await blob.DeleteIfExistsAsync();
+
+            await blob.UploadAsync(stream, new BlobUploadOptions
+            {
+                HttpHeaders = headers
+            });
+
+            savedFileResult.OriginalWasOverwritten = true;
+            savedFileResult.ContentType = contentType;
+            savedFileResult.Url = blob.Uri.ToString();
+            return savedFileResult;
         }
         catch (RequestFailedException requestFailedException)
         {
-            Console.WriteLine(requestFailedException);
+            Console.WriteLine(
+                $"Azure Blob Storage request failed. " +
+                $"Container: {_blobContainerClient.Name}, " +
+                $"Blob: {fileName}, " +
+                $"Status: {requestFailedException.Status}, " +
+                $"ErrorCode: {requestFailedException.ErrorCode}, " +
+                $"Message: {requestFailedException.Message}");
             throw;
         }
 

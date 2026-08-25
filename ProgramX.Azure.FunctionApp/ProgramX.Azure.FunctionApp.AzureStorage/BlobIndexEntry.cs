@@ -9,5 +9,10 @@ public class BlobIndexEntry
     
     [JsonPropertyName("readRequiresRoles")]
     public string[] ReadRequiresRoles { get; set; }
-    
+
+    [JsonPropertyName("storedFileName")]
+    public string StoredFileName { get; set; }
+
+    [JsonPropertyName("containerName")]
+    public string ContainerName { get; set; }
 }
