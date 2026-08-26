@@ -380,54 +380,6 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         });
     }
 
-    private string DataForMultipartSection(MultipartSection multipartSection)
-    {
-        // Reset position to the beginning if possible
-        if (multipartSection.Body.CanSeek)
-            multipartSection.Body.Position = 0;
-
-        using var reader = new StreamReader(multipartSection.Body, Encoding.UTF8);
-        return reader.ReadToEnd();
-    }
-
-    public static async Task<byte[]> ResizeAsync(byte[] input, int targetWidth, int? targetHeight = null)
-    {
-        using var inStream = new MemoryStream(input);
-        
-        using var image = await Image.LoadAsync(inStream); // auto-detect format
-
-        // Respect EXIF orientation
-        image.Mutate(x => x.AutoOrient());
-
-        // Maintain aspect ratio when only width or height is given
-        var size = targetHeight.HasValue
-            ? new Size(targetWidth, targetHeight.Value)
-            : new Size(targetWidth, 0); // height 0 -> preserve aspect
-
-        image.Mutate(x => x.Resize(new ResizeOptions
-        {
-            Size = size,
-            Mode = ResizeMode.Max,  // no upscaling beyond original
-            Sampler = KnownResamplers.Lanczos3
-        }));
-
-        using var outStream = new MemoryStream();
-        // Choose encoder based on desired output (JPEG here)
-        var encoder = new JpegEncoder { Quality = 80 };
-        await image.SaveAsync(outStream, encoder);
-        return outStream.ToArray();
-    }
-
-    private bool IsValidEmail(string email)
-    {
-        return Regex.IsMatch(
-            email,
-            RegExConstants.ValidEmailAddress,
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
-            TimeSpan.FromMilliseconds(250) // avoid catastrophic backtracking
-        );
-    }
-    
     
     [Function(nameof(RemoveUserPhoto))]
     public async Task<HttpResponseData> RemoveUserPhoto(
