@@ -15,4 +15,8 @@ public class BlobIndexEntry
 
     [JsonPropertyName("containerName")]
     public string ContainerName { get; set; }
+
+    [JsonPropertyName("contentType")]
+    public string ContentType { get; set; }
+    
 }

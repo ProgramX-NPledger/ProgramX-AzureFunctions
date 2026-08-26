@@ -344,16 +344,21 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
         return await RequiresAuthentication(httpRequestData, null,  async (usernameMakingTheChange, _) =>
         {
             var readRequiresRoles = Array.Empty<string>();
-            IEnumerable<SavedFile> savedFiles;
+            List<UploadedFile> savedFiles;
             try
             {
-                savedFiles = (await _multiPartContentHandler.UploadIncomingMultiPartContent(httpRequestData, nameof(BlobNames.AvatarImages).ToLower(), readRequiresRoles)).ToArray();
+                savedFiles = (await _multiPartContentHandler.GetFileDataFromMultiPartContentAsync(httpRequestData)).ToList();
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
                 throw;
             }
+            
+            savedFiles.ForEach(f => f.FilePurpose=nameof(BlobNames.AvatarImages).ToLower());
+            
+            FileUploader fileUploader = new FileUploader(_storageClient);
+            await fileUploader.UploadFilesAsync(savedFiles);
             
             // write to user record
             // there should only be one image
@@ -363,13 +368,13 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
                     $"Expected exactly one save file, but got {savedFiles.Count()}");
             }
 
-            await _userRepository.UpdateUserPhotoAsync(userName, savedFiles.First().FileName);
+            await _userRepository.UpdateUserPhotoAsync(userName, savedFiles.First().OriginalFileName);
             
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateProfilePhotoResponse()
             {
-                PhotoUrl = savedFiles.First().FileName,
+                PhotoUrl = savedFiles.First().OriginalFileName,
                 HttpEventType = 4, // response
-                BytesTransferred = savedFiles.First().FileSize
+                BytesTransferred = savedFiles.First().Data.Length
             });
             
         });

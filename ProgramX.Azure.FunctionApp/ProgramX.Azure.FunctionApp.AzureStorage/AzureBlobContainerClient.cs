@@ -110,7 +110,7 @@ public class AzureBlobContainerClient : IStorageFolder
         await blob.DeleteIfExistsAsync();
     }
 
-    public async Task<StorageFile> GetStorageFileAsync(string fileName)
+    public async Task<StorageFile?> GetStorageFileAsync(string fileName)
     {
         // TODO: return null if not found
         var blob = _blobContainerClient.GetBlobClient(fileName);

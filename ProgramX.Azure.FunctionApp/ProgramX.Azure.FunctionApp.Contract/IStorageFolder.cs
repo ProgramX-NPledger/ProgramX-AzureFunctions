@@ -30,7 +30,7 @@ public interface IStorageFolder
     /// </summary>
     /// <param name="fileName">Filename of file to read.</param>
     /// <returns>A streamed file response.</returns>
-    Task<StorageFile> GetStorageFileAsync(string fileName);
+    Task<StorageFile?> GetStorageFileAsync(string fileName);
 
     /// <summary>
     /// Response from SaveFileAsync.

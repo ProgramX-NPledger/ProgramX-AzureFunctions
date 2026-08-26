@@ -20,14 +20,10 @@ public class MultiPartContentHandler
         _storageClient = storageClient;
     }
     
-    public async Task<IEnumerable<SavedFile>> UploadIncomingMultiPartContent(HttpRequestData httpRequestData,
-        string filePurpose,
-        IEnumerable<string>? readRequiresRoles)
+    public async Task<IEnumerable<UploadedFile>> GetFileDataFromMultiPartContentAsync(HttpRequestData httpRequestData)
     {
         string multiPartContentBoundary = GetMultiPartBoundary(httpRequestData);
         
-        var storageFolder = await _storageClient!.GetStorageFolderAsync(filePurpose);
-
         // Copy to seekable buffer before any reading - reads entire stream into memory
         using var bodyStream = new MemoryStream();
         await httpRequestData.Body.CopyToAsync(bodyStream);
@@ -46,7 +42,7 @@ public class MultiPartContentHandler
             throw new InvalidOperationException("Missing multipart section");
         }
         
-        var savedFiles = new List<SavedFile>();
+        var uploadedFiles = new List<UploadedFile>();
 
         while (multipartSection != null)
         {
@@ -54,59 +50,26 @@ public class MultiPartContentHandler
                 && contentDisp.DispositionType.Equals("form-data")
                 && (!string.IsNullOrEmpty(contentDisp.FileName.Value) || !string.IsNullOrEmpty(contentDisp.FileNameStar.Value)))
             {
-                var savedFile = new SavedFile();
-                
-                // files must be saved with unique names to avoid collisions
-                
-                var originalName = contentDisp.FileName.Value ?? contentDisp.FileNameStar.Value ?? "file"; // eg. file.jpg
-                savedFile.FileName = originalName;
-                var ext = Path.GetExtension(originalName); // eg. .jpg
-
-                string blobFolder = $"{Guid.NewGuid():N}{ext}"; // eg abc123.jpg
-                
-                string safeFileName =$"{blobFolder}/{originalName}"; // eg. abc123.jpg/original.jpg
+                var uploadedFile = new UploadedFile()
+                {
+                    OriginalFileName =
+                        contentDisp.FileName.Value ?? contentDisp.FileNameStar.Value ?? "file", // eg. file.jpg
+                    ContentType = multipartSection.ContentType ?? "application/octet-stream"
+                };
                 
                 using var rawStream = new MemoryStream();
                 await multipartSection.Body.CopyToAsync(rawStream);
                 rawStream.Position = 0;
+
+                uploadedFile.Data = rawStream.ToArray();
                 
-                if (savedFile.Status == SavedFileStatus.IsProcessing)
-                {
-                    await storageFolder.SaveFileAsync($"{safeFileName}", rawStream,
-                        multipartSection.ContentType ?? "application/octet-stream");
-
-                    // create an index entry file
-                    var blobIndexEntry = new BlobIndexEntry()
-                    {
-                        ReadRequiresRoles = readRequiresRoles?.ToArray() ?? [],
-                        OriginalFileName = originalName,
-                        StoredFileName = safeFileName,
-                        ContainerName = filePurpose,
-                    };
-
-                    var json = JsonSerializer.Serialize(blobIndexEntry, new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                    });
-
-                    var jsonBytes = Encoding.ASCII.GetBytes(json);
-                    using var blobIndexEntryMemoryStream = new MemoryStream(jsonBytes);
-                    var blobIndexFileName = Path.Join(blobFolder,"blobIndexEntry.json");
-                    await storageFolder.SaveFileAsync(blobIndexFileName, blobIndexEntryMemoryStream,
-                        "application/json");
-                    
-                    savedFile.Status = SavedFileStatus.Ok;
-                    savedFile.FileName = $"{filePurpose}/{safeFileName}";
-                    savedFile.FileSize = rawStream.Length;
-                }
-
-                savedFiles.Add(savedFile);
+                uploadedFiles.Add(uploadedFile);
             }
 
             multipartSection = await multipartReader.ReadNextSectionAsync();
         }
 
-        return savedFiles;
+        return uploadedFiles;
        
     }
 
