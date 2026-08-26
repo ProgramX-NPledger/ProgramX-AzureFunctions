@@ -58,14 +58,14 @@ public class FilesHttpTrigger : AuthorisedHttpTriggerBase
     
     [Function(nameof(GetFile))]
     public async Task<HttpResponseData> GetFile(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "files/{fileName}")] HttpRequestData httpRequestData,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "files/{*fileName}")] HttpRequestData httpRequestData,
         string fileName,
         int? width,
         int? height,
         int? maximumWidth,
         int? maximumHeight)
     {
-        return await RequiresAuthentication(httpRequestData, null, async (userName, roles) =>
+        return await RequiresAuthentication(httpRequestData, null, async (_, _) =>
         {
             // does the file already exist? If so, serve it
             // filename is in pattern <storage-folder>/<guid.ext>/<filename.ext>
@@ -98,7 +98,7 @@ public class FilesHttpTrigger : AuthorisedHttpTriggerBase
                     ".png"
                 };
 
-                if (!validImageExtensions.Contains(Path.GetExtension(splitFileName[2])))
+                if (!validImageExtensions.Contains(Path.GetExtension(splitFileName[2].ToLower())))
                 {
                     return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "Attempted to resize a file that is not an image.");
                 }
@@ -129,9 +129,11 @@ public class FilesHttpTrigger : AuthorisedHttpTriggerBase
                 // save the resized image to storage
                 using (var memoryStream = new MemoryStream(resizedImageBytes))
                 {
-                    await storageFolder.SaveFileAsync(requiredFileName, memoryStream, blobIndexEntry.ContentType);
+                    var resizedFileName = $"{splitFileName[1]}/{requiredFileName}";
+                    await storageFolder.SaveFileAsync(resizedFileName, memoryStream, blobIndexEntry.ContentType);
                     
-                    if (!await IsAuthorisedToReadFile(storageFolder, splitFileName[1], roles, blobIndexEntry))
+                    // TODO: get roles of user
+                    if (!await IsAuthorisedToReadFile(storageFolder, splitFileName[1], [], blobIndexEntry))
                     {
                         return await HttpResponseDataFactory.CreateForForbidden(httpRequestData, "File");
                     }
@@ -141,7 +143,8 @@ public class FilesHttpTrigger : AuthorisedHttpTriggerBase
             }
             else
             {
-                if (!await IsAuthorisedToReadFile(storageFolder, splitFileName[1], roles, blobIndexEntry))
+                // get roles of user
+                if (!await IsAuthorisedToReadFile(storageFolder, splitFileName[1], [], blobIndexEntry))
                 {
                     return await HttpResponseDataFactory.CreateForForbidden(httpRequestData, "File");
                 }
@@ -155,7 +158,7 @@ public class FilesHttpTrigger : AuthorisedHttpTriggerBase
             
             return response;
 
-        });
+        }, true);
     }
 
     private async Task<bool> IsAuthorisedToReadFile(IStorageFolder storageFolder, string folderNameContainingFile, IEnumerable<string> requiredRoles, BlobIndexEntry? blobIndexEntry)

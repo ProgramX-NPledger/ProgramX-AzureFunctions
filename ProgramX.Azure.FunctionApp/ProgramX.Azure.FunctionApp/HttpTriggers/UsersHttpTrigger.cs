@@ -358,17 +358,17 @@ public class UsersHttpTrigger : AuthorisedHttpTriggerBase
             savedFiles.ForEach(f => f.FilePurpose=nameof(BlobNames.AvatarImages).ToLower());
             
             FileUploader fileUploader = new FileUploader(_storageClient);
-            await fileUploader.UploadFilesAsync(savedFiles);
+            var uploadedFiles = await fileUploader.UploadFilesAsync(savedFiles);
             
             // write to user record
             // there should only be one image
-            if (savedFiles.Count() != 1)
+            if (uploadedFiles.Count() != 1)
             {
                 return await HttpResponseDataFactory.CreateForServerError(httpRequestData,
                     $"Expected exactly one save file, but got {savedFiles.Count()}");
             }
 
-            await _userRepository.UpdateUserPhotoAsync(userName, savedFiles.First().OriginalFileName);
+            await _userRepository.UpdateUserPhotoAsync(userName, uploadedFiles.First().FileName);
             
             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new UpdateProfilePhotoResponse()
             {

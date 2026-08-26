@@ -114,13 +114,24 @@ public class AzureBlobContainerClient : IStorageFolder
     {
         // TODO: return null if not found
         var blob = _blobContainerClient.GetBlobClient(fileName);
-        var properties = await blob.GetPropertiesAsync();
+        Response<BlobProperties> responseBlobProperties;
+        try
+        {
+            responseBlobProperties = await blob.GetPropertiesAsync();
+
+        }
+        catch (RequestFailedException requestFailedException)
+        {
+            if (requestFailedException.Status == 404) return null;
+            Console.WriteLine(requestFailedException);
+            throw;
+        }
         var content = await blob.OpenReadAsync();
 
         return new StorageFile
         {
             Content = content,
-            ContentType = properties.Value.ContentType ?? "application/octet-stream",
+            ContentType = responseBlobProperties.Value.ContentType ?? "application/octet-stream",
             FileName = fileName
         };
     }
