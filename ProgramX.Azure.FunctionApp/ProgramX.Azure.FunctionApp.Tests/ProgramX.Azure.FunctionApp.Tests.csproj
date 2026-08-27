@@ -33,6 +33,7 @@
     <ItemGroup>
         <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Contract\ProgramX.Azure.FunctionApp.Contract.csproj" />
         <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Model\ProgramX.Azure.FunctionApp.Model.csproj" />
+        <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Osm\ProgramX.Azure.FunctionApp.Osm.csproj" />
         <ProjectReference Include="..\ProgramX.Azure.FunctionApp\ProgramX.Azure.FunctionApp.csproj" />
     </ItemGroup>
 

@@ -1,21 +1,11 @@
 
-# Login sequence:
-# Call scouts/osm/initiatekeyexchange to get URL
-# Manually navigate to URL to authenticate. This calls the scouts/osm/completekeyexchange endpoint and returns tokens
-# Use tokens returned in JSON
-
-###
-# Initiate key exchange
-# Navigate to returned URL in browser (this uses the Client ID, Client Secret from appsettings.Development.json), which will call the CompleteKeyExchange function in Azure Functions. 
-# Use the returned tokens
-# Make sure to use fa-programx.azurewebsites.net in the returned URL to target the Azure Functions endpoint
-# DO NOT ENCODE THE URL IN redirect_uri AND ENSURE THE SCHEME IS CORRECT
-# The URI to navigate to will look something like (ie. just need to replace the redirect_uri parameter):
-# https://www.onlinescoutmanager.co.uk/oauth/authorize?response_type=code&client_id=xxxx&redirect_uri=https://fa-programx.azurewebsites.net/api/v1/scouts/osm/completekeyexchange&scope=section%3aattendance%3aread+section%3abadge%3aread+section%3aevent%3aread+section%3afinance%3aread+section%3aflexirecord%3awrite+section%3amember%3aread+section%3aprogramme%3aread
-
-GET  {{host}}/api/v1/scouts/osm/initiatekeyexchange
-
-https://www.onlinescoutmanager.co.uk/oauth/authorize?response_type=code&client_id=o37NLKG7LpIqIUaAVLhjobIedXwB5j7W&redirect_uri=https://fa-programx.azurewebsites.net/api/v1/scouts/osm/completekeyexchange&scope=section%3aattendance%3aread+section%3abadge%3aread+section%3aevent%3aread+section%3afinance%3aread+section%3aflexirecord%3awrite+section%3amember%3aread+section%3aprogramme%3aread
+# OSM authentication needs no manual steps. The Function App uses the OAuth2 client_credentials
+# grant and acquires its own access tokens from Osm:ClientId / Osm:ClientSecret. The former
+# initiatekeyexchange / completekeyexchange endpoints have been removed — see
+# ProgramX.Azure.FunctionApp.Osm/README.md.
+#
+# {{token}} below is the Program.X JWT from POST {{host}}/api/v1/login, NOT an OSM token.
+# Keep it in http-client.private.env.json, which is gitignored.
 
 ###
 # Get all members

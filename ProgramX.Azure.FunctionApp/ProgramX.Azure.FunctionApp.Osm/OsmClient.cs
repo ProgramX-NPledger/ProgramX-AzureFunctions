@@ -1,6 +1,5 @@
 using System.Net.Http.Json;
-using System.Transactions;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Osm;
@@ -14,29 +13,33 @@ namespace ProgramX.Azure.FunctionApp.Osm;
 public class OsmClient : IOsmClient
 {
     private readonly HttpClient _httpClient;
-    private readonly IConfiguration _configuration;
+    private readonly OsmOptions _options;
 
-    public int SectionId { get; private set; } 
-    
-    public OsmClient(HttpClient httpClient, IConfiguration configuration)
+    /// <summary>
+    /// The OSM section used when a request's criteria do not name one.
+    /// </summary>
+    public int SectionId => _options.SectionId;
+
+    public OsmClient(HttpClient httpClient, IOptions<OsmOptions> options)
     {
         _httpClient = httpClient;
-        _configuration = configuration;
-        
-        var sectionIdAsString = _configuration["Osm:SectionId"];
-        if (!string.IsNullOrWhiteSpace(sectionIdAsString)) SectionId = int.Parse(sectionIdAsString);
-            else SectionId = 54338;
+        _options = options.Value;
     }
+
+    /// <summary>
+    /// Builds an absolute OSM URI from a path relative to the configured base address.
+    /// </summary>
+    private Uri BuildUri(string relativePath, string query)
+        => new UriBuilder(new Uri(_options.BaseAddressUri, relativePath)) { Query = query }.Uri;
 
     /// <inheritdoc />
     public async Task<IEnumerable<Term>> GetTermsAsync(GetTermsCriteria criteria)
     {
-        var uriBuilder = new UriBuilder("https://www.onlinescoutmanager.co.uk/api.php");
-        uriBuilder.Query = $"action=getTerms";
-        
+        var uri = BuildUri("api.php", "action=getTerms");
+
         var sectionId = criteria.SectionId ?? SectionId;
 
-        var result = await _httpClient.GetFromJsonAsync<Dictionary<string, List<GetTermsResponseTerm>>>(uriBuilder.Uri);
+        var result = await _httpClient.GetFromJsonAsync<Dictionary<string, List<GetTermsResponseTerm>>>(uri);
 
         var terms = new List<Term>();
         
@@ -70,12 +73,15 @@ public class OsmClient : IOsmClient
     {
        // https://www.onlinescoutmanager.co.uk/ext/programme/?action=getProgrammeSummary&sectionid=54338&termid=849238&verbose=1
        
-        var uriBilder = new UriBuilder("https://www.onlinescoutmanager.co.uk/ext/programme/");
-        uriBilder.Query = $"action=getProgrammeSummary&verbose=1&termid={criteria.TermId}"; // verbose=1 required to return primary_leader and badges
-        uriBilder.Query += $"&sectionid={criteria.SectionId ?? SectionId}";
-        
-        var s = await _httpClient.GetStringAsync(uriBilder.Uri);
-        var getMeetingsResponse = await _httpClient.GetFromJsonAsync<GetProgrammeSummaryResponse>(uriBilder.Uri);
+        // verbose=1 required to return primary_leader and badges
+        var uri = BuildUri("ext/programme/",
+            $"action=getProgrammeSummary&verbose=1&termid={criteria.TermId}&sectionid={criteria.SectionId ?? SectionId}");
+
+        var getMeetingsResponse = await _httpClient.GetFromJsonAsync<GetProgrammeSummaryResponse>(uri);
+        if (getMeetingsResponse == null)
+        {
+            throw new OsmException($"Failed to {nameof(GetMeetingsAsync)}", uri.ToString());
+        }
 
         var meetings = TransformOsmProgrammeSummaryResponseItemsToMeetings(getMeetingsResponse.Items).ToList();
         var queryable = BuildQueryableForGetMeetingsCriteria(criteria,meetings);
@@ -117,12 +123,11 @@ public class OsmClient : IOsmClient
     {
         // GET https://www.onlinescoutmanager.co.uk/ext/members/contact/?action=getListOfMembers&sort=dob&sectionid=54338&termid=849238&section=scouts
         
-        var uriBuilder = new UriBuilder("https://www.onlinescoutmanager.co.uk/ext/members/contact/");
-        uriBuilder.Query = $"action=getListOfMembers&sort={Translation.TranslateSortBy(criteria.SortBy)}&termid={criteria.TermId}&section={criteria.SectionName}";
-        uriBuilder.Query += $"&sectionid={criteria.SectionId ?? SectionId}";
-        
-        var s = await _httpClient.GetStringAsync(uriBuilder.Uri);
-        var getMembersResponse = await _httpClient.GetFromJsonAsync<GetMembersResponse>(uriBuilder.Uri);
+        var uri = BuildUri("ext/members/contact/",
+            $"action=getListOfMembers&sort={Translation.TranslateSortBy(criteria.SortBy)}&termid={criteria.TermId}"
+            + $"&section={criteria.SectionName}&sectionid={criteria.SectionId ?? SectionId}");
+
+        var getMembersResponse = await _httpClient.GetFromJsonAsync<GetMembersResponse>(uri);
         if (getMembersResponse != null)
         {
             var members = getMembersResponse.Items.Select(q => new Member()
@@ -154,7 +159,7 @@ public class OsmClient : IOsmClient
             return membersWithPatrols;
         }
 
-        throw new OsmException($"Failed to {nameof(GetMembersAsync)}", uriBuilder.Uri.ToString());
+        throw new OsmException($"Failed to {nameof(GetMembersAsync)}", uri.ToString());
     }
     
     private string GetPatrolName(Member member, IList<Member> members)
@@ -173,13 +178,15 @@ public class OsmClient : IOsmClient
     {
         // https://www.onlinescoutmanager.co.uk/ext/members/attendance/?action=get&sectionid=54338&termid=849238&section=scouts&nototal=true
         
-        var uriBuilder = new UriBuilder("https://www.onlinescoutmanager.co.uk/ext/members/attendance/");
-        uriBuilder.Query = $"action=get&termid={criteria.TermId}"; // verbose=1 required to return primary_leader and badges
-        uriBuilder.Query += $"&sectionid={criteria.SectionId ?? SectionId}";
-        uriBuilder.Query += "&nototal=true";
-        uriBuilder.Query += "&section=scouts";
-        
-        var getAttendanceResponse = await _httpClient.GetFromJsonAsync<GetAttendanceResponse>(uriBuilder.Uri);
+        var uri = BuildUri("ext/members/attendance/",
+            $"action=get&termid={criteria.TermId}&sectionid={criteria.SectionId ?? SectionId}"
+            + "&nototal=true&section=scouts");
+
+        var getAttendanceResponse = await _httpClient.GetFromJsonAsync<GetAttendanceResponse>(uri);
+        if (getAttendanceResponse == null)
+        {
+            throw new OsmException($"Failed to {nameof(GetAttendanceAsync)}", uri.ToString());
+        }
 
         var attendance = TransformOsmAttendanceResponseItemsToAttendances(getAttendanceResponse.Items).ToList();
         var queryable = BuildQueryableForGetAttendanceCriteria(criteria,attendance);

@@ -1,118 +1,114 @@
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using ProgramX.Azure.FunctionApp.Contract;
-using ProgramX.Azure.FunctionApp.Osm.Model;
-using ProgramX.Azure.FunctionApp.Osm.Model.Osm.Responses;
 
 namespace ProgramX.Azure.FunctionApp.Osm;
 
+/// <summary>
+/// Attaches an OSM access token to every outbound request, and retries once if OSM rejects it.
+/// </summary>
+/// <remarks>
+/// Token acquisition, caching and expiry belong to <see cref="IOsmTokenProvider"/>. Keeping them
+/// out of this handler matters: handlers live in the <see cref="HttpMessageHandler"/> pool and are
+/// rotated on a lifetime unrelated to token validity, and several can be alive at once, so any
+/// state cached on the handler itself is both short-lived and not shared.
+/// </remarks>
 public class AuthTokenHandler : DelegatingHandler
 {
-    private readonly IConfiguration _configuration;
-    private readonly IIntegrationRepository _integrationRepository;
+    private readonly IOsmTokenProvider _tokenProvider;
     private readonly ILogger<AuthTokenHandler> _logger;
 
-    public const string OsmServiceName = "osm";
-    
-    // In a real app, inject a service that manages token storage/refreshing
-    private string? _bearerToken = null;
-    private string? _refreshToken = null;
-
-    public AuthTokenHandler(IConfiguration configuration, IIntegrationRepository integrationRepository, ILogger<AuthTokenHandler> logger)
+    public AuthTokenHandler(IOsmTokenProvider tokenProvider, ILogger<AuthTokenHandler> logger)
     {
-        _configuration = configuration;
-        _integrationRepository = integrationRepository;
+        _tokenProvider = tokenProvider;
         _logger = logger;
     }
 
-
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
     {
-        // if we do not have any cached tokens, try get get them from persisted storage first, then configuration
-        if (string.IsNullOrEmpty(_bearerToken) || string.IsNullOrEmpty(_refreshToken))
-        {
-            var integrationCredentials = await _integrationRepository.GetIntegrationCredentialsForServiceAsync(OsmServiceName);
-            if (integrationCredentials == null)
-            {
-                _bearerToken = _configuration["Osm:BearerToken"];
-                _refreshToken = _configuration["Osm:RefreshToken"];
-            }
-            else
-            {
-                _bearerToken = integrationCredentials.bearerToken;
-                _refreshToken = integrationCredentials.refreshToken;
-            }
-            
-            // if the tokens are still not set, we have a problem
-            if (string.IsNullOrEmpty(_bearerToken) || string.IsNullOrEmpty(_refreshToken))
-            {
-                throw new InvalidOperationException("Bearer token or refresh token not found in repository or configuration.");
-            }
-        }
-        
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _bearerToken);
+        // Cloned up front because HttpRequestMessage is single-use: the first send consumes its
+        // content stream, so the retry below needs its own copy. OSM requires form-encoded
+        // bodies on POSTs, so this is not hypothetical.
+        var retryCandidate = await CloneAsync(request, cancellationToken);
+
+        var accessToken = await _tokenProvider.GetAccessTokenAsync(forceRefresh: false, cancellationToken);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
         var response = await base.SendAsync(request, cancellationToken);
 
-        if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+        // Only 401 means "this token is not acceptable". A 403 means the token is valid but the
+        // client lacks the scope for this endpoint — refreshing returns an identical token, so
+        // retrying would just hide a configuration error as latency.
+        if (response.StatusCode != HttpStatusCode.Unauthorized)
         {
-            // unauthorised, so try refreshing the token
-            if (await RefreshTokensAsync())
-            {
-                // update the request headers with the new token
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _bearerToken);
-                
-                // Dispose the old response before retrying
-                response.Dispose();
-                response = await base.SendAsync(request, cancellationToken);
-            }
+            retryCandidate.Dispose();
+            return response;
         }
 
-        return response;
+        _logger.LogInformation("OSM returned 401 for {requestUri}; refreshing token and retrying once", request.RequestUri);
+
+        string refreshedToken;
+        try
+        {
+            refreshedToken = await _tokenProvider.GetAccessTokenAsync(forceRefresh: true, cancellationToken);
+        }
+        catch (OsmException osmException)
+        {
+            // Surfacing the original 401 would misreport a credentials problem as an auth failure
+            // against the data endpoint, so let the token error bubble to the trigger instead.
+            _logger.LogError(osmException, "Could not refresh OSM token after a 401");
+            retryCandidate.Dispose();
+            response.Dispose();
+            throw;
+        }
+
+        retryCandidate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", refreshedToken);
+        response.Dispose();
+
+        return await base.SendAsync(retryCandidate, cancellationToken);
     }
 
-    private async Task<bool> RefreshTokensAsync()
+    /// <summary>
+    /// Copies a request so it can be sent a second time, buffering any content.
+    /// </summary>
+    private static async Task<HttpRequestMessage> CloneAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
     {
-        var clientId = _configuration["Osm:ClientId"];
-        var clientSecret = _configuration["Osm:ClientSecret"];
-        
-        if (string.IsNullOrEmpty(_refreshToken) || string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+        var clone = new HttpRequestMessage(request.Method, request.RequestUri)
         {
-            _logger.LogWarning("Refresh token or client credentials are missing, cannot refresh tokens");
-            return false;
-        }
-
-        using var refreshClient = new HttpClient();
-        var postData = new Dictionary<string, string>
-        {
-            ["grant_type"] = "refresh_token",
-            ["refresh_token"] = _refreshToken,
-            ["client_id"] = clientId,
-            ["client_secret"] = clientSecret
+            Version = request.Version,
+            VersionPolicy = request.VersionPolicy
         };
 
-        var response = await refreshClient.PostAsync("https://www.onlinescoutmanager.co.uk/oauth/token", new FormUrlEncodedContent(postData));
-
-        if (response.IsSuccessStatusCode)
+        if (request.Content is not null)
         {
-            var osmTokenRefreshResponse = await response.Content.ReadFromJsonAsync<OsmTokenRefreshResponse>();
-            if (osmTokenRefreshResponse == null)
+            // Buffers the ORIGINAL content too, so reading it here does not consume a
+            // non-seekable stream out from under the first send.
+            await request.Content.LoadIntoBufferAsync();
+
+            var buffered = await request.Content.ReadAsByteArrayAsync(cancellationToken);
+            var clonedContent = new ByteArrayContent(buffered);
+            foreach (var header in request.Content.Headers)
             {
-                throw new InvalidOperationException("Could not deserialize token refresh response");
+                clonedContent.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
-            
-            await _integrationRepository.SetBearerAndRefreshTokensAsync(OsmServiceName, clientId, osmTokenRefreshResponse.AccessToken, osmTokenRefreshResponse.RefreshToken);
-            
-            // update the cached versions
-            _bearerToken = osmTokenRefreshResponse.AccessToken;
-            _refreshToken = osmTokenRefreshResponse.RefreshToken;
-            
-            return true;
+
+            clone.Content = clonedContent;
         }
 
-        return false;
+        foreach (var header in request.Headers)
+        {
+            clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
+
+        foreach (var option in ((IDictionary<string, object?>)request.Options))
+        {
+            clone.Options.Set(new HttpRequestOptionsKey<object?>(option.Key), option.Value);
+        }
+
+        return clone;
     }
 }

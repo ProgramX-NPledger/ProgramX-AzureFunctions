@@ -13,13 +13,18 @@ Integration with the Online Scout Manager API. This integration requires authent
 
 ### How to authenticate with the OSM API
 
-In order to authenticate with the OSM API, an OAuth2 token must be obtained.
+There is nothing to do. OSM uses the OAuth2 `client_credentials` grant, so the Function App obtains
+and renews its own access tokens from `Osm:ClientId` and `Osm:ClientSecret`. Set those two keys (plus
+`Osm:Scopes` and `Osm:SectionId`) and every request in `Osm.http` will work.
 
-1. Use the endpoint `GET  {{host}}/api/v1/scouts/osm/initiatekeyexchange` in the `Osm.http` file. 
-2. Browse to the URL in the `url` property returned, ensuring the `redirect_uri` matches the application URL defined in the OSM application _precisely_, ie. remove any encoding and verify the scheme is correct.
-3. You will be redirected to the OSM login page. Log in with your OSM credentials.
-4. This returns a JSON object containing the `access_token` and `refresh_token`. Both these must be set in the `appsettings.Development.json` file in the `Osm:BearerToken` and `Osm:RefreshToken` properties.
-5. You can now use any other methods in the `Osm.http` file. Use of the Bearer token and refreshing of it will be automatic, using the `AuthTokenHandler` class.
+The former manual key exchange — `initiatekeyexchange`, browsing to an OSM authorise URL, then
+pasting `access_token` / `refresh_token` into `appsettings.Development.json` — is gone, along with
+the `Osm:BearerToken` and `Osm:RefreshToken` keys. See
+`ProgramX.Azure.FunctionApp.Osm/README.md` for the current model.
+
+Note that `{{token}}` in these requests is the **Program.X** JWT from
+`POST {{host}}/api/v1/login`, not an OSM token. Put it in `http-client.private.env.json`, which is
+gitignored — not in the committed `http-client.env.json`.
 
 ### Getting Terms
 

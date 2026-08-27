@@ -1,18 +1,14 @@
-using System.Web;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model.DTOs.Osm;
 using ProgramX.Azure.FunctionApp.Model.DTOs.Osm.Response;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using ProgramX.Azure.FunctionApp.Osm;
-using ProgramX.Azure.FunctionApp.Osm.Constants;
 using ProgramX.Azure.FunctionApp.Osm.Helpers;
 using ProgramX.Azure.FunctionApp.Osm.Model;
 using ProgramX.Azure.FunctionApp.Osm.Model.Criteria;
-using ProgramX.Azure.FunctionApp.Osm.Model.Osm.Responses;
 using GetMembersResponse = ProgramX.Azure.FunctionApp.Model.DTOs.Osm.Response.GetMembersResponse;
 
 namespace ProgramX.Azure.FunctionApp.HttpTriggers.Scouting;
@@ -21,146 +17,25 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
 {
     private readonly ILogger<OsmIntegrationHttpTrigger> _logger;
     private readonly IOsmClient _osmClient;
-    private readonly IIntegrationRepository _integrationRepository;
-
 
     public OsmIntegrationHttpTrigger(ILogger<OsmIntegrationHttpTrigger> logger,
         IConfiguration configuration,
-        IOsmClient osmClient,
-        IIntegrationRepository integrationRepository
+        IOsmClient osmClient
         ) : base(configuration,logger)
     {
         _logger = logger;
         _osmClient = osmClient;
-        _integrationRepository = integrationRepository;
     }
 
-    [Function(nameof(InitiateKeyExchange))]
-    public async Task<HttpResponseData> InitiateKeyExchange(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/initiatekeyexchange")]
-        HttpRequestData httpRequestData)
-    {
-        using (_logger.BeginScope($"{nameof(OsmIntegrationHttpTrigger)}.{nameof(InitiateKeyExchange)}"))
-        {
-            var osmClientId = Configuration["Osm:ClientId"];
-            if (string.IsNullOrWhiteSpace(osmClientId))
-            {
-                _logger.LogError("Configuration Osm:ClientId is not set.");
-                return await HttpResponseDataFactory.CreateForServerError(httpRequestData,
-                    "No OSM client ID configured");
-            }
-            var osmScopes = Configuration["Osm:Scopes"];
-            if (string.IsNullOrWhiteSpace(osmScopes))
-            {
-                _logger.LogError("Configuration Osm:Scopes is not set.");
-                return await HttpResponseDataFactory.CreateForServerError(httpRequestData,
-                    "No OSM scopes configured");
-            }
+    // The InitiateKeyExchange / CompleteKeyExchange endpoints were removed when OSM auth moved to
+    // the client_credentials grant. They implemented the one-time authorization-code exchange that
+    // seeded a bearer + refresh token pair, which no longer exists: tokens are now acquired on
+    // demand by IOsmTokenProvider from the client id and secret alone.
+    //
+    // Both were also publicly reachable — AuthorizationLevel.Anonymous with no RequiresAuthentication
+    // wrapper — and CompleteKeyExchange returned an HTML page that postMessage'd the raw token JSON
+    // to window.opener. Do not reinstate them without an authorisation wrapper.
 
-            osmScopes = osmScopes.Replace(":", "%3a").Replace(" ", "%20");
-            
-            var keyCompletionEndpoint = Environment.GetEnvironmentVariable("OsmOAuth2KeyCompletion");
-
-            _logger.LogInformation(
-                "OSM authentication configuration: clientId={clientId}, redirectUrl={redirectUri}, scopes={scopes}",
-                osmClientId, keyCompletionEndpoint, osmScopes);
-            
-            var osmAuthUrl = "https://www.onlinescoutmanager.co.uk/oauth/authorize";
-
-            // Build authorization URL
-            var query = HttpUtility.ParseQueryString(string.Empty);
-            query["response_type"] = "code";
-            query["client_id"] = osmClientId;
-            query["redirect_uri"] = keyCompletionEndpoint;
-            query["scope"] = osmScopes;
-
-            var url = $"{osmAuthUrl}?response_type=code&client_id={osmClientId}&redirect_uri={keyCompletionEndpoint}&scope={osmScopes}";
-            _logger.LogInformation("Browse to URL {url}",url);
-            
-            return await HttpResponseDataFactory.CreateForSuccessAsString(httpRequestData, url);
-        }
-    }
-    
-
-    [Function(nameof(CompleteKeyExchange))]
-    public async Task<HttpResponseData> CompleteKeyExchange(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/completekeyexchange")]
-        HttpRequestData httpRequestData)
-    {
-        using (_logger.BeginScope($"{nameof(OsmIntegrationHttpTrigger)}.{nameof(CompleteKeyExchange)}"))
-        {
-            // the request will have a code
-            var code = httpRequestData.Query["code"];
-            if (code == null)
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,  "No code was returned from OSM");
-            }
-
-            // Exchange code for tokens
-            var postData = new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["code"] = code,
-                ["client_id"] = Configuration["Osm:ClientId"],
-                ["client_secret"] = Configuration["Osm:ClientSecret"],
-                ["redirect_uri"] = GetRedirectUri(httpRequestData)
-            };
-
-            var httpClient = new HttpClient();
-            var content = new FormUrlEncodedContent(postData);
-
-            var osmTokenUrl = "https://www.onlinescoutmanager.co.uk/oauth/token";
-            
-            var tokenResponse = await httpClient.PostAsync(osmTokenUrl, content);
-            string jsonAsString = await tokenResponse.Content.ReadAsStringAsync();
-            
-            // save tokens
-            var tokens = System.Text.Json.JsonSerializer.Deserialize<OsmTokenRefreshResponse>(jsonAsString);
-            if (tokens.IsError)
-            {
-                throw new OsmException(tokens);
-            }
-            
-            await _integrationRepository.SetBearerAndRefreshTokensAsync(ServiceConstants.ServiceName, Configuration["Osm:ClientId"], tokens.AccessToken, tokens.RefreshToken);
-            
-            
-
-            if (!tokenResponse.IsSuccessStatusCode)
-            {
-                _logger.LogError("Token exchange failed: {json}", jsonAsString);
-                return await HttpResponseDataFactory.CreateForServerError(httpRequestData, jsonAsString);
-            }
-
-            // return enough
-            string responseBody = @$"
-<html>
-    <head>
-        <title>OSM Authentication Complete</title>
-    </head>
-    <body>
-<script ""text/javascript"">
-            window.opener?.postMessage(
-            {{ type: 'LOGIN_COMPLETE', data: {jsonAsString} }},
-            window.location.origin
-                );
-
-            window.close();
-</script>
-        <p>OSM authentication complete. You can close this window.</p>
-    </body>
-</html>
-";
-            
-            
-            return await HttpResponseDataFactory.CreateForSuccessAsHtml(httpRequestData, responseBody);
-        }
-    }
-    
-    private static string GetRedirectUri(HttpRequestData httpRequestData)
-    {
-        return $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}/api/v1/scouts/osm/completekeyexchange";
-    }
- 
     [Function(nameof(GetMembers))]
     public async Task<HttpResponseData> GetMembers(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/osm/members")] HttpRequestData httpRequestData,
@@ -290,8 +165,8 @@ public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
          return await RequiresAuthentication(httpRequestData, ["admin","reader"], async (_, _) =>
          {
              // if term isn't provided, we need to do multiple calls to get all terms to get between dates
-             var attendances = GetAttendancesBetweenDatesAsync(onOrAfter, onOrBefore, sectionId);
-             
+             var attendances = await GetAttendancesBetweenDatesAsync(onOrAfter, onOrBefore, sectionId);
+
              return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, attendances);
          });
      }

@@ -52,3 +52,8 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Secrets. Real values for the HTTP Client belong in the *.private.env.json sibling,
+# which JetBrains merges over http-client.env.json by matching environment name.
+# Previously ignored only via .git/info/exclude, which is local to a single clone.
+http-client.private.env.json

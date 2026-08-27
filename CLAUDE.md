@@ -38,16 +38,22 @@ cd ProgramX.Azure.FunctionApp
 func start --pause-on-error --port 7276 --cors http://localhost:4200
 ```
 
-### Known-broken state at HEAD
+### Known-failing tests
 
-The **test project does not compile**. One error:
+The solution builds clean (app and tests). The earlier `UsersHttpTriggerBuilder` compile break is
+fixed.
 
-```
-Mocks/UsersHttpTriggerBuilder.cs(62,20): error CS7036: no argument given for required
-parameter 'multiPartContentHandler' of UsersHttpTrigger(..., MultiPartContentHandler)
-```
+`dotnet test --filter "Category!=Integration"` has **5 pre-existing failures** at `b72e0e0`, none
+OSM-related:
 
-The app project builds clean. HEAD is mid-refactor (see commit `8814e9c`, "Azure File Storage rework"), and `UsersHttpTrigger` gained a `MultiPartContentHandler` ctor parameter that the test builder wasn't updated for. `dotnet build` on the **solution** therefore fails — build the app project alone if you only need the app. Fix the builder before trusting any test run.
+- `ApplicationsHttpTriggerGetApplicationTests` (2) — the applications list comes back empty, so
+  filter/name assertions fail. Related to `CachingApplicationProvider`'s reflective discovery.
+- `UsersHttpTriggerUpdateUserPasswordTests` (3) — expect 400 but get 403/401. These are the
+  opt-in-auth behaviour the authorisation refactor is meant to address.
+
+Note that running the suite from a **fresh `git worktree`** fails far more broadly (~90) because
+`appsettings.Development.json` is gitignored and absent there. That is environmental, not a
+regression — compare failures from the same working directory.
 
 ### Local dependencies
 
@@ -55,7 +61,8 @@ The app project builds clean. HEAD is mid-refactor (see commit `8814e9c`, "Azure
   - **Requires Azurite ≥ 3.37.0.** `Azure.Storage.Blobs` 12.27.0 defaults to `ServiceVersion.V2026_02_06` and sends `x-ms-version: 2026-02-06`; Azurite only accepted that from 3.37.0 onwards (3.35.0 capped at `2025-11-05`). An older emulator rejects **every** blob call with `400 InvalidHeaderValue` while the same code works against real Azure. Upgrade with `npm install -g azurite@latest`; verify with `azurite --version` and by checking `dist/src/blob/utils/constants.js` → `ValidAPIVersions` contains the version the SDK sends. Bumping `Azure.Storage.Blobs` can re-break this — the SDK's newest `ServiceVersion` enum member is what goes on the wire unless `BlobClientOptions` pins it. Azurite 3.37.0 needs Node ≥ 22.
 - **Cosmos DB Emulator** at `https://localhost:8081` per `appsettings.test.json`.
 - `local.settings.json` is committed with `"IsEncrypted": true` — values are ciphertext. Use `func settings decrypt` before reading or editing them.
-- Real local config (Cosmos connection string, `JwtKey`, OSM secrets) lives in `ProgramX.Azure.FunctionApp/appsettings.Development.json`, which **is** in git. Treat those as live credentials.
+- Real local config (Cosmos connection string, `JwtKey`, OSM secrets) lives in `ProgramX.Azure.FunctionApp/appsettings.Development.json`. It is **gitignored and was never committed** — verified with `git log --all -- '**/appsettings.Development.json'`. Treat the values as live credentials, but they are not in history.
+- `HTTP Requests/http-client.private.env.json` (OSM account email/password) is gitignored and untracked. The committed `http-client.env.json` must stay placeholder-only — it previously carried a real client secret, which is still in history at `896e1d7`.
 
 ## Architecture
 
@@ -64,6 +71,8 @@ The app project builds clean. HEAD is mid-refactor (see commit `8814e9c`, "Azure
 ### Composition root
 
 `ProgramX.Azure.FunctionApp/Program.cs` is where essentially all DI lives — repositories, clients, health checks, the OSM `HttpClient` with its `AuthTokenHandler`. Note that `ProgramX.Azure.FunctionApp.Core/DependencyInjectionConfiguration.cs` is called first but registers only `ObjectSerializer`; don't go looking there for service wiring.
+
+OSM authenticates with the OAuth2 **`client_credentials`** grant. `IOsmTokenProvider` (singleton) owns the access token — in-memory cache, single-flight refresh, proactive expiry from `expires_in` — and `AuthTokenHandler` just attaches it, retrying once on 401 but deliberately **not** on 403. There is no refresh token, nothing persisted, and no key-exchange endpoints. Config binds to `OsmOptions` from the `Osm` section; note `.ValidateOnStart()` is intentionally omitted so bad OSM config fails only OSM endpoints rather than aborting host startup. See `ProgramX.Azure.FunctionApp.Osm/README.md`.
 
 Two secrets bypass `IConfiguration` entirely and are read with `Environment.GetEnvironmentVariable`, throwing at startup if unset:
 
