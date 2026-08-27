@@ -1,7 +1,8 @@
-using ProgramX.Azure.FunctionApp.Model;
+using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
+using ProgramX.Azure.FunctionApp.Scouting.Model;
 
-namespace ProgramX.Azure.FunctionApp.Contract;
+namespace ProgramX.Azure.FunctionApp.Scouting.Contract;
 
 /// <summary>
 /// Provides data functionality for Scouting models.
@@ -47,11 +48,17 @@ public interface IScoutingRepository
 
 
     /// <summary>
-    /// Creates a Scouting Score Item.
+    /// Creates a new scouting score item.
     /// </summary>
-    /// <param name="scoutingScoreItem"></param>
-    /// <returns></returns>
-    Task CreateScoutingScoreItemAsync(ScoutingScoreItem scoutingScoreItem);
+    /// <param name="osmMemberId">The OSM Member ID.</param>
+    /// <param name="date">The date that the score will be recorded for.</param>
+    /// <param name="scoreName">The name of the Score.</param>
+    /// <param name="score">The value of the Score.</param>
+    /// <param name="patrolName">The name of the Patrol of the Member.</param>
+    /// <param name="notes">Notes attached to the Score, if any.</param>
+    /// <returns>The created <see cref="ScoutingScoreItem"/>.</returns>
+    Task<ScoutingScoreItem> CreateScoutingScoreItemAsync(int osmMemberId, DateOnly date, string scoreName, int score,
+        string patrolName, string? notes);
 
     /// <summary>
     /// Gets Scouting Score Items.

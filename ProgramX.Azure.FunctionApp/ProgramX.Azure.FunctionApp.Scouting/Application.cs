@@ -1,5 +1,6 @@
 ﻿using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
+using ProgramX.Azure.FunctionApp.Scouting.Contract;
 using ProgramX.Azure.FunctionApp.Scouting.HealthChecks;
 
 namespace ProgramX.Azure.FunctionApp.Scouting;

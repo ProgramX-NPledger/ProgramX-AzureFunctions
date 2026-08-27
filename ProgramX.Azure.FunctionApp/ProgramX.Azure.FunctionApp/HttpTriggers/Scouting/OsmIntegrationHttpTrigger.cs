@@ -1,28 +1,11 @@
-using System.Diagnostics;
-using System.Globalization;
-using System.Net;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Web;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Net.Http.Headers;
-using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
-using Newtonsoft.Json;
-using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Contract;
-using ProgramX.Azure.FunctionApp.Helpers;
-using ProgramX.Azure.FunctionApp.Model;
-using ProgramX.Azure.FunctionApp.Model.Constants;
-using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.DTOs.Osm;
 using ProgramX.Azure.FunctionApp.Model.DTOs.Osm.Response;
-using ProgramX.Azure.FunctionApp.Model.Osm;
-using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using ProgramX.Azure.FunctionApp.Osm;
 using ProgramX.Azure.FunctionApp.Osm.Constants;
@@ -30,13 +13,9 @@ using ProgramX.Azure.FunctionApp.Osm.Helpers;
 using ProgramX.Azure.FunctionApp.Osm.Model;
 using ProgramX.Azure.FunctionApp.Osm.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Osm.Model.Osm.Responses;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Processing;
-using EmailMessage = ProgramX.Azure.FunctionApp.Model.EmailMessage;
 using GetMembersResponse = ProgramX.Azure.FunctionApp.Model.DTOs.Osm.Response.GetMembersResponse;
 
-namespace ProgramX.Azure.FunctionApp.HttpTriggers;
+namespace ProgramX.Azure.FunctionApp.HttpTriggers.Scouting;
 
 public class OsmIntegrationHttpTrigger : AuthorisedHttpTriggerBase
 {

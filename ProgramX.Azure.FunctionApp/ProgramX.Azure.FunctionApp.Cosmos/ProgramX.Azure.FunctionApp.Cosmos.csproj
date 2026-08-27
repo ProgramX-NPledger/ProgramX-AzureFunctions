@@ -8,6 +8,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Contract\ProgramX.Azure.FunctionApp.Contract.csproj" />
+      <ProjectReference Include="..\ProgramX.Azure.FunctionApp.Scouting\ProgramX.Azure.FunctionApp.Scouting.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,6 +1,6 @@
-using System.Collections.Specialized;
+using ProgramX.Azure.FunctionApp.Model;
 
-namespace ProgramX.Azure.FunctionApp.Model;
+namespace ProgramX.Azure.FunctionApp.Scouting.Model;
 
 public class ScoutingActivity
 {

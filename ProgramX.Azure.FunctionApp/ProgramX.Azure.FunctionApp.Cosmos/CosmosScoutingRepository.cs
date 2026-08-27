@@ -7,6 +7,8 @@ using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.Exceptions;
+using ProgramX.Azure.FunctionApp.Scouting.Contract;
+using ProgramX.Azure.FunctionApp.Scouting.Model;
 using User = ProgramX.Azure.FunctionApp.Model.User;
 
 namespace ProgramX.Azure.FunctionApp.Cosmos;
@@ -169,24 +171,34 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
         return scoutingScoreItems.Items.SingleOrDefault();
     }
 
-    public async Task CreateScoutingScoreItemAsync(ScoutingScoreItem scoutingScoreItem)
+    /// <inheritdoc />
+    /// <exception cref="ItemCreationException">Thrown if the creaation failed.</exception>
+    public async Task<ScoutingScoreItem> CreateScoutingScoreItemAsync(int osmMemberId, DateOnly date, string scoreName, int score, string patrolName, string? notes)
     {
-        using (logger.BeginScope("CreateScoutingScoreItemAsync {scoutingScoreItem}", scoutingScoreItem))
+        var container = cosmosClient.GetContainer(DatabaseNames.Scouting, ContainerNames.ScoresLedger);
+        
+        var scoutingScoreItem = new ScoutingScoreItem
         {
-            var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync(DatabaseNames.Scouting);
-            var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(ContainerNames.ScoresLedger, ContainerNames.ScoresLedgerPartitionKey);
+            OsmMemberId = osmMemberId,
+            Date = date,
+            ScoreName = scoreName,
+            Score = score,
+            PatrolName = patrolName,
+            Notes = notes,
+            SchemaVersionNumber = 1,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            Id = Guid.NewGuid().ToString()
+        };
+        
+        var response = await container.CreateItemAsync(scoutingScoreItem, new PartitionKey(scoutingScoreItem.Id));
 
-            var response = await containerResponse.Container.CreateItemAsync(scoutingScoreItem, new PartitionKey(scoutingScoreItem.id));
-
-            if (response.StatusCode != HttpStatusCode.Created)
-            {
-                logger.LogError(
-                    "Failed to create {type} with id {id} with status code {statusCode} and response {response}", nameof(ScoutingActivity),scoutingScoreItem.id,
-                    response.StatusCode, response);
-                throw new RepositoryException(OperationType.Create, typeof(ScoutingActivity));
-            }
-            logger.LogDebug("Success");
-        }    
+        if (response.StatusCode != HttpStatusCode.Created)
+        {
+            throw new ItemCreationException(typeof(ScoutingScoreItem), response.StatusCode);
+        }
+        
+        return scoutingScoreItem;
     }
     
     
@@ -197,12 +209,12 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
             var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync(DatabaseNames.Scouting);
             var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(ContainerNames.Scores, ContainerNames.ScoresPartitionKey);
 
-            var response = await containerResponse.Container.CreateItemAsync(scoutingScore, new PartitionKey(scoutingScore.id));
+            var response = await containerResponse.Container.CreateItemAsync(scoutingScore, new PartitionKey(scoutingScore.Id));
 
             if (response.StatusCode != HttpStatusCode.Created)
             {
                 logger.LogError(
-                    "Failed to create {type} with id {id} with status code {statusCode} and response {response}", nameof(ScoutingActivity),scoutingScore.id,
+                    "Failed to create {type} with id {id} with status code {statusCode} and response {response}", nameof(ScoutingActivity),scoutingScore.Id,
                     response.StatusCode, response);
                 throw new RepositoryException(OperationType.Create, typeof(ScoutingActivity));
             }

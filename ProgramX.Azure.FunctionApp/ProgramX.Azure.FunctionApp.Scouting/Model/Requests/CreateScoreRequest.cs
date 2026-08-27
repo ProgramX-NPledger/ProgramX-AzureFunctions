@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace ProgramX.Azure.FunctionApp.Model.Requests;
+namespace ProgramX.Azure.FunctionApp.Scouting.Model.Requests;
 
 public class CreateScoreRequest
 {

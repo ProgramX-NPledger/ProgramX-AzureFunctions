@@ -1,26 +1,19 @@
-using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Net.Http.Headers;
-using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Constants;
-using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Processing;
+using ProgramX.Azure.FunctionApp.Scouting.Contract;
+using ProgramX.Azure.FunctionApp.Scouting.Model;
+using ProgramX.Azure.FunctionApp.Scouting.Model.Requests;
 
-namespace ProgramX.Azure.FunctionApp.HttpTriggers;
+namespace ProgramX.Azure.FunctionApp.HttpTriggers.Scouting;
 
 public class ScoutingActivitiesHttpTrigger : AuthorisedHttpTriggerBase
 {

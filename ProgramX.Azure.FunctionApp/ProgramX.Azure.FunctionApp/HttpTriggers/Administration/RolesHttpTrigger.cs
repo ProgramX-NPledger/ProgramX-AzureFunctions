@@ -1,5 +1,4 @@
 using System.Text;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
@@ -14,7 +13,7 @@ using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using ProgramX.Azure.FunctionApp.Model.Responses.Dtos;
 
-namespace ProgramX.Azure.FunctionApp.HttpTriggers;
+namespace ProgramX.Azure.FunctionApp.HttpTriggers.Administration;
 
 public class RolesHttpTrigger : AuthorisedHttpTriggerBase
 {

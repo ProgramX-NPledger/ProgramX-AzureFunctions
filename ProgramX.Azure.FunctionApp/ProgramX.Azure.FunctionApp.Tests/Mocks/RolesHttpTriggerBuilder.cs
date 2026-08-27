@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.HttpTriggers;
+using ProgramX.Azure.FunctionApp.HttpTriggers.Administration;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
 

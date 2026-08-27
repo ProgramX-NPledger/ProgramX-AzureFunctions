@@ -1,12 +1,9 @@
 using System.Text.Json.Serialization;
 
-namespace ProgramX.Azure.FunctionApp.Model.DTOs;
+namespace ProgramX.Azure.FunctionApp.Scouting.Model.DTOs;
 
 public class ScoutingScoreDto
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; }
-    
     [JsonPropertyName("name")]
     public string Name { get; set; }
     
@@ -18,9 +15,6 @@ public class ScoutingScoreDto
     
     [JsonPropertyName("ordinal")]
     public int Ordinal { get; set; }
-
-    [JsonPropertyName("schemaVersionNumber")]
-    public int SchemaVersionNumber { get; set; }
 
     [JsonPropertyName("createdAt")]
     public DateTime CreatedAt { get; set; }

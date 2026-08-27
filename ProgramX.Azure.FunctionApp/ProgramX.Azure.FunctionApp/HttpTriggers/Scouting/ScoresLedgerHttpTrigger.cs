@@ -1,31 +1,24 @@
-using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Net.Http.Headers;
-using ProgramX.Azure.FunctionApp.Constants;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Constants;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.DTOs;
-using ProgramX.Azure.FunctionApp.Model.DTOs.Osm.Response;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using ProgramX.Azure.FunctionApp.Osm;
-using ProgramX.Azure.FunctionApp.Osm.Model.Criteria;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Processing;
-using EmailMessage = ProgramX.Azure.FunctionApp.Model.EmailMessage;
+using ProgramX.Azure.FunctionApp.Scouting.Contract;
+using ProgramX.Azure.FunctionApp.Scouting.Model;
+using ProgramX.Azure.FunctionApp.Scouting.Model.DTOs;
+using ProgramX.Azure.FunctionApp.Scouting.Model.Requests;
+using ProgramX.Azure.FunctionApp.Scouting.Model.Responses;
 
-namespace ProgramX.Azure.FunctionApp.HttpTriggers;
+namespace ProgramX.Azure.FunctionApp.HttpTriggers.Scouting;
 
 public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
 {
@@ -59,23 +52,14 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
                 await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateScoutingScoreItemRequest>(httpRequestData);
             if (createScoutingScoreItemRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
             
-            var newScoutingScoreItem = new ScoutingScoreItem()
-            {
-                id = Guid.NewGuid().ToString("N"),
-                score = createScoutingScoreItemRequest.Score,
-                date = DateOnly.FromDateTime(createScoutingScoreItemRequest.Date),
-                osmMemberId = createScoutingScoreItemRequest.OsmScoutId,
-                patrolName = createScoutingScoreItemRequest.PatrolName,
-                createdAt = DateTime.Now,
-                updatedAt = null,
-                schemaVersionNumber = 1,
-                notes = createScoutingScoreItemRequest.Notes,
-                scoreName = createScoutingScoreItemRequest.ScoreName
-            };
+            var newScoutingScoreItem = await _scoutingRepository.CreateScoutingScoreItemAsync(createScoutingScoreItemRequest.OsmScoutId, 
+                DateOnly.FromDateTime(createScoutingScoreItemRequest.Date), 
+                createScoutingScoreItemRequest.ScoreName, 
+                createScoutingScoreItemRequest.Score, 
+                createScoutingScoreItemRequest.PatrolName, 
+                createScoutingScoreItemRequest.Notes);
             
-            await _scoutingRepository.CreateScoutingScoreItemAsync(newScoutingScoreItem);
-            
-            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newScoutingScoreItem, "scoutingScore", newScoutingScoreItem.id);    
+            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, newScoutingScoreItem, "scoutingScore", newScoutingScoreItem.Id);    
         });
      }
     
@@ -253,14 +237,12 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
             {
                 Items = scoutingScores.Select(q => new ScoutingScoreDto()
                 {
-                    Name = q.name,
-                    CreatedAt = q.createdAt,
-                    Id = q.id,
-                    IsDynamicallyCalculated = q.isDynamicallyCalculated,
-                    Ordinal = q.ordinal,
-                    Score = q.score,
-                    SchemaVersionNumber = q.schemaVersionNumber,
-                    UpdatedAt = q.updatedAt
+                    Name = q.Name,
+                    CreatedAt = q.CreatedAt,
+                    IsDynamicallyCalculated = q.IsDynamicallyCalculated,
+                    Ordinal = q.Ordinal,
+                    Score = q.Score,
+                    UpdatedAt = q.UpdatedAt
                 }).ToList()
             };
             
@@ -284,13 +266,13 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
 
             var scoutingScore = new ScoutingScore()
             {
-                id = Guid.NewGuid().ToString(),
-                name = createScoresRequest.Name,
-                score = createScoresRequest.Score
+                Id = Guid.NewGuid().ToString(),
+                Name = createScoresRequest.Name,
+                Score = createScoresRequest.Score
             };
             await _scoutingRepository.CreateScoreAsync(scoutingScore);
 
-            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, scoutingScore, "score", scoutingScore.id.ToString());    
+            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, scoutingScore, "score", scoutingScore.Id.ToString());    
         });        
     }
     //

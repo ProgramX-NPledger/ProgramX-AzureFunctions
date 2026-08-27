@@ -16,6 +16,7 @@ using ProgramX.Azure.FunctionApp.Core;
 using ProgramX.Azure.FunctionApp.Cosmos;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Osm;
+using ProgramX.Azure.FunctionApp.Scouting.Contract;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 

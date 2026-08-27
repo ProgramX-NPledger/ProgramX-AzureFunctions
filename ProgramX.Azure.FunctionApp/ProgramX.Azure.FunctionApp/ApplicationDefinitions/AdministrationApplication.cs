@@ -4,7 +4,7 @@ using ProgramX.Azure.FunctionApp.HealthChecks.Applications;
 using ProgramX.Azure.FunctionApp.Model;
 using Microsoft.Extensions.Logging;
 
-namespace ProgramX.Azure.FunctionApp.ApplicationDefinitions.Administration;
+namespace ProgramX.Azure.FunctionApp.ApplicationDefinitions;
 
 public class AdministrationApplication : IApplication
 {

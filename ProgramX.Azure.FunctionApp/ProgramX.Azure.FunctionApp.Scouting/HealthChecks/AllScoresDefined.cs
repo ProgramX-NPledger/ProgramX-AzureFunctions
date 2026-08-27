@@ -1,6 +1,8 @@
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
+using ProgramX.Azure.FunctionApp.Scouting.Contract;
+using ProgramX.Azure.FunctionApp.Scouting.Model;
 
 namespace ProgramX.Azure.FunctionApp.Scouting.HealthChecks;
 
@@ -18,52 +20,26 @@ public class AllScoresDefined : IApplicationHealthCheck
         IEnumerable<ScoutingScore> allRequiredItems = GetRequiredScores();
         
         var allScoutingScores =
-            (await _scoutingRepository.GetScoutingActivitiesAsync(new GetScoutingActivitiesCriteria())).Items;
-        bool allDefined = allRequiredItems
-            .Select(q => q.id)
-            .All(q =>
-                allScoutingScores
-                    .Select(q => q.id)
-                    .Contains(q));
+            (await _scoutingRepository.GetScoutingScoresAsync(new GetScoutingScoresCriteria())).Items;
         
+        var missingScores = allRequiredItems
+            .Where(requiredItem => !allScoutingScores
+                .Select(s => s.Id)
+                .Contains(requiredItem.Id))
+            .ToList();
+
         return new HealthCheckResult
         {
-            IsHealthy = allDefined,
-            Message = allDefined
+            IsHealthy = !missingScores.Any(),
+            Message = !missingScores.Any()
                 ? "All required scores are defined"
-                : "Some required scores are missing",
+                : $"The following required Scores are missing: {string.Join(", ", missingScores.Select(s => s.Name))}",
             FriendlyName = "All required scores are defined",
             HealthCheckName = nameof(AllScoresDefined)
         };
         
     }
-
-    public async Task<FixApplicationHealthCheckResult> FixHealthAsync(HealthCheckResult healthCheckResult)
-    {
-        var fixApplicationHealthCheckResultItemResult = new FixApplicationHealthCheckResult()
-        {
-            Name = "ScoutingScoresDefined",
-            IsSuccess = true,
-            Messages = new List<string>()
-        };
-        
-        var allRequiredScores = GetRequiredScores();
-        foreach (var requiredScore in allRequiredScores)
-        {
-            // find score
-            var scoutingScore = (await _scoutingRepository.GetScoutingActivitiesAsync(new GetScoutingActivitiesCriteria())).Items.SingleOrDefault(q => q.id == requiredScore.id);
-            if (scoutingScore == null)
-            {
-                // if not exist, create it
-                await _scoutingRepository.CreateScoreAsync(requiredScore);
-                ((List<string>)fixApplicationHealthCheckResultItemResult.Messages).Add($"Created score for {requiredScore.name}");
-            }
-        }
-
-        return fixApplicationHealthCheckResultItemResult;
-        
-    }
-    
+  
     
     private IEnumerable<ScoutingScore> GetRequiredScores()
     {
@@ -71,99 +47,107 @@ public class AllScoresDefined : IApplicationHealthCheck
         {
             new ScoutingScore()
             {
-                id = "attendancePlus",
-                name = "Attendance",
-                isDynamicallyCalculated = true,
-                score = 1,
-                ordinal = 1
+                Id = "attendancePlus",
+                Name = "Attendance",
+                IsDynamicallyCalculated = true,
+                Score = 1,
+                Ordinal = 1
             },
             new ScoutingScore()
             {
-                id = "inspectionMinus",
-                name = "Inspection (per uniform infraction)",
-                isDynamicallyCalculated = false,
-                score = -1,
-                ordinal = 10
+                Id = "attendanceMinus",
+                Name = "Attendance",
+                IsDynamicallyCalculated = true,
+                Score = -1,
+                Ordinal = 2
             },
             new ScoutingScore()
             {
-                id = "valueBeliefPlus",
-                name = "Value: Belief: +",
-                isDynamicallyCalculated = false,
-                score = 1,
-                ordinal = 20
+                Id = "inspectionMinus",
+                Name = "Inspection (per uniform infraction)",
+                IsDynamicallyCalculated = false,
+                Score = -1,
+                Ordinal = 10
             },
             new ScoutingScore()
             {
-                id = "valueBeliefMinus",
-                name = "Value: Belief: -",
-                isDynamicallyCalculated = false,
-                score = -1,
-                ordinal = 21
+                Id = "valueBeliefPlus",
+                Name = "Value: Belief: +",
+                IsDynamicallyCalculated = false,
+                Score = 1,
+                Ordinal = 20
             },
             new ScoutingScore()
             {
-                id = "valueCarePlus",
-                name = "Value: Care: +",
-                isDynamicallyCalculated = false,
-                score = 1,
-                ordinal = 30
+                Id = "valueBeliefMinus",
+                Name = "Value: Belief: -",
+                IsDynamicallyCalculated = false,
+                Score = -1,
+                Ordinal = 21
             },
             new ScoutingScore()
             {
-                id = "valueCareMinus",
-                name = "Value: Care: -",
-                isDynamicallyCalculated = false,
-                score = -1,
-                ordinal = 31
+                Id = "valueCarePlus",
+                Name = "Value: Care: +",
+                IsDynamicallyCalculated = false,
+                Score = 1,
+                Ordinal = 30
             },
             new ScoutingScore()
             {
-                id = "valueRespectPlus",
-                name = "Value: Respect: +",
-                isDynamicallyCalculated = false,
-                score = 1,
-                ordinal = 40
+                Id = "valueCareMinus",
+                Name = "Value: Care: -",
+                IsDynamicallyCalculated = false,
+                Score = -1,
+                Ordinal = 31
             },
             new ScoutingScore()
             {
-                id = "valueRespectMinus",
-                name = "Value: Respect: -",
-                isDynamicallyCalculated = false,
-                score = -1,
-                ordinal = 41
+                Id = "valueRespectPlus",
+                Name = "Value: Respect: +",
+                IsDynamicallyCalculated = false,
+                Score = 1,
+                Ordinal = 40
             },
             new ScoutingScore()
             {
-                id = "valueCooperationPlus",
-                name = "Value: Co-operation: +",
-                isDynamicallyCalculated = false,
-                score = 1,
-                ordinal = 50
+                Id = "valueRespectMinus",
+                Name = "Value: Respect: -",
+                IsDynamicallyCalculated = false,
+                Score = -1,
+                Ordinal = 41
             },
             new ScoutingScore()
             {
-                id = "valueCooperationMinus",
-                name = "Value: Co-operation: -",
-                isDynamicallyCalculated = false,
-                score = -1,
-                ordinal = 51
+                Id = "valueCooperationPlus",
+                Name = "Value: Co-operation: +",
+                IsDynamicallyCalculated = false,
+                Score = 1,
+                Ordinal = 50
             },
             new ScoutingScore()
             {
-                id = "valueIntegrityPlus",
-                name = "Value: Integrity: +",
-                isDynamicallyCalculated = false,
-                score = 1,
-                ordinal = 60
+                Id = "valueCooperationMinus",
+                Name = "Value: Co-operation: -",
+                IsDynamicallyCalculated = false,
+                Score = -1,
+                Ordinal = 51
             },
             new ScoutingScore()
             {
-                id = "valueIntegrityMinus",
-                name = "Value: Integrity: -",
-                isDynamicallyCalculated = false,
-                score = -1,
-                ordinal = 61
+                Id = "valueIntegrityPlus",
+                Name = "Value: Integrity: +",
+                IsDynamicallyCalculated = false,
+                Score = 1,
+                Ordinal = 60
+            },
+            new ScoutingScore()
+            {
+                Id = "valueIntegrityMinus",
+                Name = "Value: Integrity: -",
+                IsDynamicallyCalculated = false,
+                Score = -1,
+                Ordinal = 61
             },
         };
     }

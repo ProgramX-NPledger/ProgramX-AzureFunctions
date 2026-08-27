@@ -71,6 +71,7 @@ public class User
     
     /// <summary>
     /// Time stamp of the last update.
+    /// </summary>
     public DateTime? UpdatedAt { get; set; }
     
     /// <summary>

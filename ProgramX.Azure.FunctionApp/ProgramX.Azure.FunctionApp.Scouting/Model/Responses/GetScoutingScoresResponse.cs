@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
-using ProgramX.Azure.FunctionApp.Model.DTOs.Osm;
+using ProgramX.Azure.FunctionApp.Scouting.Model.DTOs;
 
-namespace ProgramX.Azure.FunctionApp.Model.DTOs;
+namespace ProgramX.Azure.FunctionApp.Scouting.Model.Responses;
 
 public class GetScoutingScoresResponse
 {

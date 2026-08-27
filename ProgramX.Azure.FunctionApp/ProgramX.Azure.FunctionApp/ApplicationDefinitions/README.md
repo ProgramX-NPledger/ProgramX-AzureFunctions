@@ -1,14 +1,18 @@
 # Application Definitions
 
-Application Definitions are used to identify applications that may be access by a user.
+Application Definitions are used to identify applications that may be accessed by a user.
 
-Applications are assigned to Roles, which are assigned to Users. Each Application can have different Roles, though the same Application should have identical Roles even though they are stored separately. Use the API to create Roles to ensure consistency. The structure is:
+Application Definitions must implement the `IApplication` interface, which provides enough information for the any UI shell to determine permissions and navigational requirements.
 
-Users ← Roles ← Applications
+The `GetApplicationMetaData()` method provides the following information in an `ApplicationMetaData` object:
 
-An Application Definition is required to be defined, and must implement the `IApplication` interface.
+| Property | Type | Description | Example |
+|---|---|---|---|
+| `Name` | String | Name of the application. This should be unique and is not necessarily displayed to the user. | `scouting` |
+| `FriendlyName` | String | Friendly name of the application, which may be presented to the user. | `Scouting` |
+| `RequiresRoleNames` | String array | List of Roles the application requires for access. The application may define more. | `["scouting"]` |
+| `TargetUrl` | String | The URL (with leafing `/` character) for the shell to use for navigation. | `/scouting` |
+| `Description` | String | The description of the application. | `An application` |
+| `ImageUrl` | String | URL to an image to represent the application. | `/image.png` |
 
-Application Definitions must provide the following features:
 
-* Meta-data about the application
-* Health check functionality

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace ProgramX.Azure.FunctionApp.Model.Requests;
+namespace ProgramX.Azure.FunctionApp.Scouting.Model.Requests;
 
 public class CreateScoutingScoreItemRequest
 {
@@ -9,9 +9,6 @@ public class CreateScoutingScoreItemRequest
 
     [JsonPropertyName("osmScoutId")]
     public int OsmScoutId { get; set; }
-    
-    [JsonPropertyName("osmPatrolId")]
-    public int OsmPatrolId { get; set; }
     
     [JsonPropertyName("patrolName")]
     public string PatrolName { get; set; }
