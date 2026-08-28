@@ -383,30 +383,51 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
     
     private QueryDefinition BuildQueryDefinitionForScoutingScoreItems(GetScoutingScoreItemsCriteria criteria)
     {
-        var sb = new StringBuilder(@"SELECT c.osmMemberId, c.id, c.date, c.notes, c.scoreName, c.score, c.createdAt, c.updatedAt,
+        var sb = new StringBuilder(@"SELECT c.osmMemberId, c.id, c.date, c.notes, c.scoreName, c.patrolName, c.score, c.createdAt, c.updatedAt, c.type,
         c.schemaVersionNumber FROM c WHERE 1=1");
         var parameters = new List<(string name, object value)>();
-        //
-        // if (!string.IsNullOrWhiteSpace(criteria.Id))
-        // {
-        //     sb.Append(" AND (c.id=@id)");
-        //     parameters.Add(("@id", criteria.Id));
-        // }
-        //
-        // if (!string.IsNullOrWhiteSpace(criteria.ContainingText))
-        // {
-        //     var keywords = criteria.ContainingText.Split(' ');
-        //
-        //     sb.Append(@" AND (");
-        //     var i = 0;
-        //     foreach (var keyword in keywords)
-        //     {
-        //         sb.Append($"CONTAINS(UPPER(c.name), @containsText{i})");
-        //         parameters.Add(($"@containsText{i}", keyword.ToUpperInvariant()));
-        //     }
-        //     sb.Append(")");
-        // }
+
+        if (criteria.OnOrAfter.HasValue)
+        {
+            sb.Append(" AND (c.date >= @onOrAfter)");
+            parameters.Add(("@onOrAfter", criteria.OnOrAfter.Value));
+        }
         
+        if (criteria.OnOrBefore.HasValue)
+        {
+            sb.Append(" AND (c.date <= @onOrBefore)");
+            parameters.Add(("@onOrBefore", criteria.OnOrBefore.Value));
+        }
+        
+        if (criteria.PatrolNames != null && criteria.PatrolNames.Any())
+        {
+            var conditions = new List<string>();
+            var patrolNamesList = criteria.PatrolNames.ToList();
+        
+            for (int i = 0; i < patrolNamesList.Count; i++)
+            {
+                conditions.Add(@$" EXISTS(SELECT VALUE c FROM c WHERE c.patrolName = @patrolName{i})");
+                parameters.Add(($"@patrolName{i}", patrolNamesList[i]));
+            }
+        
+            sb.Append($" AND ({string.Join(" OR ", conditions)})");
+        }
+
+
+        if (criteria.OsmMemberIds != null && criteria.OsmMemberIds.Any())
+        {
+            var conditions = new List<string>();
+            var osmMemberIdsList = criteria.OsmMemberIds.ToList();
+
+            for (int i = 0; i < osmMemberIdsList.Count; i++)
+            {
+                conditions.Add(@$"EXISTS(SELECT VALUE c FROM c WHERE c.osmMemberId = @osmMemberId{i})");
+                parameters.Add(($"@osmMemberId{i}", osmMemberIdsList[i]));
+            }
+
+            sb.Append($" AND ({string.Join(" OR ", conditions)})");
+        }
+
         var queryDefinition = new QueryDefinition(sb.ToString());
         foreach (var param in parameters)
         {

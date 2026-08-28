@@ -12,7 +12,9 @@ public class GetScoutingScoreItemsCriteria
     
     public string[]? PatrolNames { get; set; }
 
-    public string[]? ScoreNames { get; set; }
+    public string[]? ScoreIds { get; set; }
+
+    public int[]? OsmMemberIds { get; set; }
     
     
 

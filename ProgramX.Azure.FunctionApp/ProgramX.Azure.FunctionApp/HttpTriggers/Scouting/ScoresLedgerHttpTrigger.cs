@@ -98,22 +98,29 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
                 });
                 
                 var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
-                var patrolName = httpRequestData.Query["patrolName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["patrolName"]!).Split(new [] {','});
-                var scoreName = httpRequestData.Query["scoreName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["scoreName"]!).Split(new [] {','});
+                var patrolNames = httpRequestData.Query["patrolName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["patrolNames"]!).Split(new [] {','});
+                var scoreIds = httpRequestData.Query["scoreIds"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["scoreIds"]!).Split(new [] {','});
                 var onOrAfter = httpRequestData.Query["onOrAfter"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrAfter"]!);
                 var onOrBefore = httpRequestData.Query["onOrBefore"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrBefore"]!);
-    
+                var osmMemberIds = httpRequestData.Query["osmMemberIds"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["osmMemberIds"]!).Split(new [] {','});
+                
                 var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
                 var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
                 var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
     
                 var criteria = new GetScoutingScoreItemsCriteria()
                 {
-                    PatrolNames = patrolName,
-                    ScoreNames = scoreName,
+                    PatrolNames = patrolNames,
+                    ScoreIds = scoreIds,
                     OnOrAfter = string.IsNullOrWhiteSpace(onOrAfter) ? null : DateOnly.Parse(onOrAfter),
                     OnOrBefore = string.IsNullOrWhiteSpace(onOrBefore) ? null : DateOnly.Parse(onOrBefore)
                 };
+                if (osmMemberIds != null && osmMemberIds.Any())
+                {
+                    criteria.OsmMemberIds = osmMemberIds.Where(q => int.TryParse(q, out _))
+                        .Select(q => int.Parse(q))
+                        .ToArray();
+                }
                 var scoutingScoreItems = await _scoutingRepository.GetScoutingScoreItemsAsync(criteria, new PagedCriteria()
                 {
                     ItemsPerPage = itemsPerPage,
@@ -126,7 +133,8 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
                 var pageUrls = CalculateScoutingScoreItemPageUrls((IPagedResult<ScoutingScoreItem>)scoutingScoreItems,
                     baseUrl,
                     criteria.PatrolNames,
-                    criteria.ScoreNames,
+                    criteria.ScoreIds,
+                    criteria.OsmMemberIds,
                     criteria.OnOrAfter,
                     criteria.OnOrBefore,
                     continuationToken, 
@@ -170,7 +178,8 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
     private IEnumerable<UrlAccessiblePage> CalculateScoutingScoreItemPageUrls(IPagedResult<ScoutingScoreItem> pagedResults, 
         string baseUrl, 
         IEnumerable<string>? patrolNames, 
-        IEnumerable<string>? scoreNames, 
+        IEnumerable<string>? scoreIds, 
+        IEnumerable<int>? osmMemberIds,
         DateOnly? onOrAfter, 
         DateOnly? onOrBefore, 
         string? continuationToken,
@@ -184,7 +193,7 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
         {
             pageUrls.Add(new UrlAccessiblePage()
             {
-                Url = BuildScoutingScoreItemPageUrl(baseUrl, patrolNames, scoreNames, onOrAfter, onOrBefore, continuationToken, (pageNumber * itemsPerPage)-itemsPerPage, itemsPerPage),
+                Url = BuildScoutingScoreItemPageUrl(baseUrl, patrolNames, scoreIds, osmMemberIds, onOrAfter, onOrBefore, continuationToken, (pageNumber * itemsPerPage)-itemsPerPage, itemsPerPage),
                 PageNumber = pageNumber,
                 IsCurrentPage = pageNumber == currentPageNumber,
             });
@@ -196,7 +205,8 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
     
     private string BuildScoutingScoreItemPageUrl(string baseUrl, 
         IEnumerable<string>? patrolNames, 
-        IEnumerable<string>? scoreNames, 
+        IEnumerable<string>? scoreIds, 
+        IEnumerable<int>? osmMemberIds,
         DateOnly? onOrAfter, 
         DateOnly? onOrBefore, 
         string? continuationToken,
@@ -209,9 +219,13 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
             parametersDictionary.Add("patrolNames", Uri.EscapeDataString(string.Join(",", patrolNames)));
         }
 
-        if (scoreNames != null && scoreNames.Any())
+        if (scoreIds != null && scoreIds.Any())
         {
-            parametersDictionary.Add("scoreNames", Uri.EscapeDataString(string.Join(",", scoreNames)));
+            parametersDictionary.Add("scoreIds", Uri.EscapeDataString(string.Join(",", scoreIds)));
+        }
+        if (osmMemberIds != null && osmMemberIds.Any())
+        {
+            parametersDictionary.Add("osmMemberIds", Uri.EscapeDataString(string.Join(",", osmMemberIds)));
         }
 
         if (onOrAfter != null)

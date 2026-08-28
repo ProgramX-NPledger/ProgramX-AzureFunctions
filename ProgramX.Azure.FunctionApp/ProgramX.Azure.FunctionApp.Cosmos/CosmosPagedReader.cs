@@ -135,12 +135,19 @@ public class CosmosPagedReader<T> : CosmosReader<T>
     {
         var countQueryDefinition = new QueryDefinition("SELECT VALUE COUNT(1) " +
                                                        queryDefinition.QueryText.Substring(
-                                                           queryDefinition.QueryText.LastIndexOf("FROM",
+                                                           queryDefinition.QueryText.IndexOf("FROM",
                                                                StringComparison.InvariantCultureIgnoreCase)));
         foreach (var parameter in queryDefinition.GetQueryParameters())
         {
             countQueryDefinition.WithParameter(parameter.Name,parameter.Value);
         }
+        // if there is an imbalance of brackets, there is a bug in the query
+        // var numberOfOpeningParantheses = countQueryDefinition.QueryText.Count(c => c == '(');
+        // var numberOfClosingParantheses = countQueryDefinition.QueryText.Count(c => c == ')');
+        // if (numberOfOpeningParantheses != numberOfClosingParantheses)
+        // {
+        //     throw new InvalidOperationException("There is an imbalance of brackets in the query");
+        // }
         return countQueryDefinition;
     }
 
