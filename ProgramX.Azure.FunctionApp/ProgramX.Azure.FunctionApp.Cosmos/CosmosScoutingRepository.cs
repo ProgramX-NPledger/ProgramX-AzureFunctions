@@ -383,7 +383,7 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
     
     private QueryDefinition BuildQueryDefinitionForScoutingScoreItems(GetScoutingScoreItemsCriteria criteria)
     {
-        var sb = new StringBuilder(@"SELECT c.osmMemberId, c.id, c.date, c.date, c.notes, c.scoreName, c.score, c.createdAt, c.updatedAt,
+        var sb = new StringBuilder(@"SELECT c.osmMemberId, c.id, c.date, c.notes, c.scoreName, c.score, c.createdAt, c.updatedAt,
         c.schemaVersionNumber FROM c WHERE 1=1");
         var parameters = new List<(string name, object value)>();
         //

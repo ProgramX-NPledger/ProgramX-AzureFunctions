@@ -4,6 +4,10 @@ namespace ProgramX.Azure.FunctionApp.Scouting.Model.DTOs;
 
 public class ScoutingScoreDto
 {
+    
+    [JsonPropertyName("id")]
+    public string Id { get; set; }
+
     [JsonPropertyName("name")]
     public string Name { get; set; }
     

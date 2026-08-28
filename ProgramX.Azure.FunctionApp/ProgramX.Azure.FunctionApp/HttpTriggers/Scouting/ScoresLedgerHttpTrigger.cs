@@ -3,6 +3,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ProgramX.Azure.FunctionApp.Contract;
 using ProgramX.Azure.FunctionApp.Helpers;
 using ProgramX.Azure.FunctionApp.Model;
@@ -12,11 +13,13 @@ using ProgramX.Azure.FunctionApp.Model.DTOs;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using ProgramX.Azure.FunctionApp.Osm;
+using ProgramX.Azure.FunctionApp.Osm.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Scouting.Contract;
 using ProgramX.Azure.FunctionApp.Scouting.Model;
 using ProgramX.Azure.FunctionApp.Scouting.Model.DTOs;
 using ProgramX.Azure.FunctionApp.Scouting.Model.Requests;
 using ProgramX.Azure.FunctionApp.Scouting.Model.Responses;
+using ScoutingScoreItemDto = ProgramX.Azure.FunctionApp.Scouting.Model.DTOs.ScoutingScoreItemDto;
 
 namespace ProgramX.Azure.FunctionApp.HttpTriggers.Scouting;
 
@@ -26,18 +29,21 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
     private readonly IStorageClient? _storageClient;
     private readonly IOsmClient _osmClient;
     private readonly IScoutingRepository _scoutingRepository;
+    private readonly IOptions<OsmOptions> _osmOptions;
 
- 
+
     public ScoresLedgerHttpTrigger(ILogger<ScoresLedgerHttpTrigger> logger,
         IStorageClient? storageClient,
         IConfiguration configuration,
         IOsmClient osmClient,
-        IScoutingRepository scoutingRepository) : base(configuration,logger)
+        IScoutingRepository scoutingRepository,
+        IOptions<OsmOptions> osmOptions) : base(configuration,logger)
     {
         _logger = logger;
         _storageClient = storageClient;
         _osmClient = osmClient;
         _scoutingRepository = scoutingRepository;
+        _osmOptions = osmOptions;
     }
 
     
@@ -64,76 +70,104 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
      }
     
     
-    //
-    //
-    //
-    // [Function(nameof(GetScoutingScoreItemsAsync))]
-    // public async Task<HttpResponseData> GetScoutingScoreItemsAsync(
-    //     [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/scoresledger/{id?}")] HttpRequestData httpRequestData,
-    //     string? id)
-    // { 
-    //     return await RequiresAuthentication(httpRequestData, ["admin","scouts-reader"], async (_, _) =>
-    //     {
-    //         if (id == null)
-    //         {
-    //             var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
-    //             var patrolName = httpRequestData.Query["patrolName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["patrolName"]!).Split(new [] {','});
-    //             var scoreName = httpRequestData.Query["scoreName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["scoreName"]!).Split(new [] {','});
-    //             var onOrAfter = httpRequestData.Query["onOrAfter"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrAfter"]!);
-    //             var onOrBefore = httpRequestData.Query["onOrBefore"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrBefore"]!);
-    //
-    //             var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
-    //             var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
-    //             var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
-    //
-    //             var criteria = new GetScoutingScoreItemsCriteria()
-    //             {
-    //                 PatrolNames = patrolName,
-    //                 ScoreNames = scoreName,
-    //                 OnOrAfter = string.IsNullOrWhiteSpace(onOrAfter) ? null : DateOnly.Parse(onOrAfter),
-    //                 OnOrBefore = string.IsNullOrWhiteSpace(onOrBefore) ? null : DateOnly.Parse(onOrBefore)
-    //             };
-    //             var scoutingScoreItems = await _scoutingRepository.GetScoutingScoreItemsAsync(criteria, new PagedCriteria()
-    //             {
-    //                 ItemsPerPage = itemsPerPage,
-    //                 Offset = offset
-    //             });
-    //             
-    //             var baseUrl =
-    //                 $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
-    //             
-    //             var pageUrls = CalculateScoutingScoreItemPageUrls((IPagedResult<ScoutingScoreItem>)scoutingScoreItems,
-    //                 baseUrl,
-    //                 criteria.PatrolNames,
-    //                 criteria.ScoreNames,
-    //                 criteria.OnOrAfter,
-    //                 criteria.OnOrBefore,
-    //                 continuationToken, 
-    //                 offset,
-    //                 itemsPerPage);
-    //             
-    //             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<ScoutingScoreItem>((IPagedResult<ScoutingScoreItem>)scoutingScoreItems,pageUrls));
-    //         }
-    //         else
-    //         {
-    //             var scoutingScoreItem = await _scoutingRepository.GetScoutingScoreItemByIdAsync(id);
-    //             if (scoutingScoreItem==null)
-    //             {
-    //                 return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "ScoutingScoreItem");
-    //             }
-    //             
-    //             return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
-    //             {
-    //                 user = scoutingScoreItem
-    //             });
-    //         }
-    //         
-    //     });
-    // }
+    
+    
+    
+    [Function(nameof(GetScoutingScoreItemsAsync))]
+    public async Task<HttpResponseData> GetScoutingScoreItemsAsync(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/scoresledger/{id?}")] HttpRequestData httpRequestData,
+        string? id)
+    { 
+        return await RequiresAuthentication(httpRequestData, ["admin","scouts-reader"], async (_, _) =>
+        {
+            if (id == null)
+            {
+                var currentTerm = (await _osmClient.GetTermsAsync(new GetTermsCriteria()
+                {
+                    SectionId = _osmOptions.Value.SectionId
+                })).Where(q => q.IsCurrent);
+                if (currentTerm.Count() != 1)
+                {
+                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "Term");
+                }
+                
+                var members = await _osmClient.GetMembersAsync(new GetMembersCriteria()
+                { 
+                    SectionId = _osmOptions.Value.SectionId,
+                    TermId = currentTerm.Single().OsmTermId 
+                });
+                
+                var continuationToken = httpRequestData.Query["continuationToken"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["continuationToken"]!);
+                var patrolName = httpRequestData.Query["patrolName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["patrolName"]!).Split(new [] {','});
+                var scoreName = httpRequestData.Query["scoreName"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["scoreName"]!).Split(new [] {','});
+                var onOrAfter = httpRequestData.Query["onOrAfter"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrAfter"]!);
+                var onOrBefore = httpRequestData.Query["onOrBefore"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["onOrBefore"]!);
+    
+                var sortByColumn = httpRequestData.Query["sortBy"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["sortBy"]!);
+                var offset = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["offset"]) ?? 0;
+                var itemsPerPage = UrlUtilities.GetValidIntegerQueryStringParameterOrNull(httpRequestData.Query["itemsPerPage"]) ?? PagingConstants.ItemsPerPage;
+    
+                var criteria = new GetScoutingScoreItemsCriteria()
+                {
+                    PatrolNames = patrolName,
+                    ScoreNames = scoreName,
+                    OnOrAfter = string.IsNullOrWhiteSpace(onOrAfter) ? null : DateOnly.Parse(onOrAfter),
+                    OnOrBefore = string.IsNullOrWhiteSpace(onOrBefore) ? null : DateOnly.Parse(onOrBefore)
+                };
+                var scoutingScoreItems = await _scoutingRepository.GetScoutingScoreItemsAsync(criteria, new PagedCriteria()
+                {
+                    ItemsPerPage = itemsPerPage,
+                    Offset = offset
+                });
+                
+                var baseUrl =
+                    $"{httpRequestData.Url.Scheme}://{httpRequestData.Url.Authority}{httpRequestData.Url.AbsolutePath}";
+                
+                var pageUrls = CalculateScoutingScoreItemPageUrls((IPagedResult<ScoutingScoreItem>)scoutingScoreItems,
+                    baseUrl,
+                    criteria.PatrolNames,
+                    criteria.ScoreNames,
+                    criteria.OnOrAfter,
+                    criteria.OnOrBefore,
+                    continuationToken, 
+                    offset,
+                    itemsPerPage);
+                
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new PagedResponse<ScoutingScoreItem, ScoutingScoreItemDto>((IPagedResult<ScoutingScoreItem>)scoutingScoreItems,pageUrls,(scoutingScoreItem) =>
+                    new ScoutingScoreItemDto()
+                    {
+                        CreatedAt = scoutingScoreItem.CreatedAt,
+                        Date = scoutingScoreItem.Date,
+                        Id = scoutingScoreItem.Id,
+                        MemberName = members.SingleOrDefault(q => q.OsmScoutId == scoutingScoreItem.OsmMemberId)?.FullName ?? "(unknown)",
+                        Notes = scoutingScoreItem.Notes,
+                        OsmMemberId = scoutingScoreItem.OsmMemberId,
+                        PatrolName = scoutingScoreItem.PatrolName,
+                        Score = scoutingScoreItem.Score,
+                        ScoreName = scoutingScoreItem.ScoreName,
+                        UpdatedAt = scoutingScoreItem.UpdatedAt
+                    }));
+            }
+            else
+            {
+                var scoutingScoreItem = await _scoutingRepository.GetScoutingScoreItemByIdAsync(id);
+                if (scoutingScoreItem==null)
+                {
+                    return await HttpResponseDataFactory.CreateForNotFound(httpRequestData, "ScoutingScoreItem");
+                }
+                
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new
+                {
+                    user = scoutingScoreItem
+                });
+            }
+            
+        });
+    }
 
     
     
-    private IEnumerable<UrlAccessiblePage> CalculateScoutingScoreItemPageUrls(IPagedResult<ScoutingScoreItemDto> pagedResults, 
+    private IEnumerable<UrlAccessiblePage> CalculateScoutingScoreItemPageUrls(IPagedResult<ScoutingScoreItem> pagedResults, 
         string baseUrl, 
         IEnumerable<string>? patrolNames, 
         IEnumerable<string>? scoreNames, 
@@ -237,6 +271,7 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
             {
                 Items = scoutingScores.Select(q => new ScoutingScoreDto()
                 {
+                    Id = q.Id,
                     Name = q.Name,
                     CreatedAt = q.CreatedAt,
                     IsDynamicallyCalculated = q.IsDynamicallyCalculated,
