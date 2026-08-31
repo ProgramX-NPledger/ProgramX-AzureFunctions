@@ -17,17 +17,9 @@ public class AllScoresDefined : IApplicationHealthCheck
     
     public async Task<HealthCheckResult> CheckHealthAsync()
     {
-        IEnumerable<ScoutingScore> allRequiredItems = GetRequiredScores();
-        
-        var allScoutingScores =
-            (await _scoutingRepository.GetScoutingScoresAsync(new GetScoutingScoresCriteria())).Items;
-        
-        var missingScores = allRequiredItems
-            .Where(requiredItem => !allScoutingScores
-                .Select(s => s.Id)
-                .Contains(requiredItem.Id))
-            .ToList();
 
+        var missingScores = await GetMissingScoresAsync();
+        
         return new HealthCheckResult
         {
             IsHealthy = !missingScores.Any(),
@@ -39,8 +31,27 @@ public class AllScoresDefined : IApplicationHealthCheck
         };
         
     }
-  
-    
+
+    /// <summary>
+    /// Returns a list of required scores that are missing from the database.
+    /// </summary>
+    /// <returns></returns>
+    public async Task<List<ScoutingScore>> GetMissingScoresAsync()
+    {
+        IEnumerable<ScoutingScore> allRequiredItems = GetRequiredScores();
+
+        var allScoutingScores =
+            (await _scoutingRepository.GetScoutingScoresAsync(new GetScoutingScoresCriteria())).Items;
+        
+        return allRequiredItems
+            .Where(requiredItem => !allScoutingScores
+                .Select(s => s.Id)
+                .Contains(requiredItem.Id))
+            .ToList<ScoutingScore>();
+
+    }
+
+
     private IEnumerable<ScoutingScore> GetRequiredScores()
     {
         return  new List<ScoutingScore>

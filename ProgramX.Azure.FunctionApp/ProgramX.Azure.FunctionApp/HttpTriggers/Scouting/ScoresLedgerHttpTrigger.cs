@@ -10,11 +10,13 @@ using ProgramX.Azure.FunctionApp.Model;
 using ProgramX.Azure.FunctionApp.Model.Constants;
 using ProgramX.Azure.FunctionApp.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Model.DTOs;
+using ProgramX.Azure.FunctionApp.Model.Exceptions;
 using ProgramX.Azure.FunctionApp.Model.Requests;
 using ProgramX.Azure.FunctionApp.Model.Responses;
 using ProgramX.Azure.FunctionApp.Osm;
 using ProgramX.Azure.FunctionApp.Osm.Model.Criteria;
 using ProgramX.Azure.FunctionApp.Scouting.Contract;
+using ProgramX.Azure.FunctionApp.Scouting.HealthChecks;
 using ProgramX.Azure.FunctionApp.Scouting.Model;
 using ProgramX.Azure.FunctionApp.Scouting.Model.DTOs;
 using ProgramX.Azure.FunctionApp.Scouting.Model.Requests;
@@ -69,9 +71,96 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
         });
      }
     
+    [Function(nameof(GetScoresDefinedStatus))]
+    public async Task<HttpResponseData> GetScoresDefinedStatus(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "scouts/scoresledger/scores/status")]
+        HttpRequestData httpRequestData
+    )
+    {
+        return await RequiresAuthentication(httpRequestData, ["admin","scouting"], async (_, _) =>
+        {
+            // are all scores defined?
+            var allScoresDefinedHealthCheck = new AllScoresDefined(_scoutingRepository);
+            var missingScores = await allScoresDefinedHealthCheck.GetMissingScoresAsync();
+            if (missingScores.Count > 0)
+            {
+                // missing scores
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetScoresDefinedStatusResponse()
+                {
+                    HasAllScoresDefined = false,
+                    MissingScores = missingScores.Select(q => new ScoutingScoreDto()
+                    {
+                        Id = q.Id,
+                        Name = q.Name,
+                        CreatedAt = q.CreatedAt,
+                        IsDynamicallyCalculated = q.IsDynamicallyCalculated,
+                        Ordinal = q.Ordinal,
+                        Score = q.Score,
+                        UpdatedAt = q.UpdatedAt
+                    }).ToList()
+                });
+            }
+            else
+            {
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetScoresDefinedStatusResponse()
+                {
+                    HasAllScoresDefined = true,
+                    MissingScores = []
+                });
+            }
+        });
+    }
     
-    
-    
+    [Function(nameof(CreateMissingScores))]
+    public async Task<HttpResponseData> CreateMissingScores(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "scouts/scoresledger/scores/create-missing")]
+        HttpRequestData httpRequestData
+    )
+    {
+        return await RequiresAuthentication(httpRequestData, ["admin","scouting"], async (_, _) =>
+        {
+            // are all scores defined?
+            var allScoresDefinedHealthCheck = new AllScoresDefined(_scoutingRepository);
+            var missingScores = await allScoresDefinedHealthCheck.GetMissingScoresAsync();
+            if (missingScores.Count > 0)
+            {
+                var createMissingScoresResponse = new CreateMissingScoresResponse()
+                {
+                    FailedToCreateScores = new List<ScoutingScoreDto>(),
+                    SuccessfullyCreatedScores = new List<ScoutingScoreDto>(),
+                };
+                // missing scores - they will need to be created
+                foreach (var missingScore in missingScores)
+                {
+                    var missingScoreDto = new ScoutingScoreDto()
+                    {
+                        Id = missingScore.Id,
+                        CreatedAt = missingScore.CreatedAt,
+                        Name = missingScore.Name,
+                        Score = missingScore.Score,
+                        IsDynamicallyCalculated = missingScore.IsDynamicallyCalculated,
+                        Ordinal = missingScore.Ordinal
+                    };
+                    try
+                    {
+                        await _scoutingRepository.CreateScoreAsync( missingScore.Id, missingScore.Name, missingScore.Score,
+                            missingScore.IsDynamicallyCalculated, missingScore.Ordinal);
+                        createMissingScoresResponse.SuccessfullyCreatedScores.Add(missingScoreDto);
+                    }
+                    catch (ItemCreationException itemCreationException)
+                    {
+                        createMissingScoresResponse.FailedToCreateScores.Add(missingScoreDto);
+                        _logger.LogError(itemCreationException, $"Failed to create score {missingScore.Name} with score {missingScore.Score}");
+                    }
+                }
+                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, createMissingScoresResponse);
+            }
+            else
+            {
+                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "No missing scores");
+            }
+        });
+    }
     
     [Function(nameof(GetScoutingScoreItemsAsync))]
     public async Task<HttpResponseData> GetScoutingScoreItemsAsync(
@@ -302,28 +391,6 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
     
     
     
-    [Function(nameof(CreateScore))]
-    public async Task<HttpResponseData> CreateScore(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "scouts/scores/points")]
-        HttpRequestData httpRequestData)
-    {
-        return await RequiresAuthentication(httpRequestData,["admin","scout-writer"],  async (_, _) =>
-        {
-            var createScoresRequest =
-                await HttpBodyUtilities.GetDeserializedJsonFromHttpRequestDataBodyAsync<CreateScoreRequest>(httpRequestData);
-            if (createScoresRequest == null) return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData,"Invalid request body");
-
-            var scoutingScore = new ScoutingScore()
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = createScoresRequest.Name,
-                Score = createScoresRequest.Score
-            };
-            await _scoutingRepository.CreateScoreAsync(scoutingScore);
-
-            return await HttpResponseDataFactory.CreateForCreated(httpRequestData, scoutingScore, "score", scoutingScore.Id.ToString());    
-        });        
-    }
     //
     // [Function(nameof(AddScore))]
     // public async Task<HttpResponseData> AddScore(

@@ -76,9 +76,40 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
         }
     }
 
-    public async Task CreateScoreAsync(ScoutingScore scoutingScore)
+    /// <inheritdoc/>
+    /// <exception cref="ItemCreationException">Thrown if the item could no be created.</exception>
+    public async Task<ScoutingScore> CreateScoreAsync(string id, string name, int score, bool isDynamicallyCalculated, int? ordinal)
     {
-        throw new NotImplementedException();
+        var container = cosmosClient.GetContainer(DatabaseNames.Scouting, ContainerNames.Scores);
+
+        // get all scouting score items in order to be able to calculate the ordinal correctly
+        int nextOrdinal = ordinal ?? 0;
+        if (!ordinal.HasValue)
+        {
+            var scoutingScoreItems = await GetScoutingScoreItemsAsync(new GetScoutingScoreItemsCriteria());
+            nextOrdinal = scoutingScoreItems.TotalCount + 1;
+        }
+
+        var scoutingScore = new ScoutingScore()
+        {
+            Id = id,
+            CreatedAt = DateTime.UtcNow,
+            IsDynamicallyCalculated = isDynamicallyCalculated,
+            Name = name,
+            Score = score,
+            UpdatedAt = null,
+            SchemaVersionNumber = 1,
+            Ordinal = nextOrdinal
+        };
+        
+        var response = await container.CreateItemAsync(scoutingScore, new PartitionKey(scoutingScore.Id));
+
+        if (response.StatusCode != HttpStatusCode.Created)
+        {
+            throw new ItemCreationException(typeof(ScoutingScore), response.StatusCode);
+        }
+
+        return scoutingScore;
     }
 
 

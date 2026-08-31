@@ -27,9 +27,13 @@ public interface IScoutingRepository
     /// <summary>
     /// Creates the specified Score.
     /// </summary>
-    /// <param name="scoutingScore">Score to add for allocation to members.</param>
-    /// <returns></returns>
-    Task CreateScoreAsync(ScoutingScore scoutingScore);
+    /// <param name="id">The unique identifier of the Score.</param>
+    /// <param name="name">Name of the Score.</param>
+    /// <param name="score">Value of the Score.</param>
+    /// <param name="isDynamicallyCalculated">Set to <c>True</c> if this Score will be dynamically calculated.</param>
+    /// <param name="ordinal">Ordinal of the Score. Specify <c>null</c> to calculate the next ordinal.</param>
+    /// <returns>The created <see cref="ScoutingScore"/>.</returns>
+    Task<ScoutingScore> CreateScoreAsync(string id, string name, int score, bool isDynamicallyCalculated, int? ordinal);
 
     /// <summary>
     /// 
