@@ -126,45 +126,54 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, ["admin","scouting"], async (_, _) =>
         {
-            // are all scores defined?
-            var allScoresDefinedHealthCheck = new AllScoresDefined(_scoutingRepository);
-            var missingScores = await allScoresDefinedHealthCheck.GetMissingScoresAsync();
-            if (missingScores.Count > 0)
+            using (_logger.BeginScope("CreateMissingScores"))
             {
-                var createMissingScoresResponse = new CreateMissingScoresResponse()
+                // are all scores defined?
+                var allScoresDefinedHealthCheck = new AllScoresDefined(_scoutingRepository);
+                var missingScores = await allScoresDefinedHealthCheck.GetMissingScoresAsync();
+                if (missingScores.Count > 0)
                 {
-                    FailedToCreateScores = new List<ScoutingScoreDto>(),
-                    SuccessfullyCreatedScores = new List<ScoutingScoreDto>(),
-                };
-                // missing scores - they will need to be created
-                foreach (var missingScore in missingScores)
-                {
-                    var missingScoreDto = new ScoutingScoreDto()
+                    _logger.LogInformation("Missing scores: {MissingScores}", missingScores);
+                    var createMissingScoresResponse = new CreateMissingScoresResponse()
                     {
-                        Id = missingScore.Id,
-                        CreatedAt = missingScore.CreatedAt,
-                        Name = missingScore.Name,
-                        Score = missingScore.Score,
-                        IsDynamicallyCalculated = missingScore.IsDynamicallyCalculated,
-                        Ordinal = missingScore.Ordinal
+                        FailedToCreateScores = new List<ScoutingScoreDto>(),
+                        SuccessfullyCreatedScores = new List<ScoutingScoreDto>(),
                     };
-                    try
+                    // missing scores - they will need to be created
+                    foreach (var missingScore in missingScores)
                     {
-                        await _scoutingRepository.CreateScoreAsync( missingScore.Id, missingScore.Name, missingScore.Score,
-                            missingScore.IsDynamicallyCalculated, missingScore.Ordinal);
-                        createMissingScoresResponse.SuccessfullyCreatedScores.Add(missingScoreDto);
+                        var missingScoreDto = new ScoutingScoreDto()
+                        {
+                            Id = missingScore.Id,
+                            CreatedAt = missingScore.CreatedAt,
+                            Name = missingScore.Name,
+                            Score = missingScore.Score,
+                            IsDynamicallyCalculated = missingScore.IsDynamicallyCalculated,
+                            Ordinal = missingScore.Ordinal
+                        };
+                        try
+                        {
+                            await _scoutingRepository.CreateScoreAsync(missingScore.Id, missingScore.Name,
+                                missingScore.Score,
+                                missingScore.IsDynamicallyCalculated, missingScore.Ordinal);
+                            createMissingScoresResponse.SuccessfullyCreatedScores.Add(missingScoreDto);
+                            _logger.LogInformation("Successfully created score {ScoreName} with score {ScoreValue}",
+                                missingScore.Name, missingScore.Score);
+                        }
+                        catch (ItemCreationException itemCreationException)
+                        {
+                            createMissingScoresResponse.FailedToCreateScores.Add(missingScoreDto);
+                            _logger.LogError(itemCreationException,
+                                $"Failed to create score {missingScore.Name} with score {missingScore.Score}");
+                        }
                     }
-                    catch (ItemCreationException itemCreationException)
-                    {
-                        createMissingScoresResponse.FailedToCreateScores.Add(missingScoreDto);
-                        _logger.LogError(itemCreationException, $"Failed to create score {missingScore.Name} with score {missingScore.Score}");
-                    }
+
+                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, createMissingScoresResponse);
                 }
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, createMissingScoresResponse);
-            }
-            else
-            {
-                return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "No missing scores");
+                else
+                {
+                    return await HttpResponseDataFactory.CreateForBadRequest(httpRequestData, "No missing scores");
+                }
             }
         });
     }
