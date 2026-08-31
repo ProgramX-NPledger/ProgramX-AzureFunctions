@@ -79,34 +79,41 @@ public class ScoresLedgerHttpTrigger : AuthorisedHttpTriggerBase
     {
         return await RequiresAuthentication(httpRequestData, ["admin","scouting"], async (_, _) =>
         {
-            // are all scores defined?
-            var allScoresDefinedHealthCheck = new AllScoresDefined(_scoutingRepository);
-            var missingScores = await allScoresDefinedHealthCheck.GetMissingScoresAsync();
-            if (missingScores.Count > 0)
+            using (_logger.BeginScope("GetScoresDefinedStatus"))
             {
-                // missing scores
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetScoresDefinedStatusResponse()
+                // are all scores defined?
+                var allScoresDefinedHealthCheck = new AllScoresDefined(_scoutingRepository);
+                var missingScores = await allScoresDefinedHealthCheck.GetMissingScoresAsync();
+                if (missingScores.Count > 0)
                 {
-                    HasAllScoresDefined = false,
-                    MissingScores = missingScores.Select(q => new ScoutingScoreDto()
-                    {
-                        Id = q.Id,
-                        Name = q.Name,
-                        CreatedAt = q.CreatedAt,
-                        IsDynamicallyCalculated = q.IsDynamicallyCalculated,
-                        Ordinal = q.Ordinal,
-                        Score = q.Score,
-                        UpdatedAt = q.UpdatedAt
-                    }).ToList()
-                });
-            }
-            else
-            {
-                return await HttpResponseDataFactory.CreateForSuccess(httpRequestData, new GetScoresDefinedStatusResponse()
+                    // missing scores
+                    _logger.LogInformation("Missing scores: {MissingScores}", missingScores);
+                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                        new GetScoresDefinedStatusResponse()
+                        {
+                            HasAllScoresDefined = false,
+                            MissingScores = missingScores.Select(q => new ScoutingScoreDto()
+                            {
+                                Id = q.Id,
+                                Name = q.Name,
+                                CreatedAt = q.CreatedAt,
+                                IsDynamicallyCalculated = q.IsDynamicallyCalculated,
+                                Ordinal = q.Ordinal,
+                                Score = q.Score,
+                                UpdatedAt = q.UpdatedAt
+                            }).ToList()
+                        });
+                }
+                else
                 {
-                    HasAllScoresDefined = true,
-                    MissingScores = []
-                });
+                    _logger.LogInformation("All scores defined");
+                    return await HttpResponseDataFactory.CreateForSuccess(httpRequestData,
+                        new GetScoresDefinedStatusResponse()
+                        {
+                            HasAllScoresDefined = true,
+                            MissingScores = []
+                        });
+                }
             }
         });
     }
