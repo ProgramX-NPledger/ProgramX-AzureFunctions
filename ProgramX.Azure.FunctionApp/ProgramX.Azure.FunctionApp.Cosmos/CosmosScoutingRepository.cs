@@ -77,7 +77,7 @@ public class CosmosScoutingRepository(CosmosClient cosmosClient, ILogger<CosmosS
     }
 
     /// <inheritdoc/>
-    /// <exception cref="ItemCreationException">Thrown if the item could no be created.</exception>
+    /// <exception cref="ItemCreationException">Thrown if the item could not be created.</exception>
     public async Task<ScoutingScore> CreateScoreAsync(string id, string name, int score, bool isDynamicallyCalculated, int? ordinal)
     {
         var container = cosmosClient.GetContainer(DatabaseNames.Scouting, ContainerNames.Scores);
