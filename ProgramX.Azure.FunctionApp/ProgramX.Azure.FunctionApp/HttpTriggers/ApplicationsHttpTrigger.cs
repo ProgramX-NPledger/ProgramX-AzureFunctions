@@ -49,6 +49,9 @@ public class ApplicationsHttpTrigger(
                 var withinRoles = httpRequestData.Query["supportsRoles"]==null ? null : Uri.UnescapeDataString(httpRequestData.Query["supportsRoles"]!).Split(
                     [',']);
                 
+                // this is not to be used as a security guard and is only for convenience
+                var limitToAuthorisedRoles = httpRequestData.Query["limitToAuthorisedRoles"]==null ? null : bool.TryParse(httpRequestData.Query["limitToAuthorisedRoles"]!, out var limit) ? limit : (bool?)null;
+                
                 var allApplications = _applicationProvider.GetAllApplications(new GetAllApplicationsCriteria());
                 var filteredApplications = new List<IApplication>();
 
@@ -70,6 +73,12 @@ public class ApplicationsHttpTrigger(
                 if (withinRoles != null && withinRoles.Any())
                 {
                     filteredApplications = filteredApplications.Where(a => withinRoles.Intersect(a.GetApplicationMetaData().RequiresRoleNames).Any()).ToList();
+                }
+
+                if (limitToAuthorisedRoles != null && limitToAuthorisedRoles.Value)
+                {
+                    // override withinRoles criteria
+                    filteredApplications = filteredApplications.Where(a => memberOfRoles.Intersect(a.GetApplicationMetaData().RequiresRoleNames).Any()).ToList();
                 }
                 
                 // remove applications user does not have access to
