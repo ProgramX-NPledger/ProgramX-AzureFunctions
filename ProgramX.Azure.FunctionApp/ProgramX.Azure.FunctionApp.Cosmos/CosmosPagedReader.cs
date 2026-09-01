@@ -133,10 +133,16 @@ public class CosmosPagedReader<T> : CosmosReader<T>
 
     private QueryDefinition BuildTotalItemsCountQueryDefinition(QueryDefinition queryDefinition)
     {
-        var countQueryDefinition = new QueryDefinition("SELECT VALUE COUNT(1) " +
-                                                       queryDefinition.QueryText.Substring(
-                                                           queryDefinition.QueryText.IndexOf("FROM",
-                                                               StringComparison.InvariantCultureIgnoreCase)));
+        var fromOnwards = queryDefinition.QueryText.Substring(
+            queryDefinition.QueryText.IndexOf("FROM", StringComparison.InvariantCultureIgnoreCase));
+
+        // an ORDER BY is meaningless for a count, and Cosmos DB rejects it alongside an
+        // aggregate - it also makes the count an "order by query", requiring an index it
+        // has no need for. Drop everything from the ORDER BY onwards.
+        var orderByIndex = fromOnwards.IndexOf("ORDER BY", StringComparison.InvariantCultureIgnoreCase);
+        if (orderByIndex >= 0) fromOnwards = fromOnwards.Substring(0, orderByIndex);
+
+        var countQueryDefinition = new QueryDefinition("SELECT VALUE COUNT(1) " + fromOnwards);
         foreach (var parameter in queryDefinition.GetQueryParameters())
         {
             countQueryDefinition.WithParameter(parameter.Name,parameter.Value);

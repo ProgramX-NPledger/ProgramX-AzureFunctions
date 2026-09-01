@@ -2,7 +2,6 @@ using System.Collections;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using System.Collections.ObjectModel;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using ProgramX.Azure.FunctionApp.Contract;
@@ -28,14 +27,12 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
             
             CosmosReader<Role> cosmosReader;
             IResult<Role> result;
-            var containerProperties = CreateRolesContainerProperties();
             if (pagedCriteria != null)
             {
                 cosmosReader = new CosmosPagedReader<Role>(cosmosClient,
                     DatabaseNames.Core,
                     ContainerNames.Roles,
-                    ContainerNames.RoleNamePartitionKey,
-                    containerProperties);
+                    ContainerNames.RoleNamePartitionKey);
                 result = await ((CosmosPagedReader<Role>)cosmosReader).GetPagedItemsAsync(queryDefinition,
                     pagedCriteria.Offset,
                     pagedCriteria.ItemsPerPage);
@@ -45,8 +42,7 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
                 cosmosReader = new CosmosReader<Role>(cosmosClient,
                     DatabaseNames.Core,
                     ContainerNames.Roles,
-                    ContainerNames.RoleNamePartitionKey,
-                    containerProperties);
+                    ContainerNames.RoleNamePartitionKey);
                 result = await cosmosReader.GetItemsAsync(queryDefinition);
             }
 
@@ -320,13 +316,16 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
         if (!string.IsNullOrWhiteSpace(criteria.ContainingText))
         {
             sb.Append(@" AND (
-                            CONTAINS(UPPER(c.name), @containsText) OR 
+                            CONTAINS(UPPER(c.roleName), @containsText) OR
                             CONTAINS(UPPER(c.description), @containsText)
                             )");
             parameters.Add(("@containsText", criteria.ContainingText.ToUpperInvariant()));
         }
         
-        sb.Append(" ORDER BY c.name, c.id");
+        // roleName is the partition key and is unique, so it is sufficient on its own.
+        // Ordering by a single property is served by the default range index; adding c.id
+        // would make this a multi-property ORDER BY, which requires a composite index.
+        sb.Append(" ORDER BY c.roleName");
         
         var queryDefinition = new QueryDefinition(sb.ToString());
         foreach (var param in parameters)
@@ -337,31 +336,5 @@ public class CosmosRoleRepository(CosmosClient cosmosClient, ILogger<CosmosRoleR
         
         return queryDefinition;
     }
-
-    private static ContainerProperties CreateRolesContainerProperties()
-    {
-        var containerProperties = new ContainerProperties(ContainerNames.Roles, ContainerNames.RoleNamePartitionKey)
-        {
-            IndexingPolicy = new IndexingPolicy()
-        };
-
-        containerProperties.IndexingPolicy.CompositeIndexes.Add(new Collection<CompositePath>
-        {
-            new()
-            {
-                Path = "/name",
-                Order = CompositePathSortOrder.Ascending
-            },
-            new()
-            {
-                Path = "/id",
-                Order = CompositePathSortOrder.Ascending
-            }
-        });
-
-        return containerProperties;
-    }
-    
-    
 
 }
