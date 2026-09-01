@@ -108,4 +108,16 @@ builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
 builder.Logging.AddFilter("System", LogLevel.Warning);
 builder.Logging.AddFilter("Microsoft.Azure.Functions.Worker", LogLevel.Information);
 
+// AddApplicationInsightsTelemetryWorkerService() installs a filter rule scoped to the
+// Application Insights provider that caps it at Warning. Provider-scoped rules always beat
+// category rules and SetMinimumLevel, so without removing it every LogInformation/LogDebug
+// call is written to the local console but silently dropped before it reaches App Insights.
+// See https://learn.microsoft.com/azure/azure-monitor/app/worker-service#ilogger-logs
+builder.Logging.Services.Configure<LoggerFilterOptions>(options =>
+{
+    var applicationInsightsRule = options.Rules.FirstOrDefault(rule => rule.ProviderName
+        == "Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider");
+    if (applicationInsightsRule is not null) options.Rules.Remove(applicationInsightsRule);
+});
+
 builder.Build().Run();
